@@ -99,8 +99,8 @@ export async function POST(request: Request) {
       formData.append("currency", "BDT");
       formData.append("tran_id", tranId);
       formData.append("success_url", `${siteUrl}/api/payment/sslcommerz/ipn`);
-      formData.append("fail_url`, `${siteUrl}/api/payment/sslcommerz/ipn`);
-      formData.append("cancel_url`, `${siteUrl}/api/payment/sslcommerz/ipn`);
+      formData.append("fail_url", `${siteUrl}/api/payment/sslcommerz/ipn`);
+      formData.append("cancel_url", `${siteUrl}/api/payment/sslcommerz/ipn`);
       formData.append("cus_name", customerName);
       formData.append("cus_email", customerEmail || "customer@sashroyidaam.com");
       formData.append("cus_add1", fullAddress);
