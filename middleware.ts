@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Protect /admin routes at middleware level (RBAC is also enforced on the server)
+  // Protect /admin routes at middleware level
   if (pathname.startsWith("/admin")) {
     if (!user) {
       const loginUrl = request.nextUrl.clone();
