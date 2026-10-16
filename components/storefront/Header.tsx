@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   ShoppingBag,
   Search,
@@ -17,8 +17,7 @@ import { toBengaliNumber } from "@/lib/utils";
 
 export function Header() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get("q") || "");
+  const [query, setQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -79,7 +78,7 @@ export function Header() {
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
 
-        {/* Brand Logo: সাশ্রয়ী দাম | Sashroyi Daam */}
+        {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
           <div className="w-10 h-10 rounded-lg bg-brand flex items-center justify-center text-white font-bold text-xl tracking-tight shadow-sm group-hover:bg-brand-dark transition-colors">
             সা
@@ -238,21 +237,6 @@ export function Header() {
             >
               মোবাইল ও গ্যাজেট এক্সেসরিজ
             </Link>
-            <Link
-              href="/products?category=everyday-fashion"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2 px-3 rounded-md hover:bg-gray-100"
-            >
-              ডেইলি ফ্যাশন ও লাইফস্টাইল
-            </Link>
-            <Link
-              href="/products?category=home-organizers"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2 px-3 rounded-md hover:bg-gray-100"
-            >
-              হোম অর্গানাইজার
-            </Link>
-            <hr className="my-2 border-gray-200" />
             <Link
               href="/track-order"
               onClick={() => setMobileMenuOpen(false)}
