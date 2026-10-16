@@ -1,13 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
-import * as dotenv from "dotenv";
-
-dotenv.config({ path: ".env.local" });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceKey) {
-  console.error("❌ Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL in .env.local");
+  console.error("❌ Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL in environment variables.");
   process.exit(1);
 }
 
@@ -22,7 +19,6 @@ async function provisionSuperAdmin() {
 
   console.log(`🔐 Provisioning Super Admin for Sashroyi Daam: ${email}`);
 
-  // 1. Create auth user via admin API
   const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
     email,
     password,
@@ -49,7 +45,6 @@ async function provisionSuperAdmin() {
     process.exit(1);
   }
 
-  // 2. Upsert profile with super_admin role
   const { error: profileError } = await adminSupabase.from("profiles").upsert({
     id: targetId,
     full_name: "Sashroyi Daam Super Admin",
