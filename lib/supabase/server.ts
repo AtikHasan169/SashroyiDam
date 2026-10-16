@@ -5,35 +5,34 @@ import { redirect } from "next/navigation";
 import type { UserRole } from "@/types/database";
 import { hasPermission } from "@/lib/utils";
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
 export function createSupabaseServerClient() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Your project's URL and Key are required to create a Supabase client! Check your Vercel Environment Variables.");
+  }
+
   const cookieStore = cookies();
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignored when called from a Server Component
-          }
-        },
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        } catch {
+          // Ignored when called from a Server Component
+        }
+      },
+    },
+  });
 }
 
-/**
- * Strictly server-only Supabase client using Service Role Key.
- * Never import this in any Client Component.
- */
 export function createSupabaseAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -50,9 +49,6 @@ export function createSupabaseAdminClient() {
   });
 }
 
-/**
- * Server-enforced RBAC guard for Admin Pages and Server Actions.
- */
 export async function requireStaffPermission(requiredPermission = "dashboard.view") {
   const supabase = createSupabaseServerClient();
   const {
