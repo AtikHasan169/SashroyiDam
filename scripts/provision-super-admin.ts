@@ -1,13 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
-import * as dotenv from "dotenv";
-
-dotenv.config({ path: ".env.local" });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceKey) {
-  console.error("❌ Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL in .env.local");
+  console.error("❌ Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL in environment variables.");
   process.exit(1);
 }
 
@@ -20,7 +17,7 @@ async function provisionSuperAdmin() {
   const password = process.env.INITIAL_SUPER_ADMIN_PASSWORD || "SashroyiDamAdmin!2026";
   const phone = process.env.INITIAL_SUPER_ADMIN_PHONE || "01700000000";
 
-  console.log(`🔐 Provisioning Super Admin for Sashroyi Daam: ${email}`);
+  console.log(`🔐 Provisioning Super Admin for সাশ্রয়ী দাম (SashroyiDaam): ${email}`);
 
   // 1. Create auth user via admin API
   const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
@@ -36,17 +33,12 @@ async function provisionSuperAdmin() {
 
   const userId = authData?.user?.id;
 
-  if (!userId) {
-    // If user already exists, fetch ID
-    const { data: listData } = await adminSupabase.auth.admin.listUsers();
-    const existing = listData.users.find((u) => u.email === email);
-    if (!existing) {
-      console.error("❌ Could not find user.");
-      process.exit(1);
-    }
-  }
-
   const targetId = userId || (await adminSupabase.auth.admin.listUsers()).users.find((u) => u.email === email)?.id;
+
+  if (!targetId) {
+    console.error("❌ Could not find user.");
+    process.exit(1);
+  }
 
   // 2. Upsert profile with super_admin role
   const { error: profileError } = await adminSupabase.from("profiles").upsert({
