@@ -1,0 +1,6 @@
+{
+  "name": "Oshesh - অশেষ | Bangladesh E-commerce",
+  "description": "আপনার পছন্দ, অশেষ সম্ভাবনা — Authentic household, lifestyle, electronics and fashion retail across Bangladesh with cash on delivery and secure payments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
