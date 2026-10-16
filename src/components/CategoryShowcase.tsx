@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Category } from '../types/index.ts';
+import { useLanguage } from '../context/LanguageContext.tsx';
 
 interface CategoryShowcaseProps {
   categories: Category[];
@@ -12,16 +13,18 @@ export const CategoryShowcase: React.FC<CategoryShowcaseProps> = ({
   selectedCategory,
   onSelectCategory
 }) => {
+  const { language, formatNumber } = useLanguage();
+
   return (
     <section id="categories" className="py-8 bg-white border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
-              জনপ্রিয় ক্যাটাগরি
+              {language === 'en' ? 'Popular Categories' : 'জনপ্রিয় ক্যাটাগরি'}
             </h2>
             <p className="text-xs sm:text-sm text-stone-500 mt-1">
-              আপনার নিত্যপ্রয়োজনীয় পছন্দসমূহ এক নজরে
+              {language === 'en' ? 'Your everyday essential picks at a glance' : 'আপনার নিত্যপ্রয়োজনীয় পছন্দসমূহ এক নজরে'}
             </p>
           </div>
 
@@ -33,7 +36,7 @@ export const CategoryShowcase: React.FC<CategoryShowcaseProps> = ({
                 : 'text-stone-500 hover:text-stone-900'
             }`}
           >
-            সব ক্যাটাগরি দেখুন
+            {language === 'en' ? 'View All Categories' : 'সব ক্যাটাগরি দেখুন'}
           </button>
         </div>
 
@@ -65,10 +68,10 @@ export const CategoryShowcase: React.FC<CategoryShowcaseProps> = ({
                     {cat.nameEn}
                   </div>
                   <h3 className="text-sm font-bold text-stone-900 mt-0.5 group-hover:text-[#0F4C3A] transition-colors">
-                    {cat.nameBn}
+                    {language === 'en' && cat.nameEn ? cat.nameEn : cat.nameBn}
                   </h3>
                   <div className="text-[11px] text-stone-500 mt-1 flex items-center gap-1.5">
-                    <span>{cat.productCount ?? 0} টি পণ্য</span>
+                    <span>{formatNumber(cat.productCount ?? 0)} {language === 'bn' ? 'টি পণ্য' : 'products'}</span>
                   </div>
                 </div>
               </button>

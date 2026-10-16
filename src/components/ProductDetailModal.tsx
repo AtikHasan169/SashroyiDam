@@ -33,6 +33,7 @@ interface ProductDetailModalProps {
   onProductUpdated?: () => void;
   onOpenDedicatedPage?: (p: Product) => void;
   onOpenCheckout?: () => void;
+  onDirectBuy?: (product: Product, variantId?: string, quantity?: number) => void;
   onEditProduct?: (p: Product) => void;
   onDeleteProduct?: (id: string) => void;
 }
@@ -43,6 +44,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onProductUpdated,
   onOpenDedicatedPage,
   onOpenCheckout,
+  onDirectBuy,
   onEditProduct,
   onDeleteProduct
 }) => {
@@ -124,10 +126,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const handleBuyNow = () => {
     if (isOutOfStock) return;
-    addToCart(product.id, selectedVariantId, quantity);
-    onClose();
-    if (onOpenCheckout) {
-      onOpenCheckout();
+    if (onDirectBuy) {
+      onDirectBuy(product, selectedVariantId, quantity);
+      onClose();
+    } else {
+      addToCart(product.id, selectedVariantId, quantity);
+      onClose();
+      if (onOpenCheckout) {
+        onOpenCheckout();
+      }
     }
   };
 
@@ -550,15 +557,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     className="py-2 px-3 rounded-xl border border-stone-200 hover:border-stone-300 text-stone-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     {copiedLink ? (
-                      <>
+                      <span className="flex items-center gap-1.5">
                         <Check className="w-4 h-4 text-emerald-600" />
                         <span className="text-emerald-700 font-bold">লিংক কপি হয়েছে!</span>
-                      </>
+                      </span>
                     ) : (
-                      <>
+                      <span className="flex items-center gap-1.5">
                         <Share2 className="w-4 h-4" />
                         <span>শেয়ার</span>
-                      </>
+                      </span>
                     )}
                   </button>
                 </div>

@@ -2,12 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { getDatabase, withTransaction, recordAuditLog } from '../db.ts';
 import { authenticateUser, type AuthenticatedRequest } from '../auth.ts';
-import type {
+import {
   Order,
   OrderItemSnapshot,
   OrderFulfilmentStatus,
   InventoryMovement
 } from '../../types/index.ts';
+import { syncOrderToSupabase } from '../supabase.ts';
 
 const router = Router();
 
@@ -153,7 +154,13 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 
       if (couponCode && couponCode.trim()) {
         const cCode = couponCode.trim().toUpperCase();
-        const coupon = db.coupons.find((c) => c.code === cCode && c.isActive);
+        const coupon = db.coupons.find(
+          (c) =>
+            (c.code === cCode ||
+              (cCode === 'OSHESH10' && c.code === 'SASHROYI10') ||
+              (cCode === 'SASHROYI10' && c.code === 'OSHESH10')) &&
+            c.isActive
+        );
         if (
           coupon &&
           new Date(coupon.expiresAt).getTime() >= Date.now() &&
@@ -190,7 +197,7 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 
       // 4. Generate Unique Order Number
       const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-      const orderNumber = `OSH-${new Date().getFullYear()}-${randomSuffix}`;
+      const orderNumber = `SD-${new Date().getFullYear()}-${randomSuffix}`;
       const orderId = `ord-${Date.now()}`;
 
       // 5. Initial Status Timeline
@@ -239,6 +246,9 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 
       return order;
     });
+
+    // Sync to Supabase PostgreSQL in background
+    syncOrderToSupabase(newOrder).catch((err) => console.warn('Supabase order sync error:', err));
 
     res.status(201).json({
       order: newOrder,

@@ -27,6 +27,7 @@ import type { Product, Review, Category } from '../types/index.ts';
 import { useCart } from '../context/CartContext.tsx';
 import { useWishlist } from '../context/WishlistContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
+import { useLanguage } from '../context/LanguageContext.tsx';
 import { api } from '../lib/api.ts';
 import { ProductHighlightBadge } from './ProductHighlightBadge.tsx';
 
@@ -37,6 +38,7 @@ interface ProductPageProps {
   onBack: () => void;
   onOpenProduct: (p: Product) => void;
   onOpenCheckout: () => void;
+  onDirectBuy?: (product: Product, variantId?: string, quantity?: number) => void;
   onEditProduct?: (p: Product) => void;
   onDeleteProduct?: (id: string) => void;
 }
@@ -48,13 +50,16 @@ export const ProductPage: React.FC<ProductPageProps> = ({
   onBack,
   onOpenProduct,
   onOpenCheckout,
+  onDirectBuy,
   onEditProduct,
   onDeleteProduct
 }) => {
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { user } = useAuth();
+  const { language, t, formatPrice, formatNumber } = useLanguage();
   const isAdmin = user?.role === 'admin';
+  const title = language === 'en' && product.titleEn ? product.titleEn : product.titleBn;
 
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
     product.variants && product.variants.length > 0 ? product.variants[0].id : undefined
@@ -132,8 +137,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({
 
   const handleBuyNow = () => {
     if (isOutOfStock) return;
-    addToCart(product.id, selectedVariantId, quantity);
-    onOpenCheckout();
+    if (onDirectBuy) {
+      onDirectBuy(product, selectedVariantId, quantity);
+    } else {
+      addToCart(product.id, selectedVariantId, quantity);
+      onOpenCheckout();
+    }
   };
 
   const handleShare = () => {
@@ -228,15 +237,17 @@ export const ProductPage: React.FC<ProductPageProps> = ({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold transition-colors cursor-pointer shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>শপে ফিরে যান</span>
+              <span>{language === 'en' ? 'Back to Shop' : 'শপে ফিরে যান'}</span>
             </button>
             <span className="text-stone-300">/</span>
             <span className="text-stone-500 truncate hidden sm:inline">
-              {matchedCategory?.nameBn || product.categoryNameBn || 'ক্যাটাগরি'}
+              {language === 'en' && matchedCategory?.nameEn
+                ? matchedCategory.nameEn
+                : (matchedCategory?.nameBn || product.categoryNameBn || (language === 'en' ? 'Category' : 'ক্যাটাগরি'))}
             </span>
             <span className="text-stone-300 hidden sm:inline">/</span>
             <span className="font-semibold text-stone-900 truncate">
-              {product.titleBn}
+              {title}
             </span>
           </div>
 
@@ -247,20 +258,20 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                   <button
                     onClick={() => onEditProduct(product)}
                     className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-                    title="পণ্য সম্পাদনা করুন"
+                    title={language === 'en' ? 'Edit Product' : 'পণ্য সম্পাদনা করুন'}
                   >
                     <Edit className="w-3.5 h-3.5 text-amber-700" />
-                    <span className="hidden sm:inline">সম্পাদনা</span>
+                    <span className="hidden sm:inline">{language === 'en' ? 'Edit' : 'সম্পাদনা'}</span>
                   </button>
                 )}
                 {onDeleteProduct && (
                   <button
                     onClick={() => onDeleteProduct(product.id)}
                     className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-                    title="পণ্য মুছে ফেলুন"
+                    title={language === 'en' ? 'Delete Product' : 'পণ্য মুছে ফেলুন'}
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                    <span className="hidden sm:inline">মুছে ফেলুন</span>
+                    <span className="hidden sm:inline">{language === 'en' ? 'Delete' : 'মুছে ফেলুন'}</span>
                   </button>
                 )}
               </div>
@@ -271,15 +282,15 @@ export const ProductPage: React.FC<ProductPageProps> = ({
               className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-stone-200 hover:bg-stone-100 text-xs font-semibold flex items-center gap-1.5 text-stone-700 transition-colors cursor-pointer"
             >
               {copiedLink ? (
-                <>
+                <span className="flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-emerald-700 font-bold">কপি হয়েছে!</span>
-                </>
+                  <span className="text-emerald-700 font-bold">{language === 'en' ? 'Copied!' : 'কপি হয়েছে!'}</span>
+                </span>
               ) : (
-                <>
+                <span className="flex items-center gap-1.5">
                   <Share2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">শেয়ার করুন</span>
-                </>
+                  <span className="hidden sm:inline">{language === 'en' ? 'Share' : 'শেয়ার করুন'}</span>
+                </span>
               )}
             </button>
           </div>
@@ -405,9 +416,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({
 
                 {/* Title */}
                 <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight leading-snug">
-                  {product.titleBn}
+                  {title}
                 </h1>
-                {product.titleEn && (
+                {language === 'bn' && product.titleEn && (
                   <p className="text-xs text-stone-400 font-normal -mt-2">
                     {product.titleEn}
                   </p>
@@ -419,12 +430,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                     <Star className="w-3.5 h-3.5 fill-current" />
                     <span className="tabular-nums">{product.rating.toFixed(1)}</span>
                   </div>
-                  <span>{reviews.length || product.reviewCount} টি ভেরিফাইড রিভিউ</span>
+                  <span>{reviews.length || product.reviewCount} {t('verifiedReviews')}</span>
                   {product.salesCount > 0 && (
-                    <>
+                    <span className="inline-flex items-center gap-1.5">
                       <span>·</span>
-                      <span className="text-emerald-700 font-semibold">{product.salesCount} টি বিক্রি সম্পন্ন</span>
-                    </>
+                      <span className="text-emerald-700 font-semibold">{product.salesCount} {t('soldCount')}</span>
+                    </span>
                   )}
                 </div>
 
@@ -432,17 +443,17 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                 <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-1.5">
                   <div className="flex items-baseline gap-3">
                     <span className="text-2xl sm:text-3xl font-bold text-stone-950 tabular-nums">
-                      ৳{currentPrice.toLocaleString('bn-BD')}
+                      {formatPrice(currentPrice)}
                     </span>
                     {product.originalPrice && product.originalPrice > currentPrice && (
-                      <>
+                      <span className="inline-flex items-baseline gap-2">
                         <span className="text-base text-stone-400 line-through tabular-nums">
-                          ৳{product.originalPrice.toLocaleString('bn-BD')}
+                          {formatPrice(product.originalPrice)}
                         </span>
                         <span className="px-2 py-0.5 bg-rose-600 text-white rounded text-xs font-bold shadow-2xs">
-                          ৳{product.originalPrice - currentPrice} সাশ্রয়
+                          {t('savings', { amount: formatPrice(product.originalPrice - currentPrice) })}
                         </span>
-                      </>
+                      </span>
                     )}
                   </div>
 
@@ -451,17 +462,17 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                     {isOutOfStock ? (
                       <span className="text-rose-600 flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-rose-500" />
-                        বর্তমানে স্টক শেষ (Out of Stock)
+                        {t('outOfStock')}
                       </span>
                     ) : currentStock <= 5 ? (
                       <span className="text-amber-700 flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                        সীমিত স্টক: মাত্র {currentStock} টি বাকি আছে!
+                        {t('onlyFewLeft', { count: currentStock })}
                       </span>
                     ) : (
                       <span className="text-emerald-700 flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                        স্টকে প্রস্তুত আছে ({currentStock} টি)
+                        {t('inStock')} ({currentStock})
                       </span>
                     )}
                   </div>
@@ -551,7 +562,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                     }`}
                   >
                     <ShoppingBag className="w-4 h-4" />
-                    <span>কার্টে যোগ করুন</span>
+                    <span>{t('addToBag')}</span>
                   </button>
 
                   <button
@@ -563,7 +574,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                         : 'bg-[#0F4C3A] hover:bg-[#135D48] text-white hover:shadow-lg'
                     }`}
                   >
-                    <span>এখনই অর্ডার করুন (Buy Now)</span>
+                    <span>{t('buyNow')}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -882,7 +893,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
             />
 
             {product.images.length > 1 && (
-              <>
+              <div className="contents">
                 <button
                   onClick={() =>
                     setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : product.images.length - 1))
@@ -899,11 +910,50 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                 >
                   <ChevronRight className="w-6 h-6" />
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
       )}
+
+      {/* Sticky Mobile Purchase Bar (Shreshtho Style for 1-thumb purchasing) */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200/90 p-3 shadow-2xl md:hidden flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] text-stone-500 font-medium truncate">
+            {title}
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-base font-bold text-stone-900 tabular-nums">
+              {formatPrice(currentPrice * quantity)}
+            </span>
+            {product.originalPrice && product.originalPrice > currentPrice && (
+              <span className="text-[11px] text-stone-400 line-through tabular-nums">
+                {formatPrice(product.originalPrice * quantity)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleAddToCart}
+            disabled={isOutOfStock}
+            className="p-2.5 rounded-xl border border-emerald-600 text-[#0F4C3A] bg-emerald-50 hover:bg-emerald-100 font-bold text-xs flex items-center justify-center cursor-pointer disabled:opacity-50"
+            title={t('addToBag')}
+          >
+            <ShoppingBag className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={handleBuyNow}
+            disabled={isOutOfStock}
+            className="py-2.5 px-4 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
+          >
+            <span>{t('buyNow')}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

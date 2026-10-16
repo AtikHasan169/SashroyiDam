@@ -2,8 +2,8 @@
   "users": [
     {
       "id": "user-superadmin",
-      "name": "Oshesh Super Admin",
-      "email": "admin@oshesh.com.bd",
+      "name": "সাশ্রয়ী দাম অ্যাডমিন",
+      "email": "admin@sashroyidaam.com",
       "phone": "01700000001",
       "role": "super_admin",
       "passwordHash": "10b4e4e1738b974f700de966e6b8e5ed6fe1cc7fa05023f847385b3690f12ccf",
@@ -12,7 +12,7 @@
     {
       "id": "user-ordermanager",
       "name": "রাশেদ চৌধুরী (Order Manager)",
-      "email": "orders@oshesh.com.bd",
+      "email": "orders@sashroyidaam.com",
       "phone": "01700000002",
       "role": "order_manager",
       "passwordHash": "0f8d4cb6065a676d8b91af203afc7d979465ea133492862d6789f15243402dbc",
@@ -21,7 +21,7 @@
     {
       "id": "user-customer1",
       "name": "আরিফ মাহমুদ",
-      "email": "customer@oshesh.com.bd",
+      "email": "customer@sashroyidaam.com",
       "phone": "01711223344",
       "role": "customer",
       "passwordHash": "f8b4f1e5383d7ba822eda75cf42d99f375593171fdda141ce586f71b65de63fa",
@@ -43,6 +43,23 @@
   ],
   "categories": [
     {
+      "id": "cat-shirts",
+      "slug": "shirts-polos",
+      "nameBn": "শার্ট ও টি-শার্ট",
+      "nameEn": "Shirts & Polos",
+      "descriptionBn": "প্রিমিয়াম সুতি ক্যাজুয়াল শার্ট, ফর্মাল শার্ট, পোলো ও টি-শার্ট। সাইজ ও কালার অপশন সহ।",
+      "image": "/src/assets/images/category_fashion_handcraft_1792084990401.jpg",
+      "displayOrder": 1,
+      "isFeatured": true,
+      "variantType": "apparel_sizes",
+      "defaultOptions": [
+        "M (৪০)",
+        "L (৪২)",
+        "XL (৪৪)",
+        "XXL (৪৬)"
+      ]
+    },
+    {
       "id": "cat-kitchen",
       "slug": "kitchen-dining",
       "nameBn": "রান্নাঘর ও গৃহস্থালি",
@@ -50,7 +67,13 @@
       "descriptionBn": "রান্নাঘরের নির্ভরযোগ্য সামগ্রী, কপার ও কাস্ট আয়রন প্যান এবং পরিবেশন পাত্র।",
       "image": "/src/assets/images/category_kitchen_cookware_1792084991823.jpg",
       "displayOrder": 1,
-      "isFeatured": true
+      "isFeatured": true,
+      "variantType": "pack_options",
+      "defaultOptions": [
+        "১ পিস একক",
+        "২ পিস সেট",
+        "৪ পিস কমপ্লিট সেট"
+      ]
     },
     {
       "id": "cat-fashion",
@@ -60,7 +83,14 @@
       "descriptionBn": "দেশি তাঁতের জামদানি, সুতি পাঞ্জাবি, শাড়ি ও হস্তনির্মিত প্রাকৃতিক অনুষঙ্গ।",
       "image": "/src/assets/images/category_fashion_handcraft_1792084990401.jpg",
       "displayOrder": 2,
-      "isFeatured": true
+      "isFeatured": true,
+      "variantType": "apparel_sizes",
+      "defaultOptions": [
+        "M (৪০)",
+        "L (৪২)",
+        "XL (৪৪)",
+        "XXL (৪৬)"
+      ]
     },
     {
       "id": "cat-gadgets",
@@ -70,7 +100,13 @@
       "descriptionBn": "টেকসই পাওয়ার ব্যাংক, দ্রুত চার্জিং ক্যাবল, অডিও ডিভাইস এবং স্মার্ট লাইফস্টাইল পণ্য।",
       "image": "/src/assets/images/category_tech_lifestyle_1792084991359.jpg",
       "displayOrder": 3,
-      "isFeatured": true
+      "isFeatured": true,
+      "variantType": "color_options",
+      "defaultOptions": [
+        "ম্যাট ব্ল্যাক",
+        "স্পেস গ্রে",
+        "সিলভার"
+      ]
     },
     {
       "id": "cat-personal-care",
@@ -80,10 +116,84 @@
       "descriptionBn": "প্রাকৃতিক উপাদানযুক্ত যত্ন, ভেষজ তেল, এবং নিরাপদ অর্গানিক পণ্য।",
       "image": "/src/assets/images/hero_oshesh_lifestyle_1792084990587.jpg",
       "displayOrder": 4,
-      "isFeatured": false
+      "isFeatured": false,
+      "variantType": "none"
     }
   ],
   "products": [
+    {
+      "id": "prod-oxford-cotton-shirt",
+      "slug": "premium-oxford-cotton-slim-fit-shirt",
+      "titleBn": "প্রিমিয়াম ১০০% অক্সফোর্ড কটন ফুল স্লিভ ক্যাজুয়াল শার্ট",
+      "titleEn": "Premium 100% Combed Oxford Cotton Slim Fit Full Sleeve Shirt",
+      "descriptionBn": "খাঁটি ১০০% কম্বড অক্সফোর্ড সুতির নিখুঁত ফিনিশিং করা স্লিম ফিট লং স্লিভ শার্ট। অফিস, আড্ডা কিংবা যেকোনো অনুষ্ঠানে সর্বোচ্চ আরামদায়ক। মসৃণ ফেব্রিক, টেকসই স্টিচিং এবং প্রিমিয়াম কাটিং। সাইজ চার্ট অনুযায়ী পারফেক্ট ফিটিংস।",
+      "descriptionEn": "Tailored slim-fit full-sleeve shirt crafted from 100% pure combed oxford cotton. Breathable, durable stitching, and elegant casual look.",
+      "price": 1250,
+      "originalPrice": 1550,
+      "stock": 40,
+      "categoryId": "cat-shirts",
+      "categorySlug": "shirts-polos",
+      "categoryNameBn": "শার্ট ও টি-শার্ট",
+      "brand": "Sashroyi Fashion",
+      "sku": "SD-SHIRT-001",
+      "images": [
+        "/src/assets/images/category_fashion_handcraft_1792084990401.jpg"
+      ],
+      "variants": [
+        {
+          "id": "v-shirt-m",
+          "nameBn": "M (সাইজ ৪০)",
+          "nameEn": "Size 40 (M)",
+          "sku": "SD-SHIRT-001-M",
+          "priceDelta": 0,
+          "stock": 12,
+          "attributes": {
+            "সাইজ": "M (৪০)"
+          }
+        },
+        {
+          "id": "v-shirt-l",
+          "nameBn": "L (সাইজ ৪২)",
+          "nameEn": "Size 42 (L)",
+          "sku": "SD-SHIRT-001-L",
+          "priceDelta": 0,
+          "stock": 15,
+          "attributes": {
+            "সাইজ": "L (৪২)"
+          }
+        },
+        {
+          "id": "v-shirt-xl",
+          "nameBn": "XL (সাইজ ৪৪)",
+          "nameEn": "Size 44 (XL)",
+          "sku": "SD-SHIRT-001-XL",
+          "priceDelta": 0,
+          "stock": 13,
+          "attributes": {
+            "সাইজ": "XL (৪৪)"
+          }
+        }
+      ],
+      "attributes": {
+        "ফেব্রিক": "১০০% অক্সফোর্ড কটন",
+        "ফিটিং": "স্লিম ফিট",
+        "হাতা": "ফুল স্লিভ"
+      },
+      "isFeatured": true,
+      "isPublished": true,
+      "isArchived": false,
+      "salesCount": 42,
+      "rating": 4.9,
+      "reviewCount": 16,
+      "tags": [
+        "Shirt",
+        "শার্ট",
+        "New Arrivals",
+        "Best Sellers"
+      ],
+      "createdAt": "2026-10-10T08:00:00.000Z",
+      "updatedAt": "2026-10-16T08:00:00.000Z"
+    },
     {
       "id": "prod-copper-cookware-set",
       "slug": "traditional-hammered-copper-cookware-set",
@@ -97,7 +207,7 @@
       "categoryId": "cat-kitchen",
       "categorySlug": "kitchen-dining",
       "categoryNameBn": "রান্নাঘর ও গৃহস্থালি",
-      "brand": "Oshesh Home",
+      "brand": "সাশ্রয়ী হোম",
       "sku": "OSH-KIT-001",
       "images": [
         "/src/assets/images/category_kitchen_cookware_1792084991823.jpg"
@@ -159,7 +269,7 @@
       "categoryId": "cat-fashion",
       "categorySlug": "fashion-lifestyle",
       "categoryNameBn": "ফ্যাশন ও কারুকাজ",
-      "brand": "Oshesh Heritage",
+      "brand": "সাশ্রয়ী হেরিটেজ",
       "sku": "OSH-FAS-002",
       "images": [
         "/src/assets/images/category_fashion_handcraft_1792084990401.jpg"
@@ -235,7 +345,7 @@
       "categoryId": "cat-gadgets",
       "categorySlug": "gadgets-accessories",
       "categoryNameBn": "গ্যাজেট ও ইলেকট্রনিক্স",
-      "brand": "Oshesh Tech",
+      "brand": "সাশ্রয়ী টেক",
       "sku": "OSH-GAD-003",
       "images": [
         "/src/assets/images/category_tech_lifestyle_1792084991359.jpg"
@@ -299,7 +409,7 @@
       "categoryId": "cat-kitchen",
       "categorySlug": "kitchen-dining",
       "categoryNameBn": "রান্নাঘর ও গৃহস্থালি",
-      "brand": "Oshesh Craft",
+      "brand": "সাশ্রয়ী ক্রাফট",
       "sku": "OSH-HOM-004",
       "images": [
         "/src/assets/images/hero_oshesh_lifestyle_1792084990587.jpg"
@@ -360,7 +470,7 @@
       "categoryId": "cat-gadgets",
       "categorySlug": "gadgets-accessories",
       "categoryNameBn": "গ্যাজেট ও ইলেকট্রনিক্স",
-      "brand": "Oshesh Tech",
+      "brand": "সাশ্রয়ী টেক",
       "sku": "OSH-GAD-005",
       "images": [
         "/src/assets/images/category_tech_lifestyle_1792084991359.jpg"
@@ -397,7 +507,7 @@
       "categoryId": "cat-gadgets",
       "categorySlug": "gadgets-accessories",
       "categoryNameBn": "গ্যাজেট ও ইলেকট্রনিক্স",
-      "brand": "Oshesh Tech",
+      "brand": "সাশ্রয়ী টেক",
       "sku": "OSH-GAD-006",
       "images": [
         "/src/assets/images/category_tech_lifestyle_1792084991359.jpg"
@@ -557,8 +667,8 @@
       "isActive": true
     },
     {
-      "id": "coup-oshesh10",
-      "code": "OSHESH10",
+      "id": "coup-sashroyi10",
+      "code": "SASHROYI10",
       "discountType": "percentage",
       "discountValue": 10,
       "minOrderValue": 1200,
@@ -634,11 +744,11 @@
     }
   ],
   "storeSettings": {
-    "storeNameBn": "অশেষ",
-    "storeNameEn": "Oshesh",
-    "taglineBn": "আপনার পছন্দ, অশেষ সম্ভাবনা।",
+    "storeNameBn": "সাশ্রয়ী দাম",
+    "storeNameEn": "Sashroyi Daam",
+    "taglineBn": "আপনার পছন্দ, সাশ্রয়ী দাম ও অশেষ সম্ভাবনা।",
     "phone": "০৯৬১২-৮৮৯৯০০",
-    "email": "support@oshesh.com.bd",
+    "email": "support@sashroyidaam.com",
     "supportHoursBn": "প্রতিদিন সকাল ৯টা – রাত ১০টা",
     "addressBn": "বাড়ি ৪২, রোড ১১, সেক্টর ৩, উত্তরা, ঢাকা-১২৩০",
     "announcementStripBn": "🚚 ২,০০০ টাকার অর্ডারে সারাদেশে ফ্রি ডেলিভারি! ক্যাশ অন ডেলিভারি ও দ্রুত হোম ডেলিভারি সুবিধা।",
@@ -648,7 +758,10 @@
     "defaultDeliveryFeeOutside": 130,
     "isCodEnabled": true,
     "isSslcommerzEnabled": true,
-    "sslSandboxMode": true
+    "sslSandboxMode": true,
+    "facebookPageName": "সাশ্রয়ী দাম | Sashroyi Daam",
+    "facebookUsername": "@sashroyidaam",
+    "facebookUrl": "https://facebook.com/sashroyidaam"
   },
   "inventoryMovements": [],
   "auditLogs": [
@@ -656,7 +769,7 @@
       "id": "log-seed",
       "action": "STORE_INITIALIZED",
       "userId": "system",
-      "userEmail": "system@oshesh.com.bd",
+      "userEmail": "system@sashroyidaam.com",
       "userRole": "system",
       "details": "Initial Bangladesh retail store database seeded with catalog, admin accounts, and settings.",
       "createdAt": "2026-08-01T00:00:00.000Z"

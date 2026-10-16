@@ -14,6 +14,7 @@ import type {
   InventoryMovement,
   AuditLog
 } from '../types/index.ts';
+import { isSupabaseConfigured, fetchSupabaseData } from './supabase.ts';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'oshesh_db.json');
@@ -190,7 +191,7 @@ function getInitialData(): DatabaseSchema {
       categoryId: 'cat-kitchen',
       categorySlug: 'kitchen-dining',
       categoryNameBn: 'রান্নাঘর ও গৃহস্থালি',
-      brand: 'Oshesh Home',
+      brand: 'সাশ্রয়ী হোম',
       sku: 'OSH-KIT-001',
       images: [
         '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'
@@ -243,7 +244,7 @@ function getInitialData(): DatabaseSchema {
       categoryId: 'cat-fashion',
       categorySlug: 'fashion-lifestyle',
       categoryNameBn: 'ফ্যাশন ও কারুকাজ',
-      brand: 'Oshesh Heritage',
+      brand: 'সাশ্রয়ী হেরিটেজ',
       sku: 'OSH-FAS-002',
       images: [
         '/src/assets/images/category_fashion_handcraft_1792084990401.jpg'
@@ -305,7 +306,7 @@ function getInitialData(): DatabaseSchema {
       categoryId: 'cat-gadgets',
       categorySlug: 'gadgets-accessories',
       categoryNameBn: 'গ্যাজেট ও ইলেকট্রনিক্স',
-      brand: 'Oshesh Tech',
+      brand: 'সাশ্রয়ী টেক',
       sku: 'OSH-GAD-003',
       images: [
         '/src/assets/images/category_tech_lifestyle_1792084991359.jpg'
@@ -358,7 +359,7 @@ function getInitialData(): DatabaseSchema {
       categoryId: 'cat-kitchen',
       categorySlug: 'kitchen-dining',
       categoryNameBn: 'রান্নাঘর ও গৃহস্থালি',
-      brand: 'Oshesh Craft',
+      brand: 'সাশ্রয়ী ক্রাফট',
       sku: 'OSH-HOM-004',
       images: [
         '/src/assets/images/hero_oshesh_lifestyle_1792084990587.jpg'
@@ -411,7 +412,7 @@ function getInitialData(): DatabaseSchema {
       categoryId: 'cat-gadgets',
       categorySlug: 'gadgets-accessories',
       categoryNameBn: 'গ্যাজেট ও ইলেকট্রনিক্স',
-      brand: 'Oshesh Tech',
+      brand: 'সাশ্রয়ী টেক',
       sku: 'OSH-GAD-005',
       images: [
         '/src/assets/images/category_tech_lifestyle_1792084991359.jpg'
@@ -444,7 +445,7 @@ function getInitialData(): DatabaseSchema {
       categoryId: 'cat-gadgets',
       categorySlug: 'gadgets-accessories',
       categoryNameBn: 'গ্যাজেট ও ইলেকট্রনিক্স',
-      brand: 'Oshesh Tech',
+      brand: 'সাশ্রয়ী টেক',
       sku: 'OSH-GAD-006',
       images: [
         '/src/assets/images/category_tech_lifestyle_1792084991359.jpg'
@@ -479,8 +480,8 @@ function getInitialData(): DatabaseSchema {
       isActive: true
     },
     {
-      id: 'coup-oshesh10',
-      code: 'OSHESH10',
+      id: 'coup-sashroyi10',
+      code: 'SASHROYI10',
       discountType: 'percentage',
       discountValue: 10,
       minOrderValue: 1200,
@@ -516,7 +517,7 @@ function getInitialData(): DatabaseSchema {
   const initialBanners: Banner[] = [
     {
       id: 'ban-main',
-      titleBn: 'আপনার পছন্দ, অশেষ সম্ভাবনা',
+      titleBn: 'আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান',
       subtitleBn: 'বাংলাদেশের প্রতিটি পরিবারের জন্য খাঁটি গৃহস্থালি পণ্য, দেশীয় পোশাক ও মানসম্পন্ন গ্যাজেট। সারাদেশে ক্যাশ অন ডেলিভারি।',
       buttonTextBn: 'পণ্যসমূহ দেখুন',
       link: '/#products',
@@ -529,12 +530,12 @@ function getInitialData(): DatabaseSchema {
   const initialStoreSettings: StoreSettings = {
     storeNameBn: 'সাশ্রয়ী দাম',
     storeNameEn: 'Sashroyi Daam',
-    taglineBn: 'আপনার পছন্দ, সাশ্রয়ী দাম ও অশেষ সম্ভাবনা।',
+    taglineBn: 'আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান।',
     phone: '০৯৬১২-৮৮৯৯০০',
     email: 'support@sashroyidaam.com',
     supportHoursBn: 'প্রতিদিন সকাল ৯টা – রাত ১০টা',
     addressBn: 'বাড়ি ৪২, রোড ১১, সেক্টর ৩, উত্তরা, ঢাকা-১২৩০',
-    announcementStripBn: '🚚 ২,০০০ টাকার অর্ডারে সারাদেশে ফ্রি ডেলিভারি! ফেসবুক পেজ: সাশ্রয়ী দাম | Sashroyi Daam (@sashroyidaam)',
+    announcementStripBn: '🚚 ২,০০০ টাকার অর্ডারে সারাদেশে ফ্রি ডেলিভারি! সারাদেশে ক্যাশ অন ডেলিভারি সুবিধা।',
     showAnnouncement: true,
     freeDeliveryThreshold: 2000,
     defaultDeliveryFeeDhaka: 70,
@@ -694,8 +695,8 @@ function getInitialData(): DatabaseSchema {
   const initialUsers: User[] = [
     {
       id: 'user-superadmin',
-      name: 'Oshesh Super Admin',
-      email: 'admin@oshesh.com.bd',
+      name: 'সাশ্রয়ী দাম অ্যাডমিন',
+      email: 'admin@sashroyidaam.com',
       phone: '01700000001',
       role: 'super_admin',
       passwordHash: superAdminHash,
@@ -704,7 +705,7 @@ function getInitialData(): DatabaseSchema {
     {
       id: 'user-ordermanager',
       name: 'রাশেদ চৌধুরী (Order Manager)',
-      email: 'orders@oshesh.com.bd',
+      email: 'orders@sashroyidaam.com',
       phone: '01700000002',
       role: 'order_manager',
       passwordHash: staffHash,
@@ -713,7 +714,7 @@ function getInitialData(): DatabaseSchema {
     {
       id: 'user-customer1',
       name: 'আরিফ মাহমুদ',
-      email: 'customer@oshesh.com.bd',
+      email: 'customer@sashroyidaam.com',
       phone: '01711223344',
       role: 'customer',
       passwordHash: customerHash,
@@ -750,7 +751,7 @@ function getInitialData(): DatabaseSchema {
         id: 'log-seed',
         action: 'STORE_INITIALIZED',
         userId: 'system',
-        userEmail: 'system@oshesh.com.bd',
+        userEmail: 'system@sashroyidaam.com',
         userRole: 'system',
         details: 'Initial Bangladesh retail store database seeded with catalog, admin accounts, and settings.',
         createdAt: '2026-08-01T00:00:00.000Z'
@@ -825,7 +826,8 @@ export function getDatabase(): DatabaseSchema {
       ) {
         memoryDb!.storeSettings.storeNameBn = 'সাশ্রয়ী দাম';
         memoryDb!.storeSettings.storeNameEn = 'Sashroyi Daam';
-        memoryDb!.storeSettings.taglineBn = 'আপনার পছন্দ, সাশ্রয়ী দাম ও অশেষ সম্ভাবনা।';
+        memoryDb!.storeSettings.taglineBn = 'আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান।';
+        memoryDb!.storeSettings.announcementStripBn = '🚚 ২,০০০ টাকার অর্ডারে সারাদেশে ফ্রি ডেলিভারি! সারাদেশে ক্যাশ অন ডেলিভারি সুবিধা।';
         memoryDb!.storeSettings.facebookPageName = 'সাশ্রয়ী দাম | Sashroyi Daam';
         memoryDb!.storeSettings.facebookUsername = '@sashroyidaam';
         memoryDb!.storeSettings.facebookUrl = 'https://facebook.com/sashroyidaam';
@@ -834,6 +836,27 @@ export function getDatabase(): DatabaseSchema {
 
       if (hasChanges) {
         saveDatabaseSync(memoryDb!);
+      }
+
+      // If Supabase is configured, fetch latest cloud records in background
+      if (isSupabaseConfigured()) {
+        fetchSupabaseData().then((supaData) => {
+          if (supaData && memoryDb) {
+            if (supaData.products && supaData.products.length > 0) {
+              memoryDb.products = supaData.products as Product[];
+            }
+            if (supaData.orders && supaData.orders.length > 0) {
+              memoryDb.orders = supaData.orders as Order[];
+            }
+            if (supaData.categories && supaData.categories.length > 0) {
+              memoryDb.categories = supaData.categories as Category[];
+            }
+            if (supaData.storeSettings) {
+              memoryDb.storeSettings = supaData.storeSettings as StoreSettings;
+            }
+            saveDatabaseSync(memoryDb);
+          }
+        }).catch((err) => console.warn('Supabase background sync skipped:', err));
       }
 
       return memoryDb!;

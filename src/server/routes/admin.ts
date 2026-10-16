@@ -331,8 +331,8 @@ router.post('/products', async (req: AuthenticatedRequest, res) => {
         categoryId,
         categorySlug: cat?.slug,
         categoryNameBn: cat?.nameBn,
-        brand: brand?.trim() || 'Oshesh',
-        sku: sku?.trim() || `OSH-${Math.floor(1000 + Math.random() * 9000)}`,
+        brand: brand?.trim() || 'সাশ্রয়ী দাম',
+        sku: sku?.trim() || `SD-${Math.floor(1000 + Math.random() * 9000)}`,
         images: Array.isArray(images) && images.length > 0 ? images : ['/src/assets/images/category_kitchen_cookware_1792084991823.jpg'],
         variants: variants || [],
         attributes: attributes || {},
@@ -705,7 +705,7 @@ router.get('/products/export-csv', (req: AuthenticatedRequest, res) => {
 
   const csv = [headers.join(','), ...rows].join('\n');
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="oshesh_products.csv"');
+  res.setHeader('Content-Disposition', 'attachment; filename="sashroyi_products.csv"');
   res.send('\uFEFF' + csv); // Byte order mark for UTF-8 in Excel
 });
 

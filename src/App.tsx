@@ -9,26 +9,39 @@ import { ProductCard } from './components/ProductCard.tsx';
 import { ProductDetailModal } from './components/ProductDetailModal.tsx';
 import { ProductPage } from './components/ProductPage.tsx';
 import { CartDrawer } from './components/CartDrawer.tsx';
-import { CheckoutFlow } from './components/CheckoutFlow.tsx';
+import { CheckoutFlow, type DirectBuyItem } from './components/CheckoutFlow.tsx';
 import { OrderTrackingModal } from './components/OrderTrackingModal.tsx';
 import { AccountModal } from './components/AccountModal.tsx';
 import { AdminDashboard } from './components/admin/AdminDashboard.tsx';
-import { MobileBottomNav } from './components/MobileBottomNav.tsx';
+import { FloatingNavDock } from './components/FloatingNavDock.tsx';
+import { SmartBazaarCartPill } from './components/SmartBazaarCartPill.tsx';
+import { LanguageProvider, useLanguage } from './context/LanguageContext.tsx';
+import { useCart } from './context/CartContext.tsx';
+import { ProductQuickActionSheet } from './components/ProductQuickActionSheet.tsx';
+import { CartToast, type CartToastItem } from './components/CartToast.tsx';
 import { Footer } from './components/Footer.tsx';
+import { FloatingSocialBadge } from './components/FloatingSocialBadge.tsx';
 import { api } from './lib/api.ts';
 import type { Product, Category, Order } from './types/index.ts';
 import { Filter, ArrowUpDown, Check, RefreshCw } from 'lucide-react';
 
 function StorefrontApp() {
+  const { language, t, formatNumber } = useLanguage();
+  const { addToCart, setIsCartDrawerOpen } = useCart();
+
   // Global Modals State
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [directBuyItem, setDirectBuyItem] = useState<DirectBuyItem | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [viewingProductPage, setViewingProductPage] = useState<Product | null>(null);
+  const [quickActionProduct, setQuickActionProduct] = useState<Product | null>(null);
+  const [cartToastItem, setCartToastItem] = useState<CartToastItem | null>(null);
   const [adminEditingProduct, setAdminEditingProduct] = useState<Partial<Product> | null>(null);
   const [trackingOrderNumber, setTrackingOrderNumber] = useState('');
+  const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false);
 
   // Store data state
   const [categories, setCategories] = useState<Category[]>([]);
@@ -158,6 +171,11 @@ function StorefrontApp() {
     }
   };
 
+  const handleDirectBuy = (product: Product, variantId?: string, quantity: number = 1) => {
+    setDirectBuyItem({ product, variantId, quantity });
+    setIsCheckoutOpen(true);
+  };
+
   const handleOrderSuccess = (order: Order) => {
     loadProducts(); // refresh stock numbers
   };
@@ -169,7 +187,7 @@ function StorefrontApp() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-stone-900 font-sans pb-16 md:pb-0">
-      {/* 1. Header with moving announcement marquee */}
+      {/* 1. Header with balanced mobile layout and clean marquee */}
       <Header
         onOpenAccount={() => setIsAccountOpen(true)}
         onOpenTracking={() => setIsTrackingOpen(true)}
@@ -195,6 +213,9 @@ function StorefrontApp() {
           setSearchQuery(q);
         }}
         announcement={storeInfo?.settings?.announcementStripBn}
+        categories={categories}
+        isDrawerOpen={isLeftDrawerOpen}
+        setIsDrawerOpen={setIsLeftDrawerOpen}
       />
 
       {/* 2. DEDICATED PRODUCT PAGE VIEW OR HOMEPAGE CATALOG */}
@@ -205,22 +226,29 @@ function StorefrontApp() {
           allProducts={products}
           onBack={handleBackFromProductPage}
           onOpenProduct={handleOpenProductPage}
-          onOpenCheckout={() => setIsCheckoutOpen(true)}
+          onOpenCheckout={() => {
+            setDirectBuyItem(null);
+            setIsCheckoutOpen(true);
+          }}
+          onDirectBuy={handleDirectBuy}
           onEditProduct={handleAdminEditProduct}
           onDeleteProduct={handleAdminDeleteProduct}
         />
       ) : (
-        <>
+        <div className="flex-1 flex flex-col">
           {/* Hero Section (shown when no specific search query is typed) */}
           {!searchQuery && (
-            <>
+            <div>
               <Hero
                 onExploreClick={() => {
                   const el = document.getElementById('products');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                bannerTitle={storeInfo?.banners?.[0]?.titleBn}
-                bannerSubtitle={storeInfo?.banners?.[0]?.subtitleBn}
+                onSelectCategory={(catId) => {
+                  setSelectedCategory(catId);
+                  const el = document.getElementById('products');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
               />
 
               {/* Category Showcase Grid */}
@@ -233,7 +261,7 @@ function StorefrontApp() {
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
               />
-            </>
+            </div>
           )}
 
           {/* Product Catalog Section */}
@@ -243,13 +271,15 @@ function StorefrontApp() {
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
                   {searchQuery
-                    ? `খোঁজার ফলাফল: "${searchQuery}"`
+                    ? (language === 'en' ? `Search results for: "${searchQuery}"` : `খোঁজার ফলাফল: "${searchQuery}"`)
                     : selectedCategory === 'all'
-                    ? 'সকল পণ্য সম্ভার'
-                    : categories.find((c) => c.id === selectedCategory)?.nameBn || 'পণ্যসমূহ'}
+                    ? (language === 'en' ? 'All Products Collection' : 'সকল পণ্য সম্ভার')
+                    : (language === 'en'
+                        ? categories.find((c) => c.id === selectedCategory)?.nameEn || categories.find((c) => c.id === selectedCategory)?.nameBn || 'Products'
+                        : categories.find((c) => c.id === selectedCategory)?.nameBn || 'পণ্যসমূহ')}
                 </h2>
                 <p className="text-xs sm:text-sm text-stone-500 mt-0.5">
-                  মোট {products.length} টি পণ্য পাওয়া গেছে
+                  {language === 'en' ? `Total ${products.length} products found` : `মোট ${formatNumber(products.length)} টি পণ্য পাওয়া গেছে`}
                 </p>
               </div>
 
@@ -263,7 +293,7 @@ function StorefrontApp() {
                     onChange={(e) => setInStockOnly(e.target.checked)}
                     className="rounded text-[#0F4C3A] focus:ring-[#0F4C3A]"
                   />
-                  <span>শুধুমাত্র স্টকে থাকা পণ্য</span>
+                  <span>{language === 'en' ? 'In Stock Only' : 'শুধুমাত্র স্টকে থাকা পণ্য'}</span>
                 </label>
 
                 {/* Sort Dropdown */}
@@ -273,18 +303,18 @@ function StorefrontApp() {
                     onChange={(e) => setSortOption(e.target.value as any)}
                     className="appearance-none bg-white text-xs font-semibold text-stone-700 pl-3 pr-8 py-2 rounded-lg border border-stone-200 hover:border-stone-300 cursor-pointer focus:outline-none focus:border-[#0F4C3A] shadow-2xs"
                   >
-                    <option value="featured">বাছাইকৃত (Featured)</option>
-                    <option value="best_selling">জনপ্রিয় ও বেশি বিক্রিত</option>
-                    <option value="newest">নতুন সংযোজিত (Newest)</option>
-                    <option value="price_asc">মূল্য: কম থেকে বেশি</option>
-                    <option value="price_desc">মূল্য: বেশি থেকে কম</option>
+                    <option value="featured">{language === 'en' ? 'Featured Picks' : 'বাছাইকৃত (Featured)'}</option>
+                    <option value="best_selling">{language === 'en' ? 'Best Selling' : 'জনপ্রিয় ও বেশি বিক্রিত'}</option>
+                    <option value="newest">{language === 'en' ? 'New Arrivals' : 'নতুন সংযোজিত (Newest)'}</option>
+                    <option value="price_asc">{language === 'en' ? 'Price: Low to High' : 'মূল্য: কম থেকে বেশি'}</option>
+                    <option value="price_desc">{language === 'en' ? 'Price: High to Low' : 'মূল্য: বেশি থেকে কম'}</option>
                   </select>
                   <ArrowUpDown className="w-3.5 h-3.5 text-stone-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
             </div>
 
-            {/* Product Cards Grid with auto-changing highlights */}
+            {/* Product Cards Grid with direct 1-click buy button */}
             <div className="pt-8">
               {isLoadingProducts ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -304,10 +334,10 @@ function StorefrontApp() {
                     <Filter className="w-6 h-6" />
                   </div>
                   <h3 className="text-base font-bold text-stone-900">
-                    প্রদত্ত শর্তানুসারে কোনো পণ্য পাওয়া যায়নি
+                    {language === 'en' ? 'No products found matching your criteria' : 'প্রদত্ত শর্তানুসারে কোনো পণ্য পাওয়া যায়নি'}
                   </h3>
                   <p className="text-xs text-stone-500">
-                    অন্য কোনো শব্দ দিয়ে খুঁজুন অথবা ফিল্টার পরিবর্তন করে পুনরায় চেষ্টা করুন।
+                    {language === 'en' ? 'Try searching for a different keyword or reset active filters.' : 'অন্য কোনো শব্দ দিয়ে খুঁজুন অথবা ফিল্টার পরিবর্তন করে পুনরায় চেষ্টা করুন।'}
                   </p>
                   <button
                     onClick={() => {
@@ -317,7 +347,7 @@ function StorefrontApp() {
                     }}
                     className="px-4 py-2 bg-[#0F4C3A] text-white rounded-lg text-xs font-semibold hover:bg-[#135D48] transition-colors cursor-pointer"
                   >
-                    সকল ফিল্টার মুছুন
+                    {language === 'en' ? 'Clear All Filters' : 'সকল ফিল্টার মুছুন'}
                   </button>
                 </div>
               ) : (
@@ -326,14 +356,23 @@ function StorefrontApp() {
                     <ProductCard
                       key={prod.id}
                       product={prod}
-                      onOpenDetails={(p) => setSelectedProduct(p)}
+                      onOpenDetails={(p) => setQuickActionProduct(p)}
+                      onDirectBuy={(p) => handleDirectBuy(p)}
+                      onQuickAddToast={(p) =>
+                        setCartToastItem({
+                          id: p.id,
+                          title: language === 'en' && p.titleEn ? p.titleEn : p.titleBn,
+                          imageUrl: p.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg',
+                          price: p.price
+                        })
+                      }
                     />
                   ))}
                 </div>
               )}
             </div>
           </main>
-        </>
+        </div>
       )}
 
       {/* 5. Footer */}
@@ -351,25 +390,71 @@ function StorefrontApp() {
         }}
       />
 
+      {/* Floating Facebook Social Badge */}
+      <FloatingSocialBadge />
+
+      {/* SmartBazaar Style Persistent Floating Side Cart Pill */}
+      <SmartBazaarCartPill />
+
+      {/* Product Tap Quick-Action Bottom Sheet (Add to Cart / Buy Now / View Details) */}
+      <ProductQuickActionSheet
+        product={quickActionProduct}
+        onClose={() => setQuickActionProduct(null)}
+        onAddToCart={(product, variantId, quantity) => {
+          addToCart(product.id, variantId, quantity || 1);
+          setCartToastItem({
+            id: product.id,
+            title: language === 'en' && product.titleEn ? product.titleEn : product.titleBn,
+            imageUrl: product.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg',
+            price: product.price
+          });
+        }}
+        onDirectBuy={(product, variantId, quantity) => {
+          handleDirectBuy(product, variantId, quantity);
+        }}
+        onOpenFullPage={(product) => {
+          handleOpenProductPage(product);
+        }}
+      />
+
+      {/* User-Friendly Floating Cart Toast Feedback */}
+      <CartToast
+        toastItem={cartToastItem}
+        onClose={() => setCartToastItem(null)}
+        onOpenCart={() => setIsCartDrawerOpen(true)}
+      />
+
       {/* Modals & Drawers */}
       <ProductDetailModal
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
         onProductUpdated={loadProducts}
         onOpenDedicatedPage={handleOpenProductPage}
-        onOpenCheckout={() => setIsCheckoutOpen(true)}
+        onOpenCheckout={() => {
+          setDirectBuyItem(null);
+          setIsCheckoutOpen(true);
+        }}
+        onDirectBuy={handleDirectBuy}
         onEditProduct={handleAdminEditProduct}
         onDeleteProduct={handleAdminDeleteProduct}
       />
 
       <CartDrawer
-        onProceedToCheckout={() => setIsCheckoutOpen(true)}
+        onProceedToCheckout={() => {
+          setDirectBuyItem(null);
+          setIsCheckoutOpen(true);
+        }}
       />
 
       <CheckoutFlow
         isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
+        onClose={() => {
+          setIsCheckoutOpen(false);
+          setDirectBuyItem(null);
+        }}
         onOrderSuccess={handleOrderSuccess}
+        directBuyItem={directBuyItem}
+        onOpenTrackingWithNumber={handleOpenTrackingWithNumber}
       />
 
       <OrderTrackingModal
@@ -400,41 +485,39 @@ function StorefrontApp() {
         }}
       />
 
-      {/* Mobile Bottom Navigation Bar */}
-      <MobileBottomNav
-        onOpenAccount={() => setIsAccountOpen(true)}
-        onOpenCategories={() => {
-          if (viewingProductPage) {
-            handleBackFromProductPage();
-          }
-          setTimeout(() => {
-            const el = document.getElementById('categories') || document.getElementById('products');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
-        }}
-        onOpenSearch={() => {
-          if (viewingProductPage) {
-            handleBackFromProductPage();
-          }
-          const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement | null;
-          if (searchInput) {
-            searchInput.focus();
+      {/* Shreshtho-Style Floating Rounded Pill Dock (Shown on Storefront Catalog) */}
+      {!viewingProductPage && (
+        <FloatingNavDock
+          onOpenAccount={() => setIsAccountOpen(true)}
+          onOpenCategories={() => setIsLeftDrawerOpen(true)}
+          onOpenSearch={() => {
+            const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement | null;
+            if (searchInput) {
+              searchInput.focus();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+          onHomeClick={() => {
+            setSelectedCategory('all');
+            setSearchQuery('');
             window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        }}
-      />
+          }}
+        />
+      )}
     </div>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <WishlistProvider>
-        <CartProvider>
-          <StorefrontApp />
-        </CartProvider>
-      </WishlistProvider>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <WishlistProvider>
+          <CartProvider>
+            <StorefrontApp />
+          </CartProvider>
+        </WishlistProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

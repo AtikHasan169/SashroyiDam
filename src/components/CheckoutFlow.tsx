@@ -1,24 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { X, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, CreditCard, Banknote, MapPin, Tag } from 'lucide-react';
+import { X, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, CreditCard, Banknote, MapPin, Tag, Truck } from 'lucide-react';
 import { useCart } from '../context/CartContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { BANGLADESH_DIVISIONS } from '../data/bangladeshGeo.ts';
 import { api } from '../lib/api.ts';
-import type { Order } from '../types/index.ts';
+import type { Order, Product } from '../types/index.ts';
+
+export interface DirectBuyItem {
+  product: Product;
+  variantId?: string;
+  quantity: number;
+}
 
 interface CheckoutFlowProps {
   isOpen: boolean;
   onClose: () => void;
   onOrderSuccess: (order: Order) => void;
+  directBuyItem?: DirectBuyItem | null;
+  onOpenTrackingWithNumber?: (orderNumber: string) => void;
 }
 
 export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
   isOpen,
   onClose,
-  onOrderSuccess
+  onOrderSuccess,
+  directBuyItem,
+  onOpenTrackingWithNumber
 }) => {
   const {
-    items,
+    items: cartItems,
     cartValidation,
     division,
     setCustomerDivision,
@@ -64,7 +74,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
     }
   }, [user]);
 
-  // Sync division change to CartContext for instant delivery fee recalculation
+  // Sync division change to CartContext
   useEffect(() => {
     setCustomerDivision(selectedDivision);
   }, [selectedDivision, setCustomerDivision]);
@@ -114,11 +124,49 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
     setCouponFeedback(null);
   };
 
+  // Direct Buy Item calculation
+  const isDirectBuy = !!directBuyItem;
+  let directVariantName = '';
+  let directItemPrice = 0;
+  let directSubtotal = 0;
+
+  if (directBuyItem) {
+    const p = directBuyItem.product;
+    const v = p.variants?.find((vr) => vr.id === directBuyItem.variantId);
+    directVariantName = v ? v.nameBn : '';
+    directItemPrice = p.price + (v ? v.priceDelta : 0);
+    directSubtotal = directItemPrice * directBuyItem.quantity;
+  }
+
+  // Delivery fee & Total
+  const activeSubtotal = isDirectBuy ? directSubtotal : (cartValidation?.subtotal || 0);
+  const deliveryFee = activeSubtotal >= 2000 ? 0 : (selectedDivision === 'dhaka' ? 70 : 130);
+  const discountAmount = isDirectBuy ? 0 : (cartValidation?.discount || 0);
+  const activeTotal = Math.max(0, activeSubtotal - discountAmount + deliveryFee);
+
   const handleSubmitOrder = async () => {
     setOrderError('');
     setIsSubmitting(true);
 
     try {
+      const orderItems = isDirectBuy
+        ? [
+            {
+              productId: directBuyItem.product.id,
+              variantId: directBuyItem.variantId,
+              quantity: directBuyItem.quantity
+            }
+          ]
+        : cartItems.map((i) => ({
+            productId: i.productId,
+            variantId: i.variantId,
+            quantity: i.quantity
+          }));
+
+      if (orderItems.length === 0) {
+        throw new Error('অর্ডার করার জন্য অন্তত একটি পণ্য নির্বাচন করুন');
+      }
+
       // 1. Submit order to server
       const res = await api.createOrder({
         customerName,
@@ -130,20 +178,15 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
         fullAddress,
         deliveryInstructions: deliveryInstructions || undefined,
         paymentMethod,
-        couponCode: couponCode || undefined,
-        items: items.map((i) => ({
-          productId: i.productId,
-          variantId: i.variantId,
-          quantity: i.quantity
-        }))
+        couponCode: isDirectBuy ? undefined : (couponCode || undefined),
+        items: orderItems
       });
 
       const order = res.order;
 
-      // 2. If SSLCOMMERZ Sandbox is selected, execute server payment verification simulation
+      // 2. If SSLCOMMERZ Sandbox is selected, execute payment simulation
       if (paymentMethod === 'sslcommerz_sandbox') {
         const initRes = await api.initSslPayment(order.id);
-        // Simulate successful sandbox card/mobile bank debit
         const valRes = await api.validateSslPayment({
           tran_id: initRes.tran_id,
           val_id: `VAL-${Date.now()}`,
@@ -156,7 +199,9 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
         onOrderSuccess(order);
       }
 
-      clearCart();
+      if (!isDirectBuy) {
+        clearCart();
+      }
     } catch (err: any) {
       setOrderError(err.message || 'অর্ডার সম্পন্ন করা সম্ভব হয়নি। পুনরায় চেষ্টা করুন।');
     } finally {
@@ -170,14 +215,19 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 md:p-6 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl border border-stone-200 relative text-left">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
+        <div className="px-5 sm:px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/70">
           <div>
-            <h2 className="text-lg font-bold text-stone-900">
-              {completedOrder ? 'অর্ডার সফল হয়েছে!' : 'চেকআউট — নিরাপদ অর্ডার সম্পন্নকরণ'}
+            <h2 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2">
+              <span>{completedOrder ? 'অর্ডার সফল হয়েছে!' : 'সহজ অর্ডার — সাশ্রয়ী দাম'}</span>
+              {!completedOrder && (
+                <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                  লগইন ছাড়া গেস্ট অর্ডার
+                </span>
+              )}
             </h2>
             {!completedOrder && (
               <p className="text-xs text-stone-500 mt-0.5">
-                ধাপ {step} এর ২: {step === 1 ? 'ডেলিভারি ঠিকানা ও গ্রাহকের তথ্য' : 'পেমেন্ট ও অর্ডার নিশ্চিতকরণ'}
+                ধাপ {step} এর ২: {step === 1 ? 'ডেলিভারি ঠিকানা ও যোগাযোগের তথ্য' : 'পেমেন্ট ও অর্ডার নিশ্চিতকরণ'}
               </p>
             )}
           </div>
@@ -192,18 +242,18 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
         {/* COMPLETED ORDER STATE */}
         {completedOrder ? (
-          <div className="p-8 text-center space-y-5">
+          <div className="p-6 sm:p-8 text-center space-y-5">
             <div className="w-16 h-16 bg-emerald-100 text-[#0F4C3A] rounded-full flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-2xl font-bold text-stone-900">
-                ধন্যবাদ, আপনার অর্ডার গৃহীত হয়েছে!
+              <h3 className="text-xl sm:text-2xl font-bold text-stone-900">
+                ধন্যবাদ, আপনার অর্ডার সফলভাবে গৃহীত হয়েছে!
               </h3>
-              <p className="text-sm text-stone-600">
+              <p className="text-xs sm:text-sm text-stone-600">
                 অর্ডার রেফারেন্স নম্বর:{' '}
-                <span className="font-bold text-[#0F4C3A] font-mono text-base">
+                <span className="font-bold text-[#0F4C3A] font-mono text-base bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   {completedOrder.orderNumber}
                 </span>
               </p>
@@ -211,23 +261,23 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
             <div className="bg-stone-50 rounded-xl p-4 border border-stone-200 text-xs text-stone-700 max-w-md mx-auto space-y-2 text-left">
               <div className="flex justify-between">
-                <span>গ্রাহকের নাম:</span>
-                <span className="font-semibold">{completedOrder.customerName}</span>
+                <span className="text-stone-500">গ্রাহকের নাম:</span>
+                <span className="font-semibold text-stone-900">{completedOrder.customerName}</span>
               </div>
               <div className="flex justify-between">
-                <span>মোবাইল নম্বর:</span>
-                <span className="font-semibold">{completedOrder.customerPhone}</span>
+                <span className="text-stone-500">মোবাইল নম্বর:</span>
+                <span className="font-semibold text-stone-900">{completedOrder.customerPhone}</span>
               </div>
               <div className="flex justify-between">
-                <span>ডেলিভারি ঠিকানা:</span>
-                <span className="font-semibold text-right max-w-[240px]">
+                <span className="text-stone-500">ডেলিভারি ঠিকানা:</span>
+                <span className="font-semibold text-stone-900 text-right max-w-[240px]">
                   {completedOrder.fullAddress}, {completedOrder.upazila}, {completedOrder.district}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>পেমেন্ট পদ্ধতি:</span>
-                <span className="font-semibold">
-                  {completedOrder.paymentMethod === 'cod' ? 'ক্যাশ অন ডেলিভারি (COD)' : 'SSLCOMMERZ (পরিশোধিত)'}
+                <span className="text-stone-500">পেমেন্ট পদ্ধতি:</span>
+                <span className="font-semibold text-emerald-800">
+                  {completedOrder.paymentMethod === 'cod' ? 'ক্যাশ অন ডেলিভারি (পণ্য পেয়ে মূল্য পরিশোধ)' : 'SSLCOMMERZ অনলাইন পেমেন্ট (পরিশোধিত)'}
                 </span>
               </div>
               <div className="flex justify-between pt-2 border-t border-stone-200 text-sm font-bold text-stone-900">
@@ -238,22 +288,33 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
               </div>
             </div>
 
-            <p className="text-xs text-stone-500 max-w-md mx-auto">
-              আমাদের টিম থেকে শিঘ্রই ফোনে যোগাযোগ করে অর্ডার কনফার্ম ও দ্রুত ডেলিভারির ব্যবস্থা করা হবে।
-            </p>
+            <div className="text-xs text-stone-500 max-w-md mx-auto bg-amber-50 p-3 rounded-lg border border-amber-200 text-stone-700">
+              আমাদের কাস্টমার কেয়ার টিম থেকে দ্রুত আপনার নম্বরে কল দিয়ে অর্ডারটি কনফার্ম করা হবে।
+            </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+              {onOpenTrackingWithNumber && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenTrackingWithNumber(completedOrder.orderNumber);
+                  }}
+                  className="px-5 py-2.5 bg-emerald-50 text-[#0F4C3A] border border-emerald-300 rounded-xl text-xs sm:text-sm font-semibold hover:bg-emerald-100 transition-colors cursor-pointer"
+                >
+                  অর্ডার ট্র্যাক করুন
+                </button>
+              )}
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 bg-[#0F4C3A] text-white rounded-xl text-sm font-semibold hover:bg-[#135D48] transition-colors cursor-pointer"
+                className="px-6 py-2.5 bg-[#0F4C3A] text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-[#135D48] transition-colors cursor-pointer"
               >
-                কেনাকাটা চালিয়ে যান
+                আরো কেনাকাটা করুন
               </button>
             </div>
           </div>
         ) : (
           /* ACTIVE CHECKOUT FORM */
-          <div className="p-6 max-h-[75vh] overflow-y-auto space-y-6">
+          <div className="p-5 sm:p-6 max-h-[75vh] overflow-y-auto space-y-5">
             {orderError && (
               <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600" />
@@ -261,9 +322,40 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
               </div>
             )}
 
+            {/* Direct Buy Item Summary Pill */}
+            {isDirectBuy && directBuyItem && (
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <img
+                    src={directBuyItem.product.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'}
+                    alt={directBuyItem.product.titleBn}
+                    className="w-10 h-10 object-cover rounded-lg border border-emerald-200 shrink-0"
+                  />
+                  <div className="truncate">
+                    <div className="font-semibold text-stone-900 truncate">
+                      {directBuyItem.product.titleBn}
+                    </div>
+                    <div className="text-[11px] text-stone-500">
+                      {directVariantName ? `ভেরিয়েন্ট: ${directVariantName} · ` : ''}পরিমাণ: {directBuyItem.quantity} টি
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right shrink-0 font-bold text-stone-900 tabular-nums">
+                  ৳{directSubtotal.toLocaleString('bn-BD')}
+                </div>
+              </div>
+            )}
+
             {/* STEP 1: Delivery Information */}
             {step === 1 && (
               <div className="space-y-4">
+                <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 flex items-center gap-2 text-xs text-emerald-900">
+                  <Truck className="w-4 h-4 text-[#0F4C3A] shrink-0" />
+                  <span>
+                    কোনো একাউন্ট বা পাসওয়ার্ডের দরকার নেই! নিচের তথ্য দিয়ে সরাসরি ক্যাশ অন ডেলিভারিতে অর্ডার করুন।
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1">
@@ -393,15 +485,20 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                     type="button"
                     onClick={() => {
                       if (!customerName.trim() || !customerPhone.trim() || !fullAddress.trim()) {
-                        setOrderError('নাম, সঠিক মোবাইল নম্বর এবং ঠিকানা পূরণ করুন');
+                        setOrderError('দয়া করে আপনার নাম, মোবাইল নম্বর এবং ঠিকানা পূরণ করুন');
+                        return;
+                      }
+                      const cleanPhone = customerPhone.replace(/[^0-9]/g, '');
+                      if (cleanPhone.length < 11) {
+                        setOrderError('সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 017xxxxxxxx)');
                         return;
                       }
                       setOrderError('');
                       setStep(2);
                     }}
-                    className="px-6 py-2.5 bg-[#0F4C3A] text-white rounded-xl text-sm font-semibold hover:bg-[#135D48] transition-colors flex items-center gap-2 cursor-pointer"
+                    className="px-6 py-2.5 bg-[#0F4C3A] text-white rounded-xl text-sm font-semibold hover:bg-[#135D48] transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
                   >
-                    <span>পরবর্তী ধাপ (পেমেন্ট)</span>
+                    <span>পরবর্তী ধাপ (পেমেন্ট পদ্ধতি)</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -410,10 +507,10 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
             {/* STEP 2: Payment & Order Confirmation */}
             {step === 2 && (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {/* Payment Methods */}
                 <div>
-                  <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider mb-2.5">
+                  <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider mb-2">
                     পেমেন্ট পদ্ধতি নির্বাচন করুন:
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -421,7 +518,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                       onClick={() => setPaymentMethod('cod')}
                       className={`p-3.5 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
                         paymentMethod === 'cod'
-                          ? 'border-[#0F4C3A] bg-emerald-50/30 ring-1 ring-[#0F4C3A]'
+                          ? 'border-[#0F4C3A] bg-emerald-50/40 ring-1 ring-[#0F4C3A]'
                           : 'border-stone-200 hover:border-stone-300'
                       }`}
                     >
@@ -438,7 +535,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                           <span>ক্যাশ অন ডেলিভারি (COD)</span>
                         </div>
                         <p className="text-xs text-stone-500 mt-1">
-                          পণ্য হাতে পাওয়ার পর রাইডারকে নগদ অর্থ পরিশোধ করুন।
+                          পণ্য হাতে পেয়ে দেখে ডেলিভারি ম্যানকে মূল্য পরিশোধ করুন।
                         </p>
                       </div>
                     </label>
@@ -447,7 +544,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                       onClick={() => setPaymentMethod('sslcommerz_sandbox')}
                       className={`p-3.5 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
                         paymentMethod === 'sslcommerz_sandbox'
-                          ? 'border-[#0F4C3A] bg-emerald-50/30 ring-1 ring-[#0F4C3A]'
+                          ? 'border-[#0F4C3A] bg-emerald-50/40 ring-1 ring-[#0F4C3A]'
                           : 'border-stone-200 hover:border-stone-300'
                       }`}
                     >
@@ -461,86 +558,88 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                       <div>
                         <div className="flex items-center gap-1.5 font-bold text-sm text-stone-900">
                           <CreditCard className="w-4 h-4 text-[#0F4C3A]" />
-                          <span>SSLCOMMERZ পেমেন্ট</span>
+                          <span>SSLCOMMERZ অনলাইন পেমেন্ট</span>
                         </div>
                         <p className="text-xs text-stone-500 mt-1">
-                          বিকাশ, নগদ, রকেট, কার্ড ও ইন্টারনেট ব্যাংকিং (স্যান্ডবক্স মোড)।
+                          বিকাশ, নগদ, রকেট ও কার্ড দিয়ে তাৎক্ষণিক পেমেন্ট (স্যান্ডবক্স)।
                         </p>
                       </div>
                     </label>
                   </div>
                 </div>
 
-                {/* Coupon Code Box */}
-                <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-stone-800">
-                    <Tag className="w-3.5 h-3.5 text-[#0F4C3A]" />
-                    <span>ডিসকাউন্ট কুপন</span>
-                  </div>
+                {/* Coupon Code Box (only for cart checkout) */}
+                {!isDirectBuy && (
+                  <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-stone-800">
+                      <Tag className="w-3.5 h-3.5 text-[#0F4C3A]" />
+                      <span>ডিসকাউন্ট কুপন</span>
+                    </div>
 
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="কুপন কোড (যেমন: WELCOME50 বা OSHESH10)"
-                      value={couponInput}
-                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                      className="flex-1 px-3 py-1.5 border border-stone-200 rounded-lg text-xs bg-white focus:outline-none focus:border-[#0F4C3A]"
-                    />
-                    {couponCode ? (
-                      <button
-                        type="button"
-                        onClick={handleRemoveCoupon}
-                        className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="কুপন কোড (যেমন: WELCOME50 বা SASHROYI10)"
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        className="flex-1 px-3 py-1.5 border border-stone-200 rounded-lg text-xs bg-white focus:outline-none focus:border-[#0F4C3A]"
+                      />
+                      {couponCode ? (
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoupon}
+                          className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                        >
+                          বাতিল
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleApplyCoupon}
+                          className="px-3 py-1.5 bg-[#0F4C3A] hover:bg-[#135D48] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                        >
+                          প্রয়োগ
+                        </button>
+                      )}
+                    </div>
+
+                    {couponFeedback && (
+                      <div
+                        className={`text-xs ${
+                          couponFeedback.isError ? 'text-rose-600' : 'text-emerald-700 font-medium'
+                        }`}
                       >
-                        বাতিল
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleApplyCoupon}
-                        className="px-3 py-1.5 bg-[#0F4C3A] hover:bg-[#135D48] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
-                      >
-                        প্রয়োগ করুন
-                      </button>
+                        {couponFeedback.msg}
+                      </div>
                     )}
                   </div>
-
-                  {couponFeedback && (
-                    <div
-                      className={`text-xs ${
-                        couponFeedback.isError ? 'text-rose-600' : 'text-emerald-700 font-medium'
-                      }`}
-                    >
-                      {couponFeedback.msg}
-                    </div>
-                  )}
-                </div>
+                )}
 
                 {/* Order Review Breakdown */}
                 <div className="bg-stone-50/80 rounded-xl p-4 border border-stone-200 space-y-2 text-xs text-stone-600">
                   <div className="flex justify-between">
                     <span>পণ্যের উপমোট (Subtotal):</span>
                     <span className="font-semibold text-stone-900 tabular-nums">
-                      ৳{cartValidation?.subtotal.toLocaleString('bn-BD')}
+                      ৳{activeSubtotal.toLocaleString('bn-BD')}
                     </span>
                   </div>
 
-                  {cartValidation?.discount && cartValidation.discount > 0 ? (
+                  {discountAmount > 0 && (
                     <div className="flex justify-between text-emerald-700 font-semibold">
                       <span>কুপন ছাড় (Discount):</span>
-                      <span className="tabular-nums">-৳{cartValidation.discount.toLocaleString('bn-BD')}</span>
+                      <span className="tabular-nums">-৳{discountAmount.toLocaleString('bn-BD')}</span>
                     </div>
-                  ) : null}
+                  )}
 
                   <div className="flex justify-between">
                     <span>
-                      ডেলিভারি চার্জ ({selectedDivision === 'dhaka' ? 'ঢাকা মেট্রো' : 'ঢাকার বাইরে'}):
+                      ডেলিভারি চার্জ ({selectedDivision === 'dhaka' ? 'ঢাকা মেট্রো সিটি' : 'ঢাকার বাইরে সমগ্র বাংলাদেশ'}):
                     </span>
                     <span className="font-semibold text-stone-900 tabular-nums">
-                      {cartValidation?.deliveryFee === 0 ? (
-                        <span className="text-emerald-700">ফ্রি</span>
+                      {deliveryFee === 0 ? (
+                        <span className="text-emerald-700 font-bold">ফ্রি ডেলিভারি</span>
                       ) : (
-                        `৳${cartValidation?.deliveryFee.toLocaleString('bn-BD')}`
+                        `৳${deliveryFee.toLocaleString('bn-BD')}`
                       )}
                     </span>
                   </div>
@@ -548,7 +647,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                   <div className="pt-2 border-t border-stone-200 flex justify-between items-baseline text-sm font-bold text-stone-900">
                     <span>সর্বমোট পরিশোধযোগ্য:</span>
                     <span className="text-lg text-[#0F4C3A] tabular-nums">
-                      ৳{cartValidation?.total.toLocaleString('bn-BD')}
+                      ৳{activeTotal.toLocaleString('bn-BD')}
                     </span>
                   </div>
                 </div>
@@ -570,12 +669,12 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                     className="px-6 py-3 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-xl text-sm font-bold shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {isSubmitting ? (
-                      <span>অর্ডার তৈরি হচ্ছে...</span>
+                      <span>অর্ডার প্রসেস হচ্ছে...</span>
                     ) : (
-                      <>
+                      <span className="flex items-center gap-2">
                         <ShieldCheck className="w-4 h-4" />
-                        <span>অর্ডার নিশ্চিত করুন (৳{cartValidation?.total.toLocaleString('bn-BD')})</span>
-                      </>
+                        <span>অর্ডার নিশ্চিত করুন (৳{activeTotal.toLocaleString('bn-BD')})</span>
+                      </span>
                     )}
                   </button>
                 </div>

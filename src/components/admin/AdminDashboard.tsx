@@ -60,7 +60,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   >('overview');
 
   // Login challenge state for admin
-  const [adminEmail, setAdminEmail] = useState('admin@oshesh.com.bd');
+  const [adminEmail, setAdminEmail] = useState('admin@sashroyidaam.com');
   const [adminPass, setAdminPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -420,7 +420,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <div className="text-[11px] text-stone-500 bg-stone-50 p-3 rounded-lg border border-stone-200 space-y-1">
               <div className="font-semibold text-stone-800">প্রথম সুপার অ্যাডমিন ক্রেডেনশিয়াল:</div>
-              <div>ইমেইল: <code className="bg-stone-200 px-1 py-0.5 rounded">admin@oshesh.com.bd</code></div>
+              <div>ইমেইল: <code className="bg-stone-200 px-1 py-0.5 rounded">admin@sashroyidaam.com</code> (বা admin@oshesh.com.bd)</div>
               <div>পাসওয়ার্ড: <code className="bg-stone-200 px-1 py-0.5 rounded">OsheshAdmin2026!</code></div>
             </div>
 
@@ -443,7 +443,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Top Header */}
         <div className="px-6 py-3.5 bg-white border-b border-stone-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-xl font-bold font-serif text-[#0F4C3A]">Oshesh</span>
+            <span className="text-xl font-bold font-sans text-[#0F4C3A]">সাশ্রয়ী দাম</span>
             <span className="text-lg font-bold text-stone-800">অ্যাডমিন কন্ট্রোল সেন্টার</span>
             <span className="text-xs bg-emerald-100 text-emerald-900 font-semibold px-2 py-0.5 rounded">
               {user?.role}
@@ -919,8 +919,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           originalPrice: 1200,
                           stock: 20,
                           categoryId: categories[0]?.id || '',
-                          brand: 'Oshesh',
-                          sku: `OSH-${Math.floor(1000 + Math.random() * 9000)}`,
+                          brand: 'সাশ্রয়ী দাম',
+                          sku: `SD-${Math.floor(1000 + Math.random() * 9000)}`,
                           images: ['/src/assets/images/category_kitchen_cookware_1792084991823.jpg'],
                           descriptionBn: '',
                           isFeatured: false,
@@ -2171,8 +2171,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl border border-stone-300 text-left space-y-6">
             <div className="flex items-center justify-between border-b border-stone-300 pb-4">
               <div>
-                <h2 className="text-2xl font-bold font-serif text-[#0F4C3A]">Oshesh (অশেষ)</h2>
-                <p className="text-xs text-stone-500">আপনার পছন্দ, অশেষ সম্ভাবনা</p>
+                <h2 className="text-2xl font-bold font-sans text-[#0F4C3A]">সাশ্রয়ী দাম | Sashroyi Daam</h2>
+                <p className="text-xs text-stone-500">আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান</p>
               </div>
               <div className="text-right">
                 <span className="text-xs text-stone-400">চালান নম্বর:</span>

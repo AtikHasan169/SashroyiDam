@@ -15,17 +15,17 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
     switch (activePolicy) {
       case 'about':
         return {
-          title: 'আমাদের সম্পর্কে (About Oshesh)',
+          title: 'আমাদের সম্পর্কে (About Sashroyi Daam)',
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed">
               <p>
-                <strong>অশেষ (Oshesh)</strong> একটি জাতীয় আধুনিক বাংলাদেশি রিটেইল ব্র্যান্ড। আমাদের মূল লক্ষ্য—বাংলাদেশের প্রতিটি গৃহস্থালিতে সুলভ মূল্যে খাঁটি, মানসম্পন্ন ও প্রয়োজনীয় পণ্য পৌঁছে দেওয়া।
+                <strong>সাশ্রয়ী দাম (Sashroyi Daam)</strong> একটি নির্ভরযোগ্য জাতীয় অনলাইন রিটেইল প্ল্যাটফর্ম। আমাদের মূল লক্ষ্য—বাংলাদেশের প্রতিটি গৃহস্থালিতে সুলভ মূল্যে খাঁটি, মানসম্পন্ন ও প্রয়োজনীয় পণ্য পৌঁছে দেওয়া।
               </p>
               <p>
-                “আপনার পছন্দ, অশেষ সম্ভাবনা”—এই প্রতিপাদ্যকে ধারণ করে আমরা রান্নাঘরের ঐতিহ্যবাহী কপার ও কাস্ট আয়রন সামগ্রী, টাঙ্গাইল ও জামদানি ঐতিহ্যবাহী হস্তচালিত সুতি পোশাক, দৈনন্দিন প্রয়োজনীয় গ্যাজেট এবং স্বাস্থ্যকর পণ্য সরাসরি গ্রাহকের দ্বারে সরবরাহ করি।
+                “আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান”—এই প্রতিপাদ্যকে ধারণ করে আমরা রান্নাঘরের ঐতিহ্যবাহী টেকসই সামগ্রী, টাঙ্গাইল ও জামদানি ঐতিহ্যবাহী হস্তচালিত সুতি পোশাক, দৈনন্দিন প্রয়োজনীয় গ্যাজেট সরাসরি গ্রাহকের দ্বারে সরবরাহ করি।
               </p>
               <p>
-                আমরা কোনো কৃত্রিম ডিসকাউন্ট বা অতিরঞ্জিত রিভিউ সমর্থন করি না। আমাদের প্রতিটি পণ্যের বিবরণ বাস্তব ও পরীক্ষিত।
+                আমরা কোনো কৃত্রিম ডিসকাউন্ট বা অতিরঞ্জিত রিভিউ প্রচার করি না। আমাদের প্রতিটি পণ্যের বিবরণ বাস্তব ও পরীক্ষিত।
               </p>
             </div>
           )
@@ -38,7 +38,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
               <p>যেকোনো জিজ্ঞাসা, অর্ডার অনুসন্ধান কিংবা পরামর্শের জন্য আমাদের কাস্টমার কেয়ার টিমের সাথে যোগাযোগ করুন:</p>
               <div className="bg-stone-50 p-3 rounded-lg border border-stone-200 space-y-1.5 font-medium text-stone-800">
                 <div>📞 হেল্পলাইন: ০৯৬১২-৮৮৯৯০০ (প্রতিদিন সকাল ৯টা – রাত ১০টা)</div>
-                <div>✉️ ইমেইল: support@oshesh.com.bd</div>
+                <div>✉️ ইমেইল: support@sashroyidaam.com</div>
                 <div>🏢 প্রধান কার্যালয়: বাড়ি ৪২, রোড ১১, সেক্টর ৩, উত্তরা, ঢাকা-১২৩০</div>
               </div>
             </div>
@@ -50,8 +50,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed">
               <div>
-                <strong className="text-stone-900 block mb-0.5">১. আমি কি ক্যাশ অন ডেলিভারিতে অর্ডার করতে পারি?</strong>
-                <p>হ্যাঁ, বাংলাদেশের ৬৪টি জেলাতেই ক্যাশ অন ডেলিভারি (COD) সুবিধা রয়েছে। পণ্য হাতে পেয়ে মূল্য পরিশোধ করুন।</p>
+                <strong className="text-stone-900 block mb-0.5">১. আমি কি কোনো একাউন্ট ছাড়াই সরাসরি ক্যাশ অন ডেলিভারিতে অর্ডার করতে পারি?</strong>
+                <p>হ্যাঁ, কোনো একাউন্ট বা লগইন ছাড়াই পণ্য নির্বাচন করে নাম, মোবাইল নম্বর ও ঠিকানা দিয়ে সরাসরি অর্ডার করা যায়।</p>
               </div>
               <div>
                 <strong className="text-stone-900 block mb-0.5">২. ডেলিভারি হতে কত দিন সময় লাগে?</strong>
@@ -100,7 +100,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
           title: 'ব্যবহারের শর্তাবলী (Terms & Conditions)',
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed">
-              <p>অশেষ প্ল্যাটফর্মে অর্ডার প্রদান করার মাধ্যমে আপনি আমাদের নির্ধারিত বিক্রয় নীতিমালার সাথে একমত পোষণ করছেন। সমস্ত মূল্য বাংলাদেশি টাকা (BDT) হিসেবে নির্ধারিত এবং স্টক সাপেক্ষ।</p>
+              <p>সাশ্রয়ী দাম প্ল্যাটফর্মে অর্ডার প্রদান করার মাধ্যমে আপনি আমাদের নির্ধারিত বিক্রয় নীতিমালার সাথে একমত পোষণ করছেন। সমস্ত মূল্য বাংলাদেশি টাকা (BDT) হিসেবে নির্ধারিত এবং স্টক সাপেক্ষ।</p>
             </div>
           )
         };
@@ -113,7 +113,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
 
   return (
     <footer className="bg-stone-900 text-stone-300 text-xs border-t border-stone-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
@@ -122,10 +122,12 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
                 <span className="text-2xl font-bold font-sans text-emerald-400">সাশ্রয়ী দাম</span>
                 <span className="text-base font-semibold text-stone-300 font-sans">| Sashroyi Daam</span>
               </div>
-              <span className="text-xs text-emerald-300 font-medium">@sashroyidaam</span>
+              <span className="text-xs text-stone-400 font-medium mt-0.5">
+                আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান
+              </span>
             </div>
             <p className="text-stone-400 text-xs leading-relaxed max-w-sm">
-              আপনার পছন্দ, সাশ্রয়ী দাম ও অশেষ সম্ভাবনা। বাংলাদেশের প্রতিটি পরিবারের জন্য মানসম্মত গৃহস্থালি পণ্য, দেশীয় পোশাক ও টেকসই গ্যাজেটের নির্ভরযোগ্য ঠিকানা।
+              বাংলাদেশের প্রতিটি পরিবারের জন্য মানসম্মত গৃহস্থালি সামগ্রী, দেশীয় পোশাক ও টেকসই গ্যাজেটের নির্ভরযোগ্য ঠিকানা। সারাদেশে ক্যাশ অন ডেলিভারি সুবিধা।
             </p>
 
             {/* Direct Facebook Page Link Card */}
@@ -133,14 +135,14 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
               href="https://facebook.com/sashroyidaam"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2.5 px-3 py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/80 rounded-xl text-emerald-200 transition-colors"
+              className="inline-flex items-center gap-2.5 px-3.5 py-2.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/80 rounded-xl text-emerald-200 transition-colors shadow-2xs group"
             >
-              <div className="w-6 h-6 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-7 h-7 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                 f
               </div>
               <div className="text-left">
-                <div className="text-xs font-bold text-white leading-tight">সাশ্রয়ী দাম | Sashroyi Daam</div>
-                <div className="text-[10px] text-emerald-300">ফেসবুক পেজ: @sashroyidaam</div>
+                <div className="text-xs font-bold text-white leading-tight">সাশ্রয়ী দাম (Sashroyi Daam)</div>
+                <div className="text-[10px] text-emerald-300">অফিসিয়াল ফেসবুক পেজে যুক্ত থাকুন</div>
               </div>
             </a>
 
@@ -162,38 +164,26 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
 
           {/* Quick Categories */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white">ক্যাটাগরি</h3>
+            <h3 className="text-sm font-semibold text-white">জনপ্রিয় ক্যাটাগরি</h3>
             <ul className="space-y-2 text-stone-400">
               <li>
-                <button
-                  onClick={() => onSelectCategory('cat-kitchen')}
-                  className="hover:text-white transition-colors cursor-pointer text-left"
-                >
+                <button onClick={() => onSelectCategory('all')} className="hover:text-white transition-colors cursor-pointer text-left">
+                  সকল পণ্য
+                </button>
+              </li>
+              <li>
+                <button onClick={() => onSelectCategory('cat-kitchen')} className="hover:text-white transition-colors cursor-pointer text-left">
                   গৃহস্থালি ও রান্নাঘর
                 </button>
               </li>
               <li>
-                <button
-                  onClick={() => onSelectCategory('cat-fashion')}
-                  className="hover:text-white transition-colors cursor-pointer text-left"
-                >
-                  ফ্যাশন ও তাঁতের পোশাক
+                <button onClick={() => onSelectCategory('cat-fashion')} className="hover:text-white transition-colors cursor-pointer text-left">
+                  তাঁত ও সুতি পোশাক
                 </button>
               </li>
               <li>
-                <button
-                  onClick={() => onSelectCategory('cat-gadgets')}
-                  className="hover:text-white transition-colors cursor-pointer text-left"
-                >
-                  গ্যাজেট ও ইলেকট্রনিক্স
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onSelectCategory('all')}
-                  className="hover:text-white transition-colors cursor-pointer text-left"
-                >
-                  সকল পণ্য তালিকা
+                <button onClick={() => onSelectCategory('cat-gadgets')} className="hover:text-white transition-colors cursor-pointer text-left">
+                  স্মার্ট গ্যাজেট ও লাইফস্টাইল
                 </button>
               </li>
             </ul>
@@ -256,20 +246,20 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
               <span className="text-[11px] font-semibold text-stone-400 block mb-1.5">
                 পেমেন্ট মাধ্যম:
               </span>
-              <div className="text-[11px] text-stone-300 font-medium">
-                ক্যাশ অন ডেলিভারি · SSLCOMMERZ · বিকাশ · নগদ · রকেট · ভিসা/মাস্টারকার্ড
+              <div className="text-[11px] text-stone-300 font-medium leading-relaxed">
+                ক্যাশ অন ডেলিভারি · SSLCOMMERZ · বিকাশ · নগদ · রকেট · কার্ড
               </div>
             </div>
           </div>
         </div>
 
         {/* Bottom Strip */}
-        <div className="mt-12 pt-6 border-t border-stone-800 text-stone-500 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="mt-10 pt-6 border-t border-stone-800 text-stone-500 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div>
-            © {new Date().getFullYear()} সাশ্রয়ী দাম | Sashroyi Daam (@sashroyidaam). সর্বস্বত্ব সংরক্ষিত।
+            © {new Date().getFullYear()} সাশ্রয়ী দাম | Sashroyi Daam. সর্বস্বত্ব সংরক্ষিত।
           </div>
           <div className="flex items-center gap-4">
-            <span>জাতীয় ই-কমার্স প্ল্যাটফর্ম</span>
+            <span>জাতীয় অনলাইন শপ</span>
             <span aria-hidden="true">·</span>
             <span>ঢাকা, বাংলাদেশ</span>
           </div>

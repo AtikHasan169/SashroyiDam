@@ -50,12 +50,16 @@ async function startServer() {
 
       const safeName = `img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
       const filePath = path.join(uploadsDir, safeName);
+      try {
+        fs.writeFileSync(filePath, buffer);
+      } catch (e) {
+        // Fallback gracefully if disk is read-only
+      }
 
-      fs.writeFileSync(filePath, buffer);
-
+      // Return full base64 data URL so it is saved directly into the database row
       res.json({
-        url: `/uploads/${safeName}`,
-        message: 'ছবি সফলভাবে আপলোড হয়েছে'
+        url: data,
+        message: 'ছবি স্থায়ীভাবে (Base64) সংরক্ষিত হয়েছে'
       });
     } catch (err: any) {
       console.error('Upload error:', err);
@@ -96,7 +100,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Oshesh (অশেষ) server is active on port ${PORT}`);
+    console.log(`সাশ্রয়ী দাম (Sashroyi Daam) server is active on port ${PORT}`);
   });
 }
 
