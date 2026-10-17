@@ -223,33 +223,6 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   >
                     {isLoading ? 'লগইন হচ্ছে...' : 'লগইন করুন'}
                   </button>
-
-                  {/* Quick Fill Demo Credentials */}
-                  <div className="pt-2 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <span className="text-stone-400 font-medium">ডেমো লগইন:</span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIdentifier('admin@sashroyidaam.com');
-                          setPassword('SashroyiAdmin2026!');
-                        }}
-                        className="px-2 py-1 bg-stone-100 hover:bg-emerald-50 hover:text-[#0F4C3A] text-stone-600 rounded text-[11px] font-medium transition-colors cursor-pointer border border-stone-200"
-                      >
-                        অ্যাডমিন
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIdentifier('01711223344');
-                          setPassword('OsheshUser2026!');
-                        }}
-                        className="px-2 py-1 bg-stone-100 hover:bg-emerald-50 hover:text-[#0F4C3A] text-stone-600 rounded text-[11px] font-medium transition-colors cursor-pointer border border-stone-200"
-                      >
-                        কাস্টমার
-                      </button>
-                    </div>
-                  </div>
                 </form>
               ) : (
                 <form onSubmit={handleSignUp} className="space-y-3.5">

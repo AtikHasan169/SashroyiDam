@@ -65,7 +65,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   >('overview');
 
   // Login challenge state for admin
-  const [adminEmail, setAdminEmail] = useState('admin@sashroyidaam.com');
+  const [adminEmail, setAdminEmail] = useState('');
   const [adminPass, setAdminPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -597,11 +597,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               />
             </div>
 
-            <div className="text-[11px] text-stone-500 bg-stone-50 p-3 rounded-lg border border-stone-200 space-y-1">
-              <div className="font-semibold text-stone-800">প্রথম সুপার অ্যাডমিন ক্রেডেনশিয়াল:</div>
-              <div>ইমেইল: <code className="bg-stone-200 px-1 py-0.5 rounded">admin@sashroyidaam.com</code> (বা admin@oshesh.com.bd)</div>
-              <div>পাসওয়ার্ড: <code className="bg-stone-200 px-1 py-0.5 rounded">OsheshAdmin2026!</code></div>
-            </div>
 
             <button
               type="submit"

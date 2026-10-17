@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Search, User as UserIcon, Heart, Menu, ShieldCheck, MapPin, Globe } from 'lucide-react';
+import { ShoppingCart, Search, User as UserIcon, Heart, Menu, ShieldCheck, MapPin, Globe, Headphones } from 'lucide-react';
 import { useCart } from '../context/CartContext.tsx';
 import { useWishlist } from '../context/WishlistContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -12,6 +12,7 @@ interface HeaderProps {
   onOpenAccount: () => void;
   onOpenTracking: () => void;
   onOpenAdmin: () => void;
+  onOpenHelp?: () => void;
   onSelectCategory: (categoryId: string) => void;
   onOpenSearch: () => void;
   searchQuery: string;
@@ -26,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAccount,
   onOpenTracking,
   onOpenAdmin,
+  onOpenHelp,
   onSelectCategory,
   onOpenSearch,
   searchQuery,
@@ -248,16 +250,14 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </button>
 
+              {/* Top Help ("সহায়তা") Button */}
               <button
-                onClick={() => setIsCartDrawerOpen(true)}
-                className="flex items-center gap-2 px-3.5 py-2 bg-[#0F4C3A] text-white hover:bg-[#135D48] rounded-lg font-medium text-sm transition-all shadow-sm cursor-pointer whitespace-nowrap"
-                title={t('cart')}
+                onClick={onOpenHelp}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#0F4C3A] border border-emerald-200/90 rounded-lg font-bold text-xs transition-all shadow-2xs cursor-pointer whitespace-nowrap group"
+                title={language === 'bn' ? 'সহায়তা ও কাস্টমার কেয়ার' : 'Help & Support'}
               >
-                <ShoppingCart className="w-4 h-4" />
-                <span>{t('cart')}</span>
-                <span className="bg-white/20 px-1.5 py-0.2 rounded text-xs font-bold tabular-nums">
-                  {totalItemCount}
-                </span>
+                <Headphones className="w-4 h-4 text-[#0F4C3A] group-hover:scale-105 transition-transform" />
+                <span>{language === 'bn' ? 'সহায়তা' : 'Help'}</span>
               </button>
             </div>
           </div>
@@ -285,8 +285,8 @@ export const Header: React.FC<HeaderProps> = ({
               <BrandLogo variant="dark" size="sm" showTagline={false} />
             </button>
 
-            {/* Mobile Right: Wishlist & Cart Actions */}
-            <div className="flex items-center gap-1 shrink-0">
+            {/* Mobile Right: Wishlist & Help Actions */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={() => {
                   const el = document.getElementById('products');
@@ -304,14 +304,12 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
 
               <button
-                onClick={() => setIsCartDrawerOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#0F4C3A] text-white hover:bg-[#135D48] rounded-lg font-medium text-xs transition-all shadow-sm cursor-pointer whitespace-nowrap"
-                title={t('cart')}
+                onClick={onOpenHelp}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#0F4C3A] border border-emerald-200/90 rounded-lg font-bold text-xs transition-all shadow-2xs cursor-pointer whitespace-nowrap"
+                title={language === 'bn' ? 'সহায়তা' : 'Help'}
               >
-                <ShoppingCart className="w-4 h-4" />
-                <span className="bg-white/20 px-1 py-0.2 rounded text-[11px] font-bold tabular-nums">
-                  {totalItemCount}
-                </span>
+                <Headphones className="w-3.5 h-3.5 text-[#0F4C3A]" />
+                <span>{language === 'bn' ? 'সহায়তা' : 'Help'}</span>
               </button>
             </div>
           </div>

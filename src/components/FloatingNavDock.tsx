@@ -1,12 +1,14 @@
 import React from 'react';
-import { Home, Grid, Search, MessageCircle, User } from 'lucide-react';
+import { Home, Grid, Search, ShoppingCart, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
+import { useCart } from '../context/CartContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 
 interface FloatingNavDockProps {
   onOpenAccount: () => void;
   onOpenCategories: () => void;
   onOpenSearch: () => void;
+  onOpenCart: () => void;
   onHomeClick?: () => void;
 }
 
@@ -14,19 +16,12 @@ export const FloatingNavDock: React.FC<FloatingNavDockProps> = ({
   onOpenAccount,
   onOpenCategories,
   onOpenSearch,
+  onOpenCart,
   onHomeClick
 }) => {
   const { user } = useAuth();
+  const { totalItemCount } = useCart();
   const { language, t } = useLanguage();
-
-  const handleOpenWhatsApp = () => {
-    const text = encodeURIComponent(
-      language === 'bn'
-        ? 'সাশ্রয়ী দাম (Sashroyi Daam) থেকে সহায়তা প্রয়োজন।'
-        : 'Hello! I need assistance with an order on Sashroyi Daam.'
-    );
-    window.open(`https://wa.me/8801700000000?text=${text}`, '_blank');
-  };
 
   return (
     <nav
@@ -75,15 +70,22 @@ export const FloatingNavDock: React.FC<FloatingNavDockProps> = ({
         </span>
       </button>
 
-      {/* 4. WhatsApp Help */}
+      {/* 4. Cart (Moved into dock, replacing Help) */}
       <button
-        onClick={handleOpenWhatsApp}
-        className="flex flex-col items-center justify-center py-1 px-2.5 text-emerald-700 hover:text-emerald-800 active:scale-90 transition-all cursor-pointer min-w-[44px]"
-        title="WhatsApp Support"
+        onClick={onOpenCart}
+        className="relative flex flex-col items-center justify-center py-1 px-2.5 text-stone-600 hover:text-[#0F4C3A] active:scale-90 transition-all cursor-pointer min-w-[44px]"
+        title={t('cart')}
       >
-        <MessageCircle className="w-4 h-4 text-emerald-600" />
+        <div className="relative">
+          <ShoppingCart className="w-4 h-4" />
+          {totalItemCount > 0 && (
+            <span className="absolute -top-1.5 -right-2 bg-[#0F4C3A] text-white text-[9px] font-bold min-w-3.5 h-3.5 px-1 rounded-full flex items-center justify-center tabular-nums shadow-xs">
+              {totalItemCount}
+            </span>
+          )}
+        </div>
         <span className="text-[10px] font-semibold mt-0.5">
-          {language === 'bn' ? 'সাপোর্ট' : 'Help'}
+          {t('cart')}
         </span>
       </button>
 

@@ -8,6 +8,7 @@ import { CategoryShowcase } from './components/CategoryShowcase.tsx';
 import { ProductCard } from './components/ProductCard.tsx';
 import { ProductDetailModal } from './components/ProductDetailModal.tsx';
 import { ProductPage } from './components/ProductPage.tsx';
+import { CategoryPage } from './components/CategoryPage.tsx';
 import { CartDrawer } from './components/CartDrawer.tsx';
 import { CheckoutFlow, type DirectBuyItem } from './components/CheckoutFlow.tsx';
 import { OrderTrackingModal } from './components/OrderTrackingModal.tsx';
@@ -40,6 +41,8 @@ function StorefrontApp() {
   const [directBuyItem, setDirectBuyItem] = useState<DirectBuyItem | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [viewingProductPage, setViewingProductPage] = useState<Product | null>(null);
+  const [viewingCategory, setViewingCategory] = useState<Category | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [quickActionProduct, setQuickActionProduct] = useState<Product | null>(null);
   const [cartToastItem, setCartToastItem] = useState<CartToastItem | null>(null);
   const [adminEditingProduct, setAdminEditingProduct] = useState<Partial<Product> | null>(null);
@@ -98,18 +101,25 @@ function StorefrontApp() {
     loadProducts();
   }, [loadProducts]);
 
-  // Deep linking: detect ?product=... on load or URL popstate
+  // Deep linking: detect ?product=... or ?category=... on load
   useEffect(() => {
-    if (products.length === 0) return;
     const params = new URLSearchParams(window.location.search);
     const prodParam = params.get('product');
-    if (prodParam) {
+    const catParam = params.get('category');
+    if (prodParam && products.length > 0) {
       const found = products.find((p) => p.slug === prodParam || p.id === prodParam);
       if (found) {
         setViewingProductPage(found);
       }
     }
-  }, [products]);
+    if (catParam && categories.length > 0) {
+      const foundCat = categories.find((c) => c.slug === catParam || c.id === catParam);
+      if (foundCat) {
+        setViewingCategory(foundCat);
+        setSelectedCategory(foundCat.id);
+      }
+    }
+  }, [products, categories]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -126,6 +136,7 @@ function StorefrontApp() {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const prodParam = params.get('product');
+      const catParam = params.get('category');
       if (prodParam && products.length > 0) {
         const found = products.find((p) => p.slug === prodParam || p.id === prodParam);
         if (found) {
@@ -138,10 +149,22 @@ function StorefrontApp() {
         setViewingProductPage(null);
         setSelectedProduct(null);
       }
+
+      if (catParam && categories.length > 0) {
+        const foundCat = categories.find((c) => c.slug === catParam || c.id === catParam);
+        if (foundCat) {
+          setViewingCategory(foundCat);
+          setSelectedCategory(foundCat.id);
+        } else {
+          setViewingCategory(null);
+        }
+      } else {
+        setViewingCategory(null);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [products]);
+  }, [products, categories]);
 
   const handleOpenProductPage = (prod: Product) => {
     setSelectedProduct(null);
@@ -158,6 +181,46 @@ function StorefrontApp() {
     url.searchParams.delete('product');
     const newUrl = url.pathname + (url.search ? url.search : '');
     window.history.pushState({}, '', newUrl);
+  };
+
+  const handleSelectCategory = (catId: string) => {
+    if (viewingProductPage) {
+      setViewingProductPage(null);
+    }
+    if (catId === 'all') {
+      setViewingCategory(null);
+      setSelectedCategory('all');
+      const url = new URL(window.location.href);
+      url.searchParams.delete('category');
+      url.searchParams.delete('product');
+      window.history.pushState({}, '', url.pathname + (url.search ? url.search : ''));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const cat = categories.find((c) => c.id === catId || c.slug === catId);
+      if (cat) {
+        setViewingCategory(cat);
+        setSelectedCategory(cat.id);
+        const url = new URL(window.location.href);
+        url.searchParams.set('category', cat.slug || cat.id);
+        url.searchParams.delete('product');
+        window.history.pushState({}, '', url.toString());
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        setSelectedCategory(catId);
+      }
+    }
+  };
+
+  const handleBackToHome = () => {
+    setViewingCategory(null);
+    setViewingProductPage(null);
+    setSelectedCategory('all');
+    setSearchQuery('');
+    const url = new URL(window.location.href);
+    url.searchParams.delete('category');
+    url.searchParams.delete('product');
+    window.history.pushState({}, '', url.pathname + (url.search ? url.search : ''));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleAdminEditProduct = (prod: Product) => {
@@ -209,21 +272,16 @@ function StorefrontApp() {
           setAdminEditingProduct(null);
           setIsAdminOpen(true);
         }}
+        onOpenHelp={() => setIsHelpOpen((prev) => !prev)}
         onOpenSearch={() => setIsSearchOverlayOpen(true)}
-        onSelectCategory={(catId) => {
-          if (viewingProductPage) {
-            handleBackFromProductPage();
-          }
-          setSelectedCategory(catId);
-          setTimeout(() => {
-            const el = document.getElementById('products');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
-        }}
+        onSelectCategory={handleSelectCategory}
         searchQuery={searchQuery}
         setSearchQuery={(q) => {
           if (viewingProductPage) {
             handleBackFromProductPage();
+          }
+          if (viewingCategory) {
+            setViewingCategory(null);
           }
           setSearchQuery(q);
         }}
@@ -233,7 +291,7 @@ function StorefrontApp() {
         setIsDrawerOpen={setIsLeftDrawerOpen}
       />
 
-      {/* 2. DEDICATED PRODUCT PAGE VIEW OR HOMEPAGE CATALOG */}
+      {/* 2. DEDICATED PRODUCT PAGE VIEW, DEDICATED CATEGORY PAGE, OR HOMEPAGE CATALOG */}
       {viewingProductPage ? (
         <ProductPage
           product={viewingProductPage}
@@ -249,6 +307,24 @@ function StorefrontApp() {
           onEditProduct={handleAdminEditProduct}
           onDeleteProduct={handleAdminDeleteProduct}
         />
+      ) : viewingCategory ? (
+        <CategoryPage
+          category={viewingCategory}
+          allCategories={categories}
+          products={products}
+          onBackToHome={handleBackToHome}
+          onSelectCategory={handleSelectCategory}
+          onOpenProduct={handleOpenProductPage}
+          onDirectBuy={handleDirectBuy}
+          onQuickAddToast={(p) =>
+            setCartToastItem({
+              id: p.id,
+              title: language === 'en' && p.titleEn ? p.titleEn : p.titleBn,
+              imageUrl: p.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg',
+              price: p.price
+            })
+          }
+        />
       ) : (
         <div className="flex-1 flex flex-col">
           {/* Hero Section (shown when no specific search query is typed) */}
@@ -261,22 +337,14 @@ function StorefrontApp() {
                   const el = document.getElementById('products');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                onSelectCategory={(catId) => {
-                  setSelectedCategory(catId);
-                  const el = document.getElementById('products');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
+                onSelectCategory={handleSelectCategory}
               />
 
               {/* Category Showcase Grid */}
               <CategoryShowcase
                 categories={categories}
                 selectedCategory={selectedCategory}
-                onSelectCategory={(catId) => {
-                  setSelectedCategory(catId);
-                  const el = document.getElementById('products');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
+                onSelectCategory={handleSelectCategory}
               />
             </div>
           )}
@@ -398,20 +466,14 @@ function StorefrontApp() {
       {/* 6. Footer */}
       <Footer
         onOpenTracking={() => setIsTrackingOpen(true)}
-        onSelectCategory={(catId) => {
-          if (viewingProductPage) {
-            handleBackFromProductPage();
-          }
-          setSelectedCategory(catId);
-          setTimeout(() => {
-            const el = document.getElementById('products');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
-        }}
+        onSelectCategory={handleSelectCategory}
       />
 
-      {/* Floating Facebook Social Badge */}
-      <FloatingSocialBadge />
+      {/* Floating Classy Minimal Customer Support Badge */}
+      <FloatingSocialBadge
+        isOpenControlled={isHelpOpen}
+        onOpenChangeControlled={setIsHelpOpen}
+      />
 
       {/* SmartBazaar Style Persistent Floating Side Cart Pill */}
       <SmartBazaarCartPill />
@@ -511,11 +573,8 @@ function StorefrontApp() {
           onOpenAccount={() => setIsAccountOpen(true)}
           onOpenCategories={() => setIsLeftDrawerOpen(true)}
           onOpenSearch={() => setIsSearchOverlayOpen(true)}
-          onHomeClick={() => {
-            setSelectedCategory('all');
-            setSearchQuery('');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onOpenCart={() => setIsCartDrawerOpen(true)}
+          onHomeClick={handleBackToHome}
         />
       )}
 
@@ -529,12 +588,8 @@ function StorefrontApp() {
           setIsSearchOverlayOpen(false);
         }}
         onSelectCategory={(catId) => {
-          setSelectedCategory(catId);
+          handleSelectCategory(catId);
           setIsSearchOverlayOpen(false);
-          setTimeout(() => {
-            const el = document.getElementById('products');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
         }}
       />
     </div>

@@ -1,32 +1,65 @@
 import React, { useState } from 'react';
-import { MessageCircle, X, ExternalLink, Phone, ShieldCheck } from 'lucide-react';
+import { MessageCircle, X, ExternalLink, Phone, ShieldCheck, Headphones, Instagram } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext.tsx';
 
 interface FloatingSocialBadgeProps {
   facebookUrl?: string;
   facebookUsername?: string;
+  instagramUrl?: string;
+  instagramUsername?: string;
+  whatsappNumber?: string;
   phone?: string;
+  isOpenControlled?: boolean;
+  onOpenChangeControlled?: (open: boolean) => void;
 }
 
 export const FloatingSocialBadge: React.FC<FloatingSocialBadgeProps> = ({
   facebookUrl = 'https://facebook.com/sashroyidaam',
   facebookUsername = '@sashroyidaam',
-  phone = '০৯৬১২-৮৮৯৯০০'
+  instagramUrl = 'https://instagram.com/sashroyidaam',
+  instagramUsername = '@sashroyidaam',
+  whatsappNumber = '8801700000000',
+  phone = '০৯৬১২-৮৮৯৯০০',
+  isOpenControlled,
+  onOpenChangeControlled
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = isOpenControlled !== undefined ? isOpenControlled : internalOpen;
+  const setIsOpen = (val: boolean) => {
+    if (onOpenChangeControlled) {
+      onOpenChangeControlled(val);
+    } else {
+      setInternalOpen(val);
+    }
+  };
+  const { language } = useLanguage();
+
+  const cleanWaNumber = whatsappNumber.replace(/[^0-9]/g, '') || '8801700000000';
+  const waGreeting = encodeURIComponent(
+    language === 'bn'
+      ? 'সাশ্রয়ী দাম (Sashroyi Daam) থেকে সহায়তা প্রয়োজন।'
+      : 'Hello! I need assistance with an order on Sashroyi Daam.'
+  );
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-30 flex flex-col items-end">
-      {/* Expanded Popover Card */}
+    <div className="fixed bottom-20 md:bottom-6 right-3 sm:right-6 z-30 flex flex-col items-end">
+      {/* Expanded Minimal Popover Card */}
       {isOpen && (
-        <div className="mb-3 w-76 sm:w-80 bg-white rounded-2xl shadow-xl border border-stone-200/90 p-4 text-left animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <div className="flex items-start justify-between gap-2 pb-3 border-b border-stone-100">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0">
-                f
+        <div className="mb-2.5 w-76 sm:w-80 bg-white rounded-2xl shadow-2xl border border-stone-200/95 p-4 text-left animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-2.5 border-b border-stone-100">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-emerald-100 text-[#0F4C3A] flex items-center justify-center">
+                <Headphones className="w-3.5 h-3.5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-stone-900 leading-tight">সাশ্রয়ী দাম</h4>
-                <p className="text-[11px] text-stone-500 font-medium">অফিসিয়াল ফেসবুক পেজ ও হেল্পডেস্ক</p>
+                <h4 className="text-xs font-bold text-stone-900 leading-tight">
+                  {language === 'bn' ? 'কাস্টমার কেয়ার ও সহায়তা' : 'Customer Care & Support'}
+                </h4>
+                <p className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                  <span>{language === 'bn' ? 'সরাসরি সহায়তা টিম সক্রিয়' : 'Live Team Active'}</span>
+                </p>
               </div>
             </div>
             <button
@@ -38,57 +71,108 @@ export const FloatingSocialBadge: React.FC<FloatingSocialBadgeProps> = ({
             </button>
           </div>
 
-          <div className="py-3 space-y-2 text-xs text-stone-600">
-            <div className="flex items-center gap-1.5 text-emerald-800 bg-emerald-50/80 px-2.5 py-1.5 rounded-lg font-medium">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>১০০% আসল পণ্য ও দ্রুত সমাধান</span>
-            </div>
-            <p className="text-[11px] leading-relaxed text-stone-500 pt-0.5">
-              অর্ডার সংক্রান্ত যেকোনো তথ্য, পণ্যের ভিডিও দেখতে বা সরাসরি কথা বলতে আমাদের ফেসবুক পেজে যোগাযোগ করুন।
-            </p>
-          </div>
+          {/* Social Channels Options in সহায়তা */}
+          <div className="py-2.5 space-y-2 text-xs">
+            {/* 1. WhatsApp Support */}
+            <a
+              href={`https://wa.me/${cleanWaNumber}?text=${waGreeting}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between p-2 rounded-xl bg-emerald-50/70 hover:bg-emerald-100/90 border border-emerald-200/80 text-emerald-950 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-[#25D366] text-white flex items-center justify-center font-bold shrink-0 shadow-2xs">
+                  <MessageCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-bold text-xs text-emerald-950 flex items-center gap-1">
+                    <span>হোয়াটসঅ্যাপ (WhatsApp)</span>
+                    <span className="text-[9px] bg-emerald-200 text-emerald-900 font-bold px-1 rounded">দ্রুততম</span>
+                  </div>
+                  <div className="text-[10px] text-emerald-800 font-medium">ইনস্ট্যান্ট চ্যাট ও ছবির মাধ্যমে অর্ডার</div>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-emerald-700 opacity-60 group-hover:opacity-100 transition-opacity" />
+            </a>
 
-          <div className="space-y-2 pt-1">
+            {/* 2. Instagram Support */}
+            <a
+              href={instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between p-2 rounded-xl bg-purple-50/60 hover:bg-purple-100/80 border border-purple-200/80 text-purple-950 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Instagram className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <div className="font-bold text-xs text-purple-950">ইনস্টাগ্রাম (Instagram)</div>
+                  <div className="text-[10px] text-purple-700 font-medium">{instagramUsername}</div>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-purple-700 opacity-60 group-hover:opacity-100 transition-opacity" />
+            </a>
+
+            {/* 3. Facebook Support */}
             <a
               href={facebookUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 bg-[#1877F2] hover:bg-[#1567d3] text-white text-xs font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
+              className="flex items-center justify-between p-2 rounded-xl bg-blue-50/60 hover:bg-blue-100/80 border border-blue-200/80 text-blue-950 transition-all cursor-pointer group"
             >
-              <span className="font-bold text-sm leading-none">f</span>
-              <span>ফেসবুক পেজে যান ({facebookUsername})</span>
-              <ExternalLink className="w-3.5 h-3.5 ml-auto opacity-70" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-[#1877F2] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                  f
+                </div>
+                <div>
+                  <div className="font-bold text-xs text-blue-950">ফেসবুক পেজ (Facebook)</div>
+                  <div className="text-[10px] text-blue-700 font-medium">{facebookUsername}</div>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-blue-700 opacity-60 group-hover:opacity-100 transition-opacity" />
             </a>
 
+            {/* 4. Phone Hotline */}
             <a
               href={`tel:${phone.replace(/[^0-9]/g, '') || '09612889900'}`}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium rounded-xl transition-all cursor-pointer"
+              className="flex items-center justify-between p-2 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-800 transition-all cursor-pointer group"
             >
-              <Phone className="w-3.5 h-3.5 text-stone-500" />
-              <span>হটলাইন: {phone}</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-stone-700 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Phone className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <div className="font-bold text-xs text-stone-900">হটলাইন কল</div>
+                  <div className="text-[10px] text-stone-600 font-medium">{phone}</div>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-stone-500 opacity-60 group-hover:opacity-100 transition-opacity" />
             </a>
           </div>
+
+          <p className="text-[10px] text-stone-400 text-center pt-1 border-t border-stone-100">
+            {language === 'bn' ? 'সকাল ৯টা – রাত ১০টা পর্যন্ত সক্রিয় সেবা' : 'Available 9:00 AM – 10:00 PM'}
+          </p>
         </div>
       )}
 
-      {/* Trigger Floating Action Button */}
+      {/* Minimal Floating Action Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="group flex items-center gap-2.5 bg-[#1877F2] hover:bg-[#1567d3] text-white pl-3.5 pr-4 py-2.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform active:scale-95 cursor-pointer border-2 border-white"
-        aria-label="ফেসবুক পেজ ও সাপোর্ট"
+        className="group flex items-center gap-2 bg-[#0F4C3A] hover:bg-[#145C47] text-white px-3 sm:px-3.5 py-2.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 cursor-pointer border border-emerald-600/50"
+        aria-label="সহায়তা ও যোগাযোগ"
+        title="সহায়তা ও যোগাযোগ"
       >
-        <span className="w-5 h-5 rounded-full bg-white text-[#1877F2] flex items-center justify-center font-bold text-xs shadow-2xs">
-          f
-        </span>
-        <span className="text-xs font-semibold tracking-wide hidden sm:inline">
-          ফেসবুক পেজ
-        </span>
-        <span className="text-xs font-semibold tracking-wide sm:hidden">
-          সহায়তা
-        </span>
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+        <div className="relative">
+          <Headphones className="w-4 h-4 text-emerald-200 group-hover:text-white transition-colors" />
+          <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+          </span>
+        </div>
+        <span className="text-xs font-bold tracking-wide">
+          {language === 'bn' ? 'সহায়তা' : 'Help'}
         </span>
       </button>
     </div>
