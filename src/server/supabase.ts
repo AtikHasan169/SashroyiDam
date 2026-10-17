@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { DatabaseSchema } from './db.ts';
-import type { Product, Category, Order, StoreSettings, Coupon } from '../types/index.ts';
+import type { Product, Category, Order, StoreSettings, Coupon, User } from '../types/index.ts';
 
 const CONFIG_PATH = path.resolve(process.cwd(), 'data', 'supabase_config.json');
 
@@ -100,18 +100,32 @@ export async function fetchSupabaseData(): Promise<Partial<DatabaseSchema> | nul
   if (!supabase) return null;
 
   try {
-    const [productsRes, categoriesRes, ordersRes, settingsRes, couponsRes] = await Promise.all([
+    const [productsRes, categoriesRes, ordersRes, settingsRes, couponsRes, usersRes] = await Promise.all([
       supabase.from('products').select('*'),
       supabase.from('categories').select('*'),
       supabase.from('orders').select('*'),
       supabase.from('store_settings').select('*').limit(1),
-      supabase.from('coupons').select('*')
+      supabase.from('coupons').select('*'),
+      Promise.resolve(supabase.from('users').select('*')).catch(() => ({ data: null }))
     ]);
 
     const result: Partial<DatabaseSchema> = {};
 
+    if (usersRes.data && usersRes.data.length > 0) {
+      result.users = (usersRes.data as any[]).map((u: any) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        role: u.role,
+        passwordHash: u.password_hash,
+        savedAddresses: u.saved_addresses || [],
+        createdAt: u.created_at
+      }));
+    }
+
     if (productsRes.data && productsRes.data.length > 0) {
-      result.products = productsRes.data.map((p) => ({
+      result.products = (productsRes.data as any[]).map((p: any) => ({
         id: p.id,
         slug: p.slug,
         titleBn: p.title_bn,
@@ -142,7 +156,7 @@ export async function fetchSupabaseData(): Promise<Partial<DatabaseSchema> | nul
     }
 
     if (categoriesRes.data && categoriesRes.data.length > 0) {
-      result.categories = categoriesRes.data.map((c) => ({
+      result.categories = (categoriesRes.data as any[]).map((c: any) => ({
         id: c.id,
         slug: c.slug,
         nameBn: c.name_bn,
@@ -155,7 +169,7 @@ export async function fetchSupabaseData(): Promise<Partial<DatabaseSchema> | nul
     }
 
     if (ordersRes.data && ordersRes.data.length > 0) {
-      result.orders = ordersRes.data.map((o) => ({
+      result.orders = (ordersRes.data as any[]).map((o: any) => ({
         id: o.id,
         orderNumber: o.order_number,
         customerName: o.customer_name,
@@ -181,7 +195,7 @@ export async function fetchSupabaseData(): Promise<Partial<DatabaseSchema> | nul
     }
 
     if (settingsRes.data && settingsRes.data.length > 0) {
-      const s = settingsRes.data[0];
+      const s = (settingsRes.data as any[])[0];
       result.storeSettings = {
         storeNameBn: s.store_name_bn,
         storeNameEn: s.store_name_en,
@@ -205,7 +219,7 @@ export async function fetchSupabaseData(): Promise<Partial<DatabaseSchema> | nul
     }
 
     if (couponsRes.data && couponsRes.data.length > 0) {
-      result.coupons = couponsRes.data.map((c) => ({
+      result.coupons = (couponsRes.data as any[]).map((c: any) => ({
         id: c.id,
         code: c.code,
         discountType: c.discount_type,
@@ -328,7 +342,57 @@ export async function deleteProductFromSupabase(productId: string): Promise<void
   }
 }
 
-export async function syncAllToSupabase(db: DatabaseSchema): Promise<{ categoriesCount: number; productsCount: number }> {
+export async function syncUserToSupabase(user: User): Promise<void> {
+  if (!supabase) return;
+  try {
+    await supabase.from('users').upsert({
+      id: user.id,
+      name: user.name,
+      email: user.email.toLowerCase(),
+      phone: user.phone,
+      role: user.role,
+      password_hash: user.passwordHash,
+      saved_addresses: user.savedAddresses || [],
+      created_at: user.createdAt
+    });
+  } catch (err) {
+    console.warn('Failed to sync user to Supabase:', err);
+  }
+}
+
+export async function findSupabaseUser(identifier: string): Promise<User | null> {
+  if (!supabase) return null;
+  try {
+    const cleanId = identifier.trim().toLowerCase();
+    const cleanPhone = identifier.trim().replace(/^(\+88|88)/, '').replace(/[\s\-\(\)]/g, '');
+
+    // Search by email or phone
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .or(`email.ilike.${cleanId},phone.eq.${cleanPhone},phone.eq.${cleanId}`)
+      .limit(1);
+
+    if (error || !data || data.length === 0) return null;
+
+    const u = data[0];
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone,
+      role: u.role,
+      passwordHash: u.password_hash,
+      savedAddresses: u.saved_addresses || [],
+      createdAt: u.created_at
+    };
+  } catch (err) {
+    console.warn('findSupabaseUser error:', err);
+    return null;
+  }
+}
+
+export async function syncAllToSupabase(db: DatabaseSchema): Promise<{ categoriesCount: number; productsCount: number; usersCount: number }> {
   if (!supabase) {
     throw new Error('Supabase কনফিগার করা নেই');
   }
@@ -343,8 +407,14 @@ export async function syncAllToSupabase(db: DatabaseSchema): Promise<{ categorie
     await syncProductToSupabase(prod);
   }
 
+  // 3. Sync Users
+  for (const user of db.users) {
+    await syncUserToSupabase(user);
+  }
+
   return {
     categoriesCount: db.categories.length,
-    productsCount: db.products.length
+    productsCount: db.products.length,
+    usersCount: db.users.length
   };
 }

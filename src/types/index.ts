@@ -45,6 +45,7 @@ export interface Category {
   nameBn: string;
   nameEn: string;
   descriptionBn: string;
+  descriptionEn?: string;
   image: string;
   displayOrder: number;
   isFeatured: boolean;
@@ -73,6 +74,7 @@ export interface Product {
   price: number; // in BDT
   originalPrice?: number; // for showing genuine savings
   stock: number;
+  inStock?: boolean;
   categoryId: string;
   categorySlug?: string;
   categoryNameBn?: string;
@@ -83,6 +85,7 @@ export interface Product {
   variants?: ProductVariant[];
   attributes?: Record<string, string>; // e.g. { "উপাদান": "১০০% অর্গানিক সুতি", "ওজন": "৫০০ গ্রাম" }
   isFeatured: boolean;
+  isHotDeal?: boolean;
   isPublished: boolean;
   isArchived: boolean;
   salesCount: number;

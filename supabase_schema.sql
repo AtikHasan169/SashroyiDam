@@ -109,7 +109,29 @@ CREATE TABLE IF NOT EXISTS store_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 6. Users Table
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  phone TEXT UNIQUE NOT NULL,
+  role TEXT NOT NULL DEFAULT 'customer',
+  password_hash TEXT,
+  saved_addresses JSONB DEFAULT '[]'::JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Disable Row Level Security so your backend server can write with anon or service keys
+ALTER TABLE IF EXISTS categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS orders DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS coupons DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS store_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS users DISABLE ROW LEVEL SECURITY;
+
 -- Initial default coupon
 INSERT INTO coupons (id, code, discount_type, discount_value, min_order_value, max_discount, is_active)
 VALUES ('coup-sashroyi10', 'SASHROYI10', 'percentage', 10, 1200, 400, true)
 ON CONFLICT (code) DO NOTHING;
+
+

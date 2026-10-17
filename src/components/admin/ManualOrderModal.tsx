@@ -115,8 +115,8 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
         const prod = products.find((p) => p.id === it.productId);
         return {
           productId: it.productId,
-          titleBn: prod?.titleBn || 'ম্যানুয়াল পণ্য',
-          titleEn: prod?.titleEn,
+          productTitleBn: prod?.titleBn || 'ম্যানুয়াল পণ্য',
+          productTitleEn: prod?.titleEn || 'Manual Product',
           sku: prod?.sku || `MANUAL-${it.productId}`,
           unitPrice: it.unitPrice,
           quantity: it.quantity,
@@ -124,6 +124,11 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
           imageUrl: prod?.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'
         };
       });
+
+      const matchedDist = BANGLADESH_DISTRICTS.find(
+        (d) => district.includes(d.nameBn) || district.toLowerCase().includes(d.nameEn.toLowerCase())
+      );
+      const division = matchedDist ? matchedDist.division.toLowerCase() : 'dhaka';
 
       const prefix = orderSource === 'facebook' ? 'FB' : orderSource === 'phone' ? 'PH' : orderSource === 'whatsapp' ? 'WA' : 'DIR';
       const orderNumber = `SD-${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -133,9 +138,10 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         customerEmail: customerEmail.trim() || undefined,
-        fullAddress: fullAddress.trim(),
+        division,
         district,
         upazila: upazila.trim() || district,
+        fullAddress: fullAddress.trim(),
         deliveryInstructions: `[অর্ডার মাধ্যম: ${orderSource.toUpperCase()}] ${deliveryInstructions.trim()}`,
         items: orderItems,
         subtotal,
@@ -145,11 +151,12 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
         paymentMethod: 'cod',
         paymentStatus: 'unpaid',
         fulfilmentStatus: initialStatus,
-        trackingHistory: [
+        statusTimeline: [
           {
             status: initialStatus,
             timestamp: new Date().toISOString(),
-            note: `অর্ডারটি ম্যানুয়ালি যুক্ত করা হয়েছে (${orderSource.toUpperCase()} চ্যানেল থেকে)`
+            note: `অর্ডারটি ম্যানুয়ালি যুক্ত করা হয়েছে (${orderSource.toUpperCase()} চ্যানেল থেকে)`,
+            changedBy: 'Admin'
           }
         ],
         createdAt: new Date().toISOString(),

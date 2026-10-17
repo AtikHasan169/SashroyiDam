@@ -14,7 +14,7 @@ import type {
   InventoryMovement,
   AuditLog
 } from '../types/index.ts';
-import { isSupabaseConfigured, fetchSupabaseData } from './supabase.ts';
+import { isSupabaseConfigured, fetchSupabaseData, syncAllToSupabase } from './supabase.ts';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'oshesh_db.json');
@@ -936,7 +936,35 @@ export function getDatabase(): DatabaseSchema {
             if (supaData.storeSettings) {
               memoryDb.storeSettings = supaData.storeSettings as StoreSettings;
             }
+            if (supaData.users && supaData.users.length > 0) {
+              for (const su of supaData.users) {
+                const idx = memoryDb.users.findIndex(
+                  (u) => u.id === su.id || u.email.toLowerCase() === su.email.toLowerCase() || u.phone === su.phone
+                );
+                if (idx !== -1) {
+                  // Keep passwordHash if local has it and remote doesn't
+                  memoryDb.users[idx] = {
+                    ...su,
+                    passwordHash: su.passwordHash || memoryDb.users[idx].passwordHash
+                  };
+                } else {
+                  memoryDb.users.push(su);
+                }
+              }
+            }
             saveDatabaseSync(memoryDb);
+
+            // Auto-push initial data if Supabase tables are empty
+            if (!supaData.products || supaData.products.length === 0) {
+              console.log('⚡ Supabase is connected but empty. Automatically pushing initial catalog and users...');
+              syncAllToSupabase(memoryDb)
+                .then((res) => {
+                  console.log(`✅ Auto-pushed to Supabase: ${res.categoriesCount} categories, ${res.productsCount} products, ${res.usersCount} users.`);
+                })
+                .catch((e) => {
+                  console.warn('⚠️ Auto-push to Supabase skipped (ensure supabase_schema.sql has been executed):', e.message);
+                });
+            }
           }
         }).catch((err) => console.warn('Supabase background sync skipped:', err));
       }

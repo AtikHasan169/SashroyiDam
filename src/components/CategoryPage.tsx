@@ -38,7 +38,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
     );
 
     if (inStockOnly) {
-      list = list.filter((p) => p.inStock);
+      list = list.filter((p) => p.inStock ?? (p.stock > 0));
     }
 
     if (maxPrice < 10000) {
@@ -56,7 +56,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
         case 'newest':
           return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
         default:
-          return (b.isHotDeal ? 1 : 0) - (a.isHotDeal ? 1 : 0);
+          return ((b.isFeatured || b.isHotDeal ? 1 : 0) - (a.isFeatured || a.isHotDeal ? 1 : 0));
       }
     });
   }, [products, category, inStockOnly, maxPrice, sortOption]);
