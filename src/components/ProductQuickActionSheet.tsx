@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShoppingBag, Zap, ArrowRight, Star, ShieldCheck, Check } from 'lucide-react';
+import { X, ShoppingCart, Zap, ArrowRight, Star, ShieldCheck, Check } from 'lucide-react';
 import type { Product } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
 
@@ -170,8 +170,8 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
                   : 'bg-emerald-50 text-[#0F4C3A] border-emerald-300 hover:bg-emerald-100 shadow-2xs'
               }`}
             >
-              <ShoppingBag className="w-4 h-4" />
-              <span>{isAdding ? (language === 'bn' ? 'যোগ হচ্ছে...' : 'Adding...') : t('addToBag')}</span>
+              <ShoppingCart className="w-4 h-4" />
+              <span>{isAdding ? (language === 'bn' ? 'যোগ হচ্ছে...' : 'Adding...') : t('addToCart')}</span>
             </button>
 
             {/* 2. Instant Buy Now */}

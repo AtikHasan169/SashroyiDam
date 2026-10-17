@@ -11,6 +11,7 @@ interface AuthContextType {
   register: (name: string, phone: string, email: string, pass: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  setSession: (token: string, user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,6 +65,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const setSession = (newToken: string, newUser: User) => {
+    setStoredToken(newToken);
+    setToken(newToken);
+    setUser(newUser);
+  };
+
   const isAdmin = Boolean(
     user && ['super_admin', 'admin', 'order_manager', 'product_manager', 'support_agent'].includes(user.role)
   );
@@ -78,7 +85,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
-        refreshUser
+        refreshUser,
+        setSession
       }}
     >
       {children}

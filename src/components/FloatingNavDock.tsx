@@ -1,6 +1,5 @@
 import React from 'react';
-import { Home, Grid, Search, ShoppingBag, User } from 'lucide-react';
-import { useCart } from '../context/CartContext.tsx';
+import { Home, Grid, Search, MessageCircle, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 
@@ -17,14 +16,22 @@ export const FloatingNavDock: React.FC<FloatingNavDockProps> = ({
   onOpenSearch,
   onHomeClick
 }) => {
-  const { totalItemCount, setIsCartDrawerOpen } = useCart();
   const { user } = useAuth();
   const { language, t } = useLanguage();
 
+  const handleOpenWhatsApp = () => {
+    const text = encodeURIComponent(
+      language === 'bn'
+        ? 'সাশ্রয়ী দাম (Sashroyi Daam) থেকে সহায়তা প্রয়োজন।'
+        : 'Hello! I need assistance with an order on Sashroyi Daam.'
+    );
+    window.open(`https://wa.me/8801700000000?text=${text}`, '_blank');
+  };
+
   return (
     <nav
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-md rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.18)] border border-stone-200/90 px-3 sm:px-5 py-2 flex items-center gap-3 sm:gap-6 transition-all duration-300 md:hidden"
-      aria-label="ফ্লোটিং নেভিগেশন ডক"
+      className="fixed bottom-3 left-1/2 -translate-x-1/2 z-30 bg-white/95 backdrop-blur-md rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-stone-200/90 px-3 py-1.5 flex items-center gap-2 sm:gap-4 transition-all duration-300 md:hidden"
+      aria-label="মোবাইল নেভিগেশন ডক"
     >
       {/* 1. Home */}
       <button
@@ -35,65 +42,60 @@ export const FloatingNavDock: React.FC<FloatingNavDockProps> = ({
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }}
-        className="flex flex-col items-center justify-center py-0.5 px-2 text-stone-600 hover:text-[#0F4C3A] active:scale-90 transition-all cursor-pointer min-w-[48px] group"
+        className="flex flex-col items-center justify-center py-1 px-2.5 text-stone-600 hover:text-[#0F4C3A] active:scale-90 transition-all cursor-pointer min-w-[44px]"
         title={language === 'bn' ? 'হোম পেজ' : 'Home'}
       >
-        <Home className="w-5 h-5 group-hover:scale-110 transition-transform" />
+        <Home className="w-4 h-4" />
         <span className="text-[10px] font-semibold mt-0.5">
           {language === 'bn' ? 'হোম' : 'Home'}
         </span>
       </button>
 
-      {/* 2. Categories (Opens Left Hamburger Drawer) */}
+      {/* 2. Categories */}
       <button
         onClick={onOpenCategories}
-        className="flex flex-col items-center justify-center py-0.5 px-2 text-stone-600 hover:text-[#0F4C3A] active:scale-90 transition-all cursor-pointer min-w-[48px] group"
+        className="flex flex-col items-center justify-center py-1 px-2.5 text-[#0F4C3A] active:scale-90 transition-all cursor-pointer min-w-[44px]"
         title={t('categoriesTitle')}
       >
-        <Grid className="w-5 h-5 group-hover:scale-110 transition-transform text-[#0F4C3A]" />
-        <span className="text-[10px] font-semibold mt-0.5 text-[#0F4C3A]">
-          {language === 'bn' ? 'ক্যাটাগরি' : 'Categories'}
+        <Grid className="w-4 h-4 text-[#0F4C3A]" />
+        <span className="text-[10px] font-bold mt-0.5 text-[#0F4C3A]">
+          {language === 'bn' ? 'ক্যাটাগরি' : 'Category'}
         </span>
       </button>
 
       {/* 3. Search */}
       <button
         onClick={onOpenSearch}
-        className="flex flex-col items-center justify-center py-0.5 px-2 text-stone-600 hover:text-[#0F4C3A] active:scale-90 transition-all cursor-pointer min-w-[48px] group"
+        className="flex flex-col items-center justify-center py-1 px-2.5 text-stone-600 hover:text-[#0F4C3A] active:scale-90 transition-all cursor-pointer min-w-[44px]"
         title={language === 'bn' ? 'পণ্য খুঁজুন' : 'Search'}
       >
-        <Search className="w-5 h-5 group-hover:scale-110 transition-transform" />
+        <Search className="w-4 h-4" />
         <span className="text-[10px] font-semibold mt-0.5">
-          {language === 'bn' ? 'খুঁজুন' : 'Search'}
+          {language === 'bn' ? 'সার্চ' : 'Search'}
         </span>
       </button>
 
-      {/* 4. Cart Bag with Live Counter */}
+      {/* 4. WhatsApp Help */}
       <button
-        onClick={() => setIsCartDrawerOpen(true)}
-        className="relative flex flex-col items-center justify-center py-0.5 px-2 text-[#0F4C3A] active:scale-90 transition-all cursor-pointer min-w-[48px] group"
-        title={t('bag')}
+        onClick={handleOpenWhatsApp}
+        className="flex flex-col items-center justify-center py-1 px-2.5 text-emerald-700 hover:text-emerald-800 active:scale-90 transition-all cursor-pointer min-w-[44px]"
+        title="WhatsApp Support"
       >
-        <div className="relative">
-          <ShoppingBag className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          {totalItemCount > 0 && (
-            <span className="absolute -top-1.5 -right-2 bg-rose-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center tabular-nums shadow-xs animate-in zoom-in-50">
-              {totalItemCount}
-            </span>
-          )}
-        </div>
-        <span className="text-[10px] font-bold mt-0.5">{t('bag')}</span>
+        <MessageCircle className="w-4 h-4 text-emerald-600" />
+        <span className="text-[10px] font-semibold mt-0.5">
+          {language === 'bn' ? 'সাপোর্ট' : 'Help'}
+        </span>
       </button>
 
       {/* 5. Account / Profile */}
       <button
         onClick={onOpenAccount}
-        className="flex flex-col items-center justify-center py-0.5 px-2 text-stone-600 hover:text-[#0F4C3A] active:scale-90 transition-all cursor-pointer min-w-[48px] group"
+        className="flex flex-col items-center justify-center py-1 px-2.5 text-stone-600 hover:text-[#0F4C3A] active:scale-90 transition-all cursor-pointer min-w-[44px]"
         title={user ? t('account') : t('login')}
       >
-        <User className="w-5 h-5 group-hover:scale-110 transition-transform" />
-        <span className="text-[10px] font-semibold mt-0.5 truncate max-w-[52px]">
-          {user ? user.name.split(' ')[0] : t('login')}
+        <User className="w-4 h-4" />
+        <span className="text-[10px] font-semibold mt-0.5 truncate max-w-[50px]">
+          {user ? user.name.split(' ')[0] : (language === 'bn' ? 'প্রোফাইল' : 'Account')}
         </span>
       </button>
     </nav>

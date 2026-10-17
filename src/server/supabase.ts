@@ -1,26 +1,99 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { DatabaseSchema } from './db.ts';
 import type { Product, Category, Order, StoreSettings, Coupon } from '../types/index.ts';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_KEY || '';
+const CONFIG_PATH = path.resolve(process.cwd(), 'data', 'supabase_config.json');
+
+let runtimeUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+let runtimeKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+
+// Check if config saved on disk
+try {
+  if (fs.existsSync(CONFIG_PATH)) {
+    const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (parsed.url && parsed.key) {
+      runtimeUrl = parsed.url;
+      runtimeKey = parsed.key;
+    }
+  }
+} catch (e) {
+  // ignore
+}
 
 let supabase: SupabaseClient | null = null;
 
-if (SUPABASE_URL && SUPABASE_KEY) {
+function initClient(url: string, key: string): boolean {
+  if (!url || !key) {
+    supabase = null;
+    return false;
+  }
   try {
-    supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+    supabase = createClient(url, key, {
       auth: { persistSession: false }
     });
+    runtimeUrl = url;
+    runtimeKey = key;
     console.log('✅ Supabase PostgreSQL client connected successfully');
+    return true;
   } catch (err) {
     console.warn('⚠️ Failed to initialize Supabase client:', err);
     supabase = null;
+    return false;
   }
+}
+
+if (runtimeUrl && runtimeKey) {
+  initClient(runtimeUrl, runtimeKey);
 }
 
 export function isSupabaseConfigured(): boolean {
   return supabase !== null;
+}
+
+export function getSupabaseConfig(): { url: string; hasKey: boolean; isConnected: boolean } {
+  return {
+    url: runtimeUrl,
+    hasKey: Boolean(runtimeKey),
+    isConnected: supabase !== null
+  };
+}
+
+export async function configureSupabase(url: string, key: string): Promise<{ success: boolean; message: string }> {
+  const cleanUrl = url.trim();
+  const cleanKey = key.trim();
+
+  if (!cleanUrl || !cleanKey) {
+    throw new Error('Supabase URL ও Key উভয়ই প্রদান করতে হবে');
+  }
+
+  const ok = initClient(cleanUrl, cleanKey);
+  if (!ok || !supabase) {
+    throw new Error('Supabase ক্লায়েন্ট তৈরি করা যায়নি');
+  }
+
+  // Test simple query
+  try {
+    const { error } = await supabase.from('categories').select('id').limit(1);
+    if (error && error.code !== 'PGRST116') {
+      console.warn('Supabase test warning:', error.message);
+    }
+
+    // Save to disk so it stays configured
+    try {
+      const dir = path.dirname(CONFIG_PATH);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify({ url: cleanUrl, key: cleanKey }, null, 2));
+    } catch (saveErr) {
+      console.error('Failed to save supabase_config.json:', saveErr);
+    }
+
+    return { success: true, message: 'Supabase সফলভাবে সংযুক্ত ও সংরক্ষিত হয়েছে!' };
+  } catch (err: any) {
+    throw new Error(`Supabase সংযোগ পরীক্ষা ব্যর্থ হয়েছে: ${err.message}`);
+  }
 }
 
 export async function fetchSupabaseData(): Promise<Partial<DatabaseSchema> | null> {
@@ -184,6 +257,33 @@ export async function syncOrderToSupabase(order: Order): Promise<void> {
   }
 }
 
+export async function syncCategoryToSupabase(category: Category): Promise<void> {
+  if (!supabase) return;
+  try {
+    await supabase.from('categories').upsert({
+      id: category.id,
+      slug: category.slug,
+      name_bn: category.nameBn,
+      name_en: category.nameEn,
+      description_bn: category.descriptionBn,
+      image: category.image,
+      display_order: category.displayOrder,
+      is_featured: category.isFeatured
+    });
+  } catch (err) {
+    console.error('Failed to sync category to Supabase:', err);
+  }
+}
+
+export async function deleteCategoryFromSupabase(categoryId: string): Promise<void> {
+  if (!supabase) return;
+  try {
+    await supabase.from('categories').delete().eq('id', categoryId);
+  } catch (err) {
+    console.error('Failed to delete category from Supabase:', err);
+  }
+}
+
 export async function syncProductToSupabase(product: Product): Promise<void> {
   if (!supabase) return;
   try {
@@ -202,7 +302,7 @@ export async function syncProductToSupabase(product: Product): Promise<void> {
       category_name_bn: product.categoryNameBn,
       brand: product.brand,
       sku: product.sku,
-      images: product.images, // Full base64 data URLs preserved
+      images: product.images,
       variants: product.variants,
       attributes: product.attributes,
       is_featured: product.isFeatured,
@@ -217,4 +317,34 @@ export async function syncProductToSupabase(product: Product): Promise<void> {
   } catch (err) {
     console.error('Failed to sync product to Supabase:', err);
   }
+}
+
+export async function deleteProductFromSupabase(productId: string): Promise<void> {
+  if (!supabase) return;
+  try {
+    await supabase.from('products').delete().eq('id', productId);
+  } catch (err) {
+    console.error('Failed to delete product from Supabase:', err);
+  }
+}
+
+export async function syncAllToSupabase(db: DatabaseSchema): Promise<{ categoriesCount: number; productsCount: number }> {
+  if (!supabase) {
+    throw new Error('Supabase কনফিগার করা নেই');
+  }
+
+  // 1. Sync Categories
+  for (const cat of db.categories) {
+    await syncCategoryToSupabase(cat);
+  }
+
+  // 2. Sync Products
+  for (const prod of db.products) {
+    await syncProductToSupabase(prod);
+  }
+
+  return {
+    categoriesCount: db.categories.length,
+    productsCount: db.products.length
+  };
 }

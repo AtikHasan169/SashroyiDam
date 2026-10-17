@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, ShoppingBag, Star, Zap } from 'lucide-react';
+import { Heart, ShoppingCart, Star, Zap, Eye } from 'lucide-react';
 import type { Product } from '../types/index.ts';
 import { useWishlist } from '../context/WishlistContext.tsx';
 import { useCart } from '../context/CartContext.tsx';
@@ -48,15 +48,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <div
       onClick={() => onOpenDetails(product)}
-      className="group flex flex-col bg-white rounded-2xl border border-stone-200/90 overflow-hidden hover:border-emerald-300 hover:shadow-lg transition-all duration-300 cursor-pointer text-left"
+      className="group relative flex flex-col bg-white rounded-2xl border border-stone-200/90 overflow-hidden hover:border-emerald-400 hover:shadow-xl transition-all duration-300 cursor-pointer text-left"
     >
-      {/* 1. Image Container */}
+      {/* 1. Image Container with Hover Quick Add Overlay */}
       <div className="relative aspect-4/3 bg-stone-100 overflow-hidden">
         <img
           src={product.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'}
           alt={title}
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-500 ease-out"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
           loading="lazy"
         />
 
@@ -67,7 +67,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             toggleWishlist(product.id);
           }}
           aria-label={t('wishlist')}
-          className={`absolute top-2.5 right-2.5 p-2 rounded-full backdrop-blur-md transition-colors cursor-pointer ${
+          className={`absolute top-2.5 right-2.5 z-20 p-2 rounded-full backdrop-blur-md transition-colors cursor-pointer ${
             isWish
               ? 'bg-rose-50 text-rose-600 shadow-sm'
               : 'bg-white/80 text-stone-600 hover:bg-white hover:text-stone-900'
@@ -77,8 +77,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </button>
 
         {/* Auto-changing Product Highlight Badge */}
-        <div className="absolute bottom-2.5 left-2.5 z-10 max-w-[85%]">
+        <div className="absolute bottom-2.5 left-2.5 z-10 max-w-[85%] group-hover:opacity-0 transition-opacity duration-200">
           <ProductHighlightBadge product={product} variant="card" />
+        </div>
+
+        {/* Desktop Hover Quick Action Bar (Reveals smoothly on hover) */}
+        <div className="absolute inset-x-2 bottom-2 z-20 hidden md:flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+          <button
+            onClick={handleQuickAdd}
+            disabled={isOutOfStock}
+            className="flex-1 py-2 px-3 bg-[#0F4C3A]/95 hover:bg-[#0F4C3A] text-white text-xs font-bold rounded-xl shadow-lg backdrop-blur-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ShoppingCart className="w-3.5 h-3.5" />
+            <span>{isOutOfStock ? t('outOfStock') : t('addToCart')}</span>
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenDetails(product);
+            }}
+            className="p-2 bg-white/95 hover:bg-white text-stone-700 hover:text-stone-950 text-xs font-bold rounded-xl shadow-lg backdrop-blur-sm flex items-center justify-center transition-all cursor-pointer"
+            title={language === 'en' ? 'Quick View' : 'বিস্তারিত দেখুন'}
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
@@ -142,10 +165,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <button
               onClick={handleQuickAdd}
               disabled={isOutOfStock}
-              title={t('addToBag')}
+              title={t('addToCart')}
               className="p-2 rounded-xl text-stone-600 hover:text-[#0F4C3A] hover:bg-emerald-50 border border-stone-200 hover:border-emerald-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingCart className="w-4 h-4" />
             </button>
 
             <button

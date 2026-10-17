@@ -2,17 +2,21 @@ import React, { useEffect } from 'react';
 import {
   X,
   ChevronRight,
-  ShoppingBag,
+  ShoppingCart,
   Heart,
   MapPin,
   Phone,
   ShieldCheck,
   Flame,
   ExternalLink,
-  Globe
+  User as UserIcon,
+  LogOut,
+  LogIn
 } from 'lucide-react';
+import { BrandLogo } from './BrandLogo.tsx';
 import { useWishlist } from '../context/WishlistContext.tsx';
 import { useCart } from '../context/CartContext.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import type { Category } from '../types/index.ts';
 
@@ -37,6 +41,7 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
 }) => {
   const { wishlistIds } = useWishlist();
   const { totalItemCount, setIsCartDrawerOpen } = useCart();
+  const { user, isAdmin, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
 
   // Prevent background scrolling when drawer is open
@@ -64,6 +69,11 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
 
   if (!isOpen) return null;
 
+  const handleLogout = () => {
+    logout();
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
@@ -76,16 +86,9 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
       <div className="fixed inset-y-0 left-0 max-w-full flex">
         <div className="w-80 sm:w-88 bg-white shadow-2xl flex flex-col h-full transform transition-transform duration-300 ease-out animate-in slide-in-from-left">
           
-          {/* 1. Clean Drawer Header (No login clutter) */}
+          {/* 1. Drawer Header (Brand + Language Switcher + Close) */}
           <div className="bg-[#0F4C3A] text-white p-4 sm:p-5 flex items-center justify-between">
-            <div className="flex flex-col text-left">
-              <span className="text-lg sm:text-xl font-bold tracking-tight text-white font-sans">
-                {t('brandName')}
-              </span>
-              <span className="text-[11px] text-emerald-200/90 font-medium">
-                {t('brandTagline')}
-              </span>
-            </div>
+            <BrandLogo variant="light" size="sm" showTagline={false} />
 
             <div className="flex items-center gap-2">
               {/* Language Switcher in Drawer */}
@@ -121,7 +124,90 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
             </div>
           </div>
 
-          {/* 2. Quick Navigation Shortcuts */}
+          {/* 2. User Account Card in Hamburger */}
+          <div className="p-3.5 bg-emerald-950/10 border-b border-stone-200">
+            {user ? (
+              <div className="flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-[#0F4C3A] text-white font-bold flex items-center justify-center text-sm shrink-0">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-stone-900 truncate">
+                        {user.name}
+                      </div>
+                      <div className="text-xs text-stone-500 truncate">
+                        {user.email || user.phone}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">
+                    {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Customer'}
+                  </span>
+                </div>
+
+                {/* Account Action Buttons */}
+                <div className="flex items-center gap-2 pt-1">
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onOpenAdmin();
+                      }}
+                      className="flex-1 py-1.5 px-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>{t('adminPanel')}</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenAccount();
+                    }}
+                    className="flex-1 py-1.5 px-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <UserIcon className="w-3.5 h-3.5" />
+                    <span>{language === 'en' ? 'Profile' : 'প্রোফাইল'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="py-1.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                    title={language === 'en' ? 'Sign Out' : 'লগআউট করুন'}
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>{language === 'en' ? 'Logout' : 'লগআউট'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-stone-800">
+                    {language === 'en' ? 'Welcome to Sashroyi Daam' : 'সাশ্রয়ী দামে স্বাগতম'}
+                  </div>
+                  <div className="text-[11px] text-stone-500">
+                    {language === 'en' ? 'Sign in to manage orders' : 'অর্ডার ও ঠিকানা দেখতে লগইন করুন'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenAccount();
+                  }}
+                  className="px-3.5 py-1.5 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>{language === 'en' ? 'Login' : 'লগইন'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 3. Quick Navigation Shortcuts */}
           <div className="p-3 bg-stone-50 border-b border-stone-200 grid grid-cols-2 gap-2">
             <button
               onClick={() => {
@@ -134,26 +220,24 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
               <span className="truncate">{t('trackOrder')}</span>
             </button>
 
-            <button
-              onClick={() => {
-                onClose();
-                setIsCartDrawerOpen(true);
-              }}
-              className="p-2.5 bg-white hover:bg-emerald-50/70 border border-stone-200/80 rounded-xl text-left flex items-center justify-between text-xs font-semibold text-stone-800 transition-colors cursor-pointer"
+            <a
+              href="https://wa.me/8801700000000"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onClose}
+              className="p-2.5 bg-white hover:bg-emerald-50/70 border border-stone-200/80 rounded-xl text-left flex items-center justify-between text-xs font-semibold text-emerald-800 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2 truncate">
-                <ShoppingBag className="w-4 h-4 text-[#0F4C3A]" />
-                <span className="truncate">{t('bag')}</span>
+                <Phone className="w-4 h-4 text-emerald-600" />
+                <span className="truncate">হোয়াটসঅ্যাপ হেল্প</span>
               </div>
-              {totalItemCount > 0 && (
-                <span className="px-1.5 py-0.5 bg-[#0F4C3A] text-white rounded text-[10px] font-bold">
-                  {totalItemCount}
-                </span>
-              )}
-            </button>
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
+                Live
+              </span>
+            </a>
           </div>
 
-          {/* 3. Categories List (Scrollable) */}
+          {/* 4. Categories List (Scrollable) */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
             <div>
               <div className="flex items-center justify-between text-xs font-bold text-stone-400 uppercase tracking-wider px-1 pb-2 border-b border-stone-100">
@@ -187,6 +271,7 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
                   if (cat.slug.includes('kitchen') || cat.nameEn?.toLowerCase().includes('kitchen')) icon = '🍳';
                   else if (cat.slug.includes('fashion') || cat.slug.includes('shirt') || cat.nameEn?.toLowerCase().includes('fashion')) icon = '🧵';
                   else if (cat.slug.includes('gadget') || cat.nameEn?.toLowerCase().includes('gadget')) icon = '⚡';
+                  else if (cat.slug.includes('grocery') || cat.nameEn?.toLowerCase().includes('grocery') || cat.slug.includes('food')) icon = '🌾';
                   else if (cat.slug.includes('jute') || cat.nameEn?.toLowerCase().includes('jute')) icon = '🪴';
 
                   const name = language === 'en' && cat.nameEn ? cat.nameEn : cat.nameBn;
@@ -258,7 +343,7 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
             </div>
           </div>
 
-          {/* 4. Customer Helpline & Social Footer */}
+          {/* 5. Customer Helpline & Social Footer */}
           <div className="p-4 bg-stone-50 border-t border-stone-200 space-y-2.5">
             {/* Phone hotline */}
             <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-stone-200 shadow-2xs">

@@ -102,13 +102,25 @@ function getInitialData(): DatabaseSchema {
       defaultOptions: ['ম্যাট ব্ল্যাক', 'স্পেস গ্রে', 'সিলভার']
     },
     {
+      id: 'cat-grocery',
+      slug: 'grocery-food',
+      nameBn: 'মুদি ও খাঁটি খাদ্যদ্রব্য',
+      nameEn: 'Grocery & Food',
+      descriptionBn: 'গ্রামের ঘানিভাঙা খাঁটি সরিষার তেল, সুন্দরবনের প্রাকৃতিক মধু, প্রিমিয়াম গাওয়া ঘি ও পুষ্টিকর খাদ্য।',
+      image: '/src/assets/images/category_kitchen_cookware_1792084991823.jpg',
+      displayOrder: 5,
+      isFeatured: true,
+      variantType: 'weight_options',
+      defaultOptions: ['১ কেজি', '২ কেজি', '৫ কেজি', '১ লিটার']
+    },
+    {
       id: 'cat-personal-care',
       slug: 'personal-care',
       nameBn: 'ব্যক্তিগত যত্ন ও প্রসাধনী',
       nameEn: 'Personal Care & Wellness',
       descriptionBn: 'প্রাকৃতিক উপাদানযুক্ত যত্ন, ভেষজ তেল, এবং নিরাপদ অর্গানিক পণ্য।',
       image: '/src/assets/images/hero_oshesh_lifestyle_1792084990587.jpg',
-      displayOrder: 5,
+      displayOrder: 6,
       isFeatured: false,
       variantType: 'none',
       defaultOptions: []
@@ -788,6 +800,73 @@ export function getDatabase(): DatabaseSchema {
         }
       }
 
+      // Ensure cat-grocery exists
+      if (!memoryDb!.categories.some((c) => c.id === 'cat-grocery' || c.slug === 'grocery-food')) {
+        const groceryCat = initial.categories.find((c) => c.id === 'cat-grocery');
+        if (groceryCat) {
+          memoryDb!.categories.push(groceryCat);
+          hasChanges = true;
+        }
+      }
+
+      // Ensure Grocery product exists
+      if (!memoryDb!.products.some((p) => p.id === 'prod-mustard-oil-pure')) {
+        memoryDb!.products.push({
+          id: 'prod-mustard-oil-pure',
+          slug: 'pure-cold-pressed-mustard-oil-1l',
+          titleBn: 'ঘানিভাঙা খাঁটি সরিষার তেল (১ লিটার)',
+          titleEn: '100% Pure Cold-Pressed Mustard Oil (1 Liter)',
+          descriptionBn: 'দেশি জাতের সরিষা থেকে কাঠের ঘানিতে ভাঙানো সম্পূর্ণ প্রাকৃতিক ও কেমিক্যালমুক্ত সরিষার তেল। ঝাঁঝালো সুবাস ও রান্নায় খাঁটি স্বাদ।',
+          descriptionEn: 'Cold-pressed traditional mustard oil with rich pungent aroma, naturally unfiltered for authentic Bengali flavor.',
+          price: 360,
+          originalPrice: 420,
+          stock: 35,
+          categoryId: 'cat-grocery',
+          categorySlug: 'grocery-food',
+          categoryNameBn: 'মুদি ও খাঁটি খাদ্যদ্রব্য',
+          brand: 'সাশ্রয়ী খাদ্য',
+          sku: 'OSH-GROC-001',
+          images: [
+            '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'
+          ],
+          variants: [
+            {
+              id: 'v-oil-1l',
+              nameBn: '১ লিটার বোতল',
+              nameEn: '1 Liter Bottle',
+              sku: 'OSH-GROC-001-1L',
+              priceDelta: 0,
+              stock: 25,
+              attributes: { 'ওজন/পরিমাণ': '১ লিটার' }
+            },
+            {
+              id: 'v-oil-2l',
+              nameBn: '২ লিটার ফ্যামিলি প্যাক',
+              nameEn: '2 Liter Family Pack',
+              sku: 'OSH-GROC-001-2L',
+              priceDelta: 340,
+              stock: 10,
+              attributes: { 'ওজন/পরিমাণ': '২ লিটার' }
+            }
+          ],
+          attributes: {
+            'প্রকৃতি': '১০০% খাঁটি ঘানিভাঙা',
+            'মেয়াদ': '১২ মাস',
+            'উৎস': 'সিরাজগঞ্জ'
+          },
+          isFeatured: true,
+          isPublished: true,
+          isArchived: false,
+          salesCount: 88,
+          rating: 4.9,
+          reviewCount: 34,
+          tags: ['Mustard Oil', 'সরিষার তেল', 'Grocery', 'মুদি', 'Food'],
+          createdAt: '2026-10-12T08:00:00.000Z',
+          updatedAt: '2026-10-17T08:00:00.000Z'
+        });
+        hasChanges = true;
+      }
+
       // Ensure variantType is populated on categories
       memoryDb!.categories.forEach((c) => {
         if (!c.variantType) {
@@ -803,6 +882,9 @@ export function getDatabase(): DatabaseSchema {
           } else if (c.slug.includes('gadget') || c.nameBn.includes('গ্যাজেট')) {
             c.variantType = 'color_options';
             c.defaultOptions = ['ম্যাট ব্ল্যাক', 'স্পেস গ্রে', 'সিলভার'];
+          } else if (c.slug.includes('grocery') || c.slug.includes('food') || c.nameBn.includes('মুদি')) {
+            c.variantType = 'weight_options';
+            c.defaultOptions = ['১ কেজি', '২ কেজি', '৫ কেজি', '১ লিটার'];
           } else {
             c.variantType = 'none';
           }

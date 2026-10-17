@@ -3,7 +3,7 @@ import {
   ArrowLeft,
   Star,
   Heart,
-  ShoppingBag,
+  ShoppingCart,
   Truck,
   ShieldCheck,
   Check,
@@ -561,8 +561,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                         : 'bg-emerald-50 text-[#0F4C3A] border-emerald-300 hover:bg-emerald-100 shadow-2xs'
                     }`}
                   >
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>{t('addToBag')}</span>
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>{t('addToCart')}</span>
                   </button>
 
                   <button
@@ -939,9 +939,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({
             onClick={handleAddToCart}
             disabled={isOutOfStock}
             className="p-2.5 rounded-xl border border-emerald-600 text-[#0F4C3A] bg-emerald-50 hover:bg-emerald-100 font-bold text-xs flex items-center justify-center cursor-pointer disabled:opacity-50"
-            title={t('addToBag')}
+            title={t('addToCart')}
           >
-            <ShoppingBag className="w-4 h-4" />
+            <ShoppingCart className="w-4 h-4" />
           </button>
 
           <button

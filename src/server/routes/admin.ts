@@ -13,6 +13,15 @@ import type {
   StoreSettings,
   InventoryMovement
 } from '../../types/index.ts';
+import {
+  configureSupabase,
+  getSupabaseConfig,
+  syncAllToSupabase,
+  syncProductToSupabase,
+  deleteProductFromSupabase,
+  syncCategoryToSupabase,
+  deleteCategoryFromSupabase
+} from '../supabase.ts';
 
 const router = Router();
 
@@ -436,6 +445,29 @@ router.put('/products/:id', async (req: AuthenticatedRequest, res) => {
   }
 });
 
+// Toggle product visibility (Hide / Unhide)
+router.patch('/products/:id/toggle-publish', async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await withTransaction((db) => {
+      const prod = db.products.find((p) => p.id === id);
+      if (!prod) throw new Error('পণ্য পাওয়া যায়নি');
+      prod.isPublished = prod.isPublished === false ? true : false;
+      prod.updatedAt = new Date().toISOString();
+      return prod;
+    });
+
+    await syncProductToSupabase(updated);
+
+    res.json({
+      product: updated,
+      message: updated.isPublished ? 'পণ্যটি প্রদর্শন করা হচ্ছে (Visible)' : 'পণ্যটি লুকানো হয়েছে (Hidden)'
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে' });
+  }
+});
+
 // Delete or Archive product
 router.delete('/products/:id', async (req: AuthenticatedRequest, res) => {
   try {
@@ -456,6 +488,10 @@ router.delete('/products/:id', async (req: AuthenticatedRequest, res) => {
         db.products[idx].updatedAt = new Date().toISOString();
       }
     });
+
+    if (permanent) {
+      await deleteProductFromSupabase(id);
+    }
 
     await recordAuditLog(
       permanent ? 'PRODUCT_DELETED' : 'PRODUCT_ARCHIVED',
@@ -545,26 +581,56 @@ router.put('/categories/:id', async (req: AuthenticatedRequest, res) => {
   }
 });
 
+// Toggle category visibility (Featured / Hide)
+router.patch('/categories/:id/toggle-publish', async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await withTransaction((db) => {
+      const cat = db.categories.find((c) => c.id === id);
+      if (!cat) throw new Error('ক্যাটাগরি পাওয়া যায়নি');
+      cat.isFeatured = !cat.isFeatured;
+      return cat;
+    });
+
+    await syncCategoryToSupabase(updated);
+
+    res.json({
+      category: updated,
+      message: updated.isFeatured ? 'ক্যাটাগরি দৃশ্যমান করা হয়েছে' : 'ক্যাটাগরি লুকানো হয়েছে'
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে' });
+  }
+});
+
 router.delete('/categories/:id', async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
+    let deletedName = '';
     await withTransaction((db) => {
       const idx = db.categories.findIndex((c) => c.id === id);
       if (idx === -1) throw new Error('ক্যাটাগরি পাওয়া যায়নি');
 
-      // Check if products exist in category
-      const count = db.products.filter((p) => p.categoryId === id && !p.isArchived).length;
-      if (count > 0) {
-        throw new Error(`এই ক্যাটাগরিতে ${count} টি সক্রিয় পণ্য রয়েছে। আগে পণ্যগুলো অন্য ক্যাটাগরিতে স্থানান্তর বা আর্কাইভ করুন।`);
-      }
+      deletedName = db.categories[idx].nameBn;
+
+      // Safely unlink products from this category to general category so deletion never fails
+      db.products.forEach((p) => {
+        if (p.categoryId === id) {
+          p.categoryId = 'cat-general';
+          p.categorySlug = 'general';
+          p.categoryNameBn = 'সাধারণ';
+        }
+      });
 
       db.categories.splice(idx, 1);
     });
 
+    await deleteCategoryFromSupabase(id);
+
     await recordAuditLog(
       'CATEGORY_DELETED',
       req.user!,
-      `Category ID ${id} deleted.`
+      `Category "${deletedName}" (ID: ${id}) deleted.`
     );
 
     res.json({ message: 'ক্যাটাগরি সফলভাবে মুছে ফেলা হয়েছে' });
@@ -707,6 +773,45 @@ router.get('/products/export-csv', (req: AuthenticatedRequest, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="sashroyi_products.csv"');
   res.send('\uFEFF' + csv); // Byte order mark for UTF-8 in Excel
+});
+
+// 9. Supabase Cloud Database Management
+router.get('/supabase/status', (req: AuthenticatedRequest, res) => {
+  const config = getSupabaseConfig();
+  res.json(config);
+});
+
+router.post('/supabase/configure', async (req: AuthenticatedRequest, res) => {
+  try {
+    const { url, key } = req.body;
+    const result = await configureSupabase(url, key);
+    await recordAuditLog(
+      'SUPABASE_CONFIGURED',
+      req.user!,
+      `Supabase cloud database connected (${url}).`
+    );
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'Supabase কনফিগারেশন ব্যর্থ হয়েছে' });
+  }
+});
+
+router.post('/supabase/sync-all', async (req: AuthenticatedRequest, res) => {
+  try {
+    const db = getDatabase();
+    const result = await syncAllToSupabase(db);
+    await recordAuditLog(
+      'SUPABASE_SYNCED',
+      req.user!,
+      `Synchronized ${result.categoriesCount} categories and ${result.productsCount} products to Supabase cloud.`
+    );
+    res.json({
+      message: `Supabase-এ ${result.categoriesCount} টি ক্যাটাগরি ও ${result.productsCount} টি পণ্য সফলভাবে সিঙ্ক হয়েছে`,
+      ...result
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'সিঙ্ক ব্যর্থ হয়েছে' });
+  }
 });
 
 export default router;

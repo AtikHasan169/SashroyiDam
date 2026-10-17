@@ -3,7 +3,7 @@ import {
   X,
   Star,
   Heart,
-  ShoppingBag,
+  ShoppingCart,
   Truck,
   ShieldCheck,
   Check,
@@ -24,12 +24,15 @@ import type { Product, Review } from '../types/index.ts';
 import { useCart } from '../context/CartContext.tsx';
 import { useWishlist } from '../context/WishlistContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
+import { useLanguage } from '../context/LanguageContext.tsx';
 import { api } from '../lib/api.ts';
 import { ProductHighlightBadge } from './ProductHighlightBadge.tsx';
 
 interface ProductDetailModalProps {
   product: Product | null;
   onClose: () => void;
+  allProducts?: Product[];
+  onSelectProduct?: (p: Product) => void;
   onProductUpdated?: () => void;
   onOpenDedicatedPage?: (p: Product) => void;
   onOpenCheckout?: () => void;
@@ -41,6 +44,8 @@ interface ProductDetailModalProps {
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   product,
   onClose,
+  allProducts = [],
+  onSelectProduct,
   onProductUpdated,
   onOpenDedicatedPage,
   onOpenCheckout,
@@ -53,7 +58,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { user } = useAuth();
+  const { language, t, formatPrice } = useLanguage();
   const isAdmin = user?.role === 'admin';
+
+  const suggestedProducts = React.useMemo(() => {
+    if (!allProducts || allProducts.length === 0) return [];
+    const sameCat = allProducts.filter(
+      (p) => p.id !== product.id && (p.categoryId === product.categoryId || p.categorySlug === product.categorySlug)
+    );
+    if (sameCat.length >= 3) return sameCat.slice(0, 3);
+    const others = allProducts.filter((p) => p.id !== product.id && !sameCat.some((c) => c.id === p.id));
+    return [...sameCat, ...others].slice(0, 3);
+  }, [allProducts, product]);
 
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
     product.variants && product.variants.length > 0 ? product.variants[0].id : undefined
@@ -521,7 +537,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                         : 'bg-emerald-50 text-[#0F4C3A] border-emerald-300 hover:bg-emerald-100 shadow-2xs'
                     }`}
                   >
-                    <ShoppingBag className="w-4 h-4" />
+                    <ShoppingCart className="w-4 h-4" />
                     <span>কার্টে যোগ করুন</span>
                   </button>
 
@@ -583,7 +599,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                         : 'bg-emerald-50 text-[#0F4C3A] border-emerald-300 active:bg-emerald-100'
                     }`}
                   >
-                    <ShoppingBag className="w-3.5 h-3.5" />
+                    <ShoppingCart className="w-3.5 h-3.5" />
                     <span>কার্ট</span>
                   </button>
 
@@ -754,6 +770,79 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 )}
               </div>
             </div>
+
+            {/* SUGGESTED PRODUCTS (You May Also Like) */}
+            {suggestedProducts.length > 0 && (
+              <div className="pt-5 border-t border-stone-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-stone-900 font-['Hind_Siliguri',sans-serif]">
+                      {language === 'bn' ? 'সংশ্লিষ্ট আরও পণ্য' : 'You May Also Like'}
+                    </h4>
+                    <p className="text-[11px] text-stone-500">
+                      {language === 'bn' ? 'একই ক্যাটাগরির জনপ্রিয় পছন্দসমূহ' : 'Popular items in this category'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {suggestedProducts.map((relProd) => {
+                    const relTitle = language === 'en' && relProd.titleEn ? relProd.titleEn : relProd.titleBn;
+                    return (
+                      <div
+                        key={relProd.id}
+                        className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80 hover:border-emerald-300 transition-all flex flex-col justify-between group"
+                      >
+                        <div
+                          onClick={() => {
+                            if (onSelectProduct) {
+                              onSelectProduct(relProd);
+                            } else if (onOpenDedicatedPage) {
+                              onOpenDedicatedPage(relProd);
+                            }
+                          }}
+                          className="cursor-pointer space-y-2"
+                        >
+                          <div className="aspect-square rounded-lg overflow-hidden bg-white border border-stone-100">
+                            <img
+                              src={relProd.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'}
+                              alt={relTitle}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-stone-400 font-medium block truncate">
+                              {relProd.brand || 'সাশ্রয়ী দাম'}
+                            </span>
+                            <h5 className="text-xs font-semibold text-stone-900 line-clamp-1 group-hover:text-[#0F4C3A]">
+                              {relTitle}
+                            </h5>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 mt-2 border-t border-stone-200/60 flex items-center justify-between">
+                          <span className="text-xs font-bold text-stone-900 tabular-nums">
+                            {formatPrice(relProd.price)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(relProd.id, undefined, 1);
+                            }}
+                            className="p-1.5 rounded-lg bg-emerald-50 text-[#0F4C3A] hover:bg-emerald-100 transition-colors cursor-pointer text-xs flex items-center gap-1 font-semibold"
+                            title={t('addToCart')}
+                          >
+                            <ShoppingCart className="w-3.5 h-3.5" />
+                            <span className="text-[10px]">{language === 'bn' ? 'যোগ' : 'Add'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

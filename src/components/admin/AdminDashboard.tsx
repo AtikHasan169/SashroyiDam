@@ -22,10 +22,15 @@ import {
   Trash2,
   Edit3,
   Sliders,
-  Sparkles
+  Sparkles,
+  Calendar,
+  Filter,
+  Phone,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { api } from '../../lib/api.ts';
+import { ManualOrderModal } from './ManualOrderModal.tsx';
 import type {
   Product,
   Category,
@@ -81,6 +86,113 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [statusNote, setStatusNote] = useState('');
   const [staffNoteInput, setStaffNoteInput] = useState('');
   const [showInvoicePrint, setShowInvoicePrint] = useState(false);
+  const [isManualOrderOpen, setIsManualOrderOpen] = useState(false);
+
+  // Order Filtering States
+  const [orderStatusTab, setOrderStatusTab] = useState<'all' | 'pending' | 'processing' | 'delivered' | 'cancelled'>('all');
+  const [orderDateRange, setOrderDateRange] = useState<'all' | 'today' | 'yesterday' | '7days' | '30days' | 'month' | 'custom'>('all');
+  const [orderCustomStartDate, setOrderCustomStartDate] = useState('');
+  const [orderCustomEndDate, setOrderCustomEndDate] = useState('');
+
+  // Date-filtered and status-filtered orders memo
+  const filteredOrders = React.useMemo(() => {
+    let result = [...orders];
+
+    // 1. Date Range Filter
+    const now = new Date();
+    if (orderDateRange !== 'all') {
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const yesterdayStart = todayStart - 86400000;
+
+      result = result.filter((o) => {
+        const orderTime = new Date(o.createdAt || 0).getTime();
+        switch (orderDateRange) {
+          case 'today':
+            return orderTime >= todayStart;
+          case 'yesterday':
+            return orderTime >= yesterdayStart && orderTime < todayStart;
+          case '7days':
+            return orderTime >= now.getTime() - 7 * 86400000;
+          case '30days':
+            return orderTime >= now.getTime() - 30 * 86400000;
+          case 'month':
+            return orderTime >= new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+          case 'custom': {
+            const start = orderCustomStartDate ? new Date(orderCustomStartDate).getTime() : 0;
+            const end = orderCustomEndDate ? new Date(orderCustomEndDate).getTime() + 86400000 : Infinity;
+            return orderTime >= start && orderTime <= end;
+          }
+          default:
+            return true;
+        }
+      });
+    }
+
+    // 2. Status Tab Filter
+    if (orderStatusTab !== 'all') {
+      result = result.filter((o) => {
+        if (orderStatusTab === 'pending') {
+          return o.fulfilmentStatus === 'pending_confirmation';
+        }
+        if (orderStatusTab === 'processing') {
+          return ['confirmed', 'processing', 'packed', 'shipped'].includes(o.fulfilmentStatus);
+        }
+        if (orderStatusTab === 'delivered') {
+          return o.fulfilmentStatus === 'delivered';
+        }
+        if (orderStatusTab === 'cancelled') {
+          return ['cancelled', 'return_requested', 'returned', 'refunded'].includes(o.fulfilmentStatus);
+        }
+        return true;
+      });
+    }
+
+    return result;
+  }, [orders, orderDateRange, orderStatusTab, orderCustomStartDate, orderCustomEndDate]);
+
+  // Order counts & metrics by current date filter
+  const orderMetrics = React.useMemo(() => {
+    const now = new Date();
+    let dateFiltered = [...orders];
+    if (orderDateRange !== 'all') {
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const yesterdayStart = todayStart - 86400000;
+      dateFiltered = dateFiltered.filter((o) => {
+        const orderTime = new Date(o.createdAt || 0).getTime();
+        switch (orderDateRange) {
+          case 'today':
+            return orderTime >= todayStart;
+          case 'yesterday':
+            return orderTime >= yesterdayStart && orderTime < todayStart;
+          case '7days':
+            return orderTime >= now.getTime() - 7 * 86400000;
+          case '30days':
+            return orderTime >= now.getTime() - 30 * 86400000;
+          case 'month':
+            return orderTime >= new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+          case 'custom': {
+            const start = orderCustomStartDate ? new Date(orderCustomStartDate).getTime() : 0;
+            const end = orderCustomEndDate ? new Date(orderCustomEndDate).getTime() + 86400000 : Infinity;
+            return orderTime >= start && orderTime <= end;
+          }
+          default:
+            return true;
+        }
+      });
+    }
+
+    const all = dateFiltered.length;
+    const pending = dateFiltered.filter((o) => o.fulfilmentStatus === 'pending_confirmation').length;
+    const processing = dateFiltered.filter((o) => ['confirmed', 'processing', 'packed', 'shipped'].includes(o.fulfilmentStatus)).length;
+    const delivered = dateFiltered.filter((o) => o.fulfilmentStatus === 'delivered').length;
+    const cancelled = dateFiltered.filter((o) => ['cancelled', 'return_requested', 'returned', 'refunded'].includes(o.fulfilmentStatus)).length;
+    const revenue = dateFiltered
+      .filter((o) => o.fulfilmentStatus !== 'cancelled' && o.fulfilmentStatus !== 'refunded')
+      .reduce((acc, o) => acc + (o.total || 0), 0);
+    const aov = all > 0 ? Math.round(revenue / (all - cancelled || 1)) : 0;
+
+    return { all, pending, processing, delivered, cancelled, revenue, aov };
+  }, [orders, orderDateRange, orderCustomStartDate, orderCustomEndDate]);
 
   // Category edit/create modal state
   const [editingCategory, setEditingCategory] = useState<Partial<Category> | null>(null);
@@ -102,6 +214,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
+
+  // Supabase Cloud Persistence state
+  const [supabaseUrl, setSupabaseUrl] = useState('');
+  const [supabaseKey, setSupabaseKey] = useState('');
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
+  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
+  const [isSyncingSupabase, setIsSyncingSupabase] = useState(false);
 
   // Initial load
   useEffect(() => {
@@ -139,6 +258,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setStoreSettings(setRes.settings);
       setShippingRates(setRes.shippingRates);
       setAuditLogs(logRes.logs);
+
+      api.getSupabaseStatus().then((s) => {
+        if (s.url) setSupabaseUrl(s.url);
+        setIsSupabaseConnected(s.isConnected);
+      }).catch(() => {});
     } catch (err) {
       console.error('Failed to load admin data:', err);
     } finally {
@@ -261,7 +385,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (!confirm('আপনি কি নিশ্চিত যে এই ক্যাটাগরিটি মুছে ফেলতে চান?')) return;
     try {
       await api.deleteCategory(id);
       setFeedbackMsg('ক্যাটাগরি সফলভাবে মুছে ফেলা হয়েছে');
@@ -269,7 +392,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       onStoreDataChanged();
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
-      alert(err.message || 'ক্যাটাগরি মুছে ফেলা যায়নি');
+      setFeedbackMsg(err.message || 'ক্যাটাগরি মুছে ফেলা যায়নি');
+    }
+  };
+
+  const handleTogglePublishCategory = async (id: string) => {
+    try {
+      const res = await api.togglePublishCategory(id);
+      setFeedbackMsg(res.message);
+      loadAllAdminData();
+      onStoreDataChanged();
+      setTimeout(() => setFeedbackMsg(''), 3000);
+    } catch (err: any) {
+      setFeedbackMsg(err.message || 'স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে');
+    }
+  };
+
+  const handleTogglePublishProduct = async (id: string) => {
+    try {
+      const res = await api.togglePublishProduct(id);
+      setFeedbackMsg(res.message);
+      loadAllAdminData();
+      onStoreDataChanged();
+      setTimeout(() => setFeedbackMsg(''), 3000);
+    } catch (err: any) {
+      setFeedbackMsg(err.message || 'স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে');
+    }
+  };
+
+  const handleSaveSupabaseConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabaseUrl.trim() || !supabaseKey.trim()) {
+      setFeedbackMsg('URL ও Key উভয়ই প্রদান করুন');
+      return;
+    }
+    setIsTestingSupabase(true);
+    try {
+      const res = await api.configureSupabase({ url: supabaseUrl, key: supabaseKey });
+      setIsSupabaseConnected(true);
+      setFeedbackMsg(res.message);
+      setTimeout(() => setFeedbackMsg(''), 4000);
+    } catch (err: any) {
+      setFeedbackMsg(err.message || 'Supabase সংযোগ ব্যর্থ হয়েছে');
+    } finally {
+      setIsTestingSupabase(false);
+    }
+  };
+
+  const handleSyncAllSupabase = async () => {
+    setIsSyncingSupabase(true);
+    try {
+      const res = await api.syncAllToSupabase();
+      setFeedbackMsg(res.message);
+      setTimeout(() => setFeedbackMsg(''), 4000);
+    } catch (err: any) {
+      setFeedbackMsg(err.message || 'সিঙ্ক ব্যর্থ হয়েছে');
+    } finally {
+      setIsSyncingSupabase(false);
     }
   };
 
@@ -695,64 +874,233 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* 2. ORDERS MANAGEMENT TAB */}
             {activeTab === 'orders' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                {/* Header & Manual Order Button */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-stone-200 shadow-2xs">
                   <div>
-                    <h3 className="text-base font-bold text-stone-900">অর্ডার ব্যবস্থাপনা</h3>
-                    <p className="text-xs text-stone-500">অর্ডার প্রক্রিয়াকরণ, প্যাকেজিং এবং কুরিয়ার ট্র্যাকিং</p>
+                    <h3 className="text-base font-bold text-stone-900 font-['Hind_Siliguri',sans-serif]">
+                      অর্ডার ব্যবস্থাপনা ও ট্র্যাকিং
+                    </h3>
+                    <p className="text-xs text-stone-500 font-['Hind_Siliguri',sans-serif]">
+                      অর্ডার প্রসেসিং, চ্যানেল ট্র্যাকিং ও দ্রুত ডেলিভারি নিশ্চিতকরণ
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setIsManualOrderOpen(true)}
+                    className="px-4 py-2 bg-[#0F4C3A] hover:bg-[#145C47] text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-sm cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ ম্যানুয়াল অর্ডার (Facebook / Phone)</span>
+                  </button>
+                </div>
+
+                {/* Date Range Filter Bar */}
+                <div className="bg-white p-3 sm:p-4 rounded-xl border border-stone-200 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-stone-700">
+                      <Calendar className="w-4 h-4 text-[#0F4C3A]" />
+                      <span>তারিখ নির্বাচন (Date Range):</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {[
+                        { id: 'all', labelBn: 'সব সময়', labelEn: 'All Time' },
+                        { id: 'today', labelBn: 'আজ', labelEn: 'Today' },
+                        { id: 'yesterday', labelBn: 'গতকাল', labelEn: 'Yesterday' },
+                        { id: '7days', labelBn: 'গত ৭ দিন', labelEn: 'Last 7 Days' },
+                        { id: '30days', labelBn: 'গত ৩০ দিন', labelEn: 'Last 30 Days' },
+                        { id: 'month', labelBn: 'চলতি মাস', labelEn: 'This Month' },
+                        { id: 'custom', labelBn: 'কাস্টম রেঞ্জ', labelEn: 'Custom' }
+                      ].map((dr) => (
+                        <button
+                          key={dr.id}
+                          onClick={() => setOrderDateRange(dr.id as any)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            orderDateRange === dr.id
+                              ? 'bg-[#0F4C3A] text-white shadow-xs'
+                              : 'bg-stone-100 hover:bg-stone-200/70 text-stone-700'
+                          }`}
+                        >
+                          {dr.labelBn}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Date Pickers */}
+                  {orderDateRange === 'custom' && (
+                    <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-stone-100 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="text-stone-500 font-semibold">হতে (From):</span>
+                        <input
+                          type="date"
+                          value={orderCustomStartDate}
+                          onChange={(e) => setOrderCustomStartDate(e.target.value)}
+                          className="px-2.5 py-1.5 border border-stone-300 rounded-lg text-xs font-mono"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-stone-500 font-semibold">পর্যন্ত (To):</span>
+                        <input
+                          type="date"
+                          value={orderCustomEndDate}
+                          onChange={(e) => setOrderCustomEndDate(e.target.value)}
+                          className="px-2.5 py-1.5 border border-stone-300 rounded-lg text-xs font-mono"
+                        />
+                      </div>
+                      {(orderCustomStartDate || orderCustomEndDate) && (
+                        <button
+                          onClick={() => {
+                            setOrderCustomStartDate('');
+                            setOrderCustomEndDate('');
+                          }}
+                          className="text-stone-500 hover:text-rose-600 underline font-medium cursor-pointer"
+                        >
+                          রিসেট
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Period Analytics Summary Metrics */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3.5 bg-white rounded-xl border border-stone-200">
+                    <span className="text-[11px] font-semibold text-stone-500 block">মোট অর্ডার</span>
+                    <span className="text-xl font-extrabold text-stone-900 tabular-nums">
+                      {orderMetrics.all} টি
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-white rounded-xl border border-stone-200">
+                    <span className="text-[11px] font-semibold text-stone-500 block">মোট বিক্রয় (রেভিনিউ)</span>
+                    <span className="text-xl font-extrabold text-[#0F4C3A] tabular-nums">
+                      ৳{orderMetrics.revenue.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-white rounded-xl border border-stone-200">
+                    <span className="text-[11px] font-semibold text-stone-500 block">গড় অর্ডার মূল্য (AOV)</span>
+                    <span className="text-xl font-extrabold text-amber-700 tabular-nums">
+                      ৳{orderMetrics.aov.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-white rounded-xl border border-stone-200">
+                    <span className="text-[11px] font-semibold text-stone-500 block">ডেলিভারি বনাম বাতিল</span>
+                    <div className="flex items-center gap-2 text-xs font-bold pt-1">
+                      <span className="text-emerald-700">✓ {orderMetrics.delivered}</span>
+                      <span className="text-stone-300">/</span>
+                      <span className="text-rose-600">✕ {orderMetrics.cancelled}</span>
+                    </div>
                   </div>
                 </div>
 
+                {/* Status Workflow Tabs */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-stone-200 scrollbar-none">
+                  {[
+                    { id: 'all', label: 'সকল অর্ডার', count: orderMetrics.all, color: 'text-stone-700' },
+                    { id: 'pending', label: 'নতুন যাচাই (Pending)', count: orderMetrics.pending, color: 'text-amber-700' },
+                    { id: 'processing', label: 'প্রসেসিং ও শিপিং', count: orderMetrics.processing, color: 'text-blue-700' },
+                    { id: 'delivered', label: 'ডেলিভারি সম্পন্ন', count: orderMetrics.delivered, color: 'text-emerald-700' },
+                    { id: 'cancelled', label: 'বাতিল / রিটার্ন', count: orderMetrics.cancelled, color: 'text-rose-700' }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setOrderStatusTab(tab.id as any)}
+                      className={`px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap border-b-2 ${
+                        orderStatusTab === tab.id
+                          ? 'border-[#0F4C3A] text-[#0F4C3A] bg-emerald-50/60'
+                          : 'border-transparent text-stone-500 hover:text-stone-800 hover:bg-stone-50'
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-stone-200/80 text-stone-800 tabular-nums">
+                        {tab.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                  {/* Left: Orders List */}
+                  {/* Left: Filtered Orders List */}
                   <div className="lg:col-span-7 bg-white rounded-xl border border-stone-200 overflow-hidden">
                     <div className="overflow-x-auto max-h-[65vh]">
                       <table className="w-full text-left text-xs">
                         <thead className="sticky top-0 bg-stone-50 text-stone-600 border-b border-stone-200 font-semibold">
                           <tr>
-                            <th className="py-2.5 px-3">অর্ডার</th>
-                            <th className="py-2.5 px-3">গ্রাহক ও এলাকা</th>
-                            <th className="py-2.5 px-3">মোট টাকা</th>
-                            <th className="py-2.5 px-3">পেমেন্ট</th>
+                            <th className="py-2.5 px-3">অর্ডার নং</th>
+                            <th className="py-2.5 px-3">গ্রাহক ও জেলা</th>
+                            <th className="py-2.5 px-3">টাকা</th>
+                            <th className="py-2.5 px-3">উৎস</th>
                             <th className="py-2.5 px-3">স্ট্যাটাস</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-stone-100">
-                          {orders.map((o) => {
-                            const isSelected = selectedOrder?.id === o.id;
-                            return (
-                              <tr
-                                key={o.id}
-                                onClick={() => {
-                                  setSelectedOrder(o);
-                                  setNewStatus(o.fulfilmentStatus);
-                                }}
-                                className={`cursor-pointer transition-colors ${
-                                  isSelected ? 'bg-emerald-50/50' : 'hover:bg-stone-50'
-                                }`}
-                              >
-                                <td className="py-2.5 px-3 font-mono font-bold text-[#0F4C3A]">
-                                  {o.orderNumber}
-                                </td>
-                                <td className="py-2.5 px-3">
-                                  <div className="font-semibold text-stone-900">{o.customerName}</div>
-                                  <div className="text-[11px] text-stone-500">{o.customerPhone} ({o.district})</div>
-                                </td>
-                                <td className="py-2.5 px-3 font-bold tabular-nums">৳{o.total}</td>
-                                <td className="py-2.5 px-3">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                                    o.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-700'
-                                  }`}>
-                                    {o.paymentStatus}
-                                  </span>
-                                </td>
-                                <td className="py-2.5 px-3">
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-stone-100 text-stone-800">
-                                    {o.fulfilmentStatus}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
+                          {filteredOrders.length > 0 ? (
+                            filteredOrders.map((o) => {
+                              const isSelected = selectedOrder?.id === o.id;
+
+                              // Detect Order Source Tag
+                              const isFb = o.orderNumber.includes('-FB-') || o.deliveryInstructions?.includes('FACEBOOK');
+                              const isPhone = o.orderNumber.includes('-PH-') || o.deliveryInstructions?.includes('PHONE');
+                              const isWa = o.orderNumber.includes('-WA-') || o.deliveryInstructions?.includes('WHATSAPP');
+                              const sourceLabel = isFb ? 'Facebook' : isPhone ? 'Phone' : isWa ? 'WhatsApp' : 'Website';
+                              const sourceClass = isFb
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : isPhone
+                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                : isWa
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-stone-50 text-stone-600 border-stone-200';
+
+                              return (
+                                <tr
+                                  key={o.id}
+                                  onClick={() => {
+                                    setSelectedOrder(o);
+                                    setNewStatus(o.fulfilmentStatus);
+                                  }}
+                                  className={`cursor-pointer transition-colors ${
+                                    isSelected ? 'bg-emerald-50/50' : 'hover:bg-stone-50'
+                                  }`}
+                                >
+                                  <td className="py-2.5 px-3 font-mono font-bold text-[#0F4C3A]">
+                                    {o.orderNumber}
+                                  </td>
+                                  <td className="py-2.5 px-3">
+                                    <div className="font-semibold text-stone-900 truncate max-w-[140px]">{o.customerName}</div>
+                                    <div className="text-[11px] text-stone-500 font-mono">{o.customerPhone} ({o.district})</div>
+                                  </td>
+                                  <td className="py-2.5 px-3 font-bold tabular-nums">৳{o.total}</td>
+                                  <td className="py-2.5 px-3">
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${sourceClass}`}>
+                                      {sourceLabel}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                      o.fulfilmentStatus === 'delivered'
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : o.fulfilmentStatus === 'cancelled'
+                                        ? 'bg-rose-100 text-rose-800'
+                                        : o.fulfilmentStatus === 'pending_confirmation'
+                                        ? 'bg-amber-100 text-amber-800'
+                                        : 'bg-stone-100 text-stone-800'
+                                    }`}>
+                                      {o.fulfilmentStatus}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          ) : (
+                            <tr>
+                              <td colSpan={5} className="py-8 text-center text-stone-400">
+                                নির্বাচিত তারিখ ও ফিল্টারে কোনো অর্ডার পাওয়া যায়নি।
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -972,22 +1320,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </td>
                             <td className="py-2.5 px-3">{p.categoryNameBn || 'সাধারণ'}</td>
                             <td className="py-2.5 px-3">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <button
+                                  type="button"
+                                  onClick={() => handleTogglePublishProduct(p.id)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                                    p.isPublished !== false
+                                      ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border border-stone-200'
+                                  }`}
+                                  title="ক্লিক করে হাইড বা আনহাইড করুন"
+                                >
+                                  {p.isPublished !== false ? 'প্রকাশিত (Hide)' : 'লুকানো (Show)'}
+                                </button>
+                                <span className="text-stone-300">|</span>
                                 <button
                                   onClick={() => {
                                     setEditingProduct(p);
                                     setShowProductModal(true);
                                   }}
-                                  className="text-[#0F4C3A] hover:underline font-semibold cursor-pointer"
+                                  className="text-[#0F4C3A] hover:underline font-semibold cursor-pointer text-xs"
                                 >
                                   সম্পাদনা
                                 </button>
                                 <span className="text-stone-300">|</span>
                                 <button
                                   onClick={() => handleDeleteProduct(p.id)}
-                                  className="text-rose-600 hover:underline font-semibold cursor-pointer"
+                                  className="text-rose-600 hover:underline font-semibold cursor-pointer text-xs"
                                 >
-                                  মুছে ফেলুন
+                                  মুছুন
                                 </button>
                               </div>
                             </td>
@@ -1110,7 +1471,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
 
                         <div className="bg-stone-50 px-4 py-2.5 border-t border-stone-200 flex items-center justify-between">
-                          <span className="text-[11px] text-stone-400">সিরিয়াল: {cat.displayOrder || 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePublishCategory(cat.id)}
+                            className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                              cat.isFeatured
+                                ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                                : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border border-stone-200'
+                            }`}
+                            title="ক্লিক করে হাইড বা আনহাইড করুন"
+                          >
+                            {cat.isFeatured ? 'দৃশ্যমান (Hide)' : 'লুকানো (Show)'}
+                          </button>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => {
@@ -1294,6 +1666,78 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   সেটিংস সংরক্ষণ করুন
                 </button>
+
+                {/* Supabase Cloud Persistence Configuration */}
+                <div className="mt-8 pt-6 border-t border-stone-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                        <span>⚡ Supabase ক্লাউড ডেটাবেস সংযোগ (Cloud Database)</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          isSupabaseConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {isSupabaseConnected ? 'সংযুক্ত (Connected)' : 'অসংযুক্ত (Local File Only)'}
+                        </span>
+                      </h4>
+                      <p className="text-xs text-stone-500 mt-0.5">
+                        ডেপ্লয়মেন্টের পর ডেটা স্থায়ী রাখতে Supabase PostgreSQL সংযোগ করুন
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 bg-stone-50 p-4 rounded-xl border border-stone-200">
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                        Supabase Project URL
+                      </label>
+                      <input
+                        type="text"
+                        value={supabaseUrl}
+                        onChange={(e) => setSupabaseUrl(e.target.value)}
+                        placeholder="https://xyzproject.supabase.co"
+                        className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs bg-white font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                        Supabase Anon Key / Service Role Key
+                      </label>
+                      <input
+                        type="password"
+                        value={supabaseKey}
+                        onChange={(e) => setSupabaseKey(e.target.value)}
+                        placeholder="eyJhbGciOi..."
+                        className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs bg-white font-mono"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveSupabaseConfig}
+                        disabled={isTestingSupabase}
+                        className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {isTestingSupabase ? 'যাচাই করা হচ্ছে...' : 'সংযুক্ত ও সংরক্ষণ করুন'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSyncAllSupabase}
+                        disabled={isSyncingSupabase || !isSupabaseConnected}
+                        className="px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSupabase ? 'animate-spin' : ''}`} />
+                        <span>{isSyncingSupabase ? 'সিঙ্ক হচ্ছে...' : 'সকল ডেটা ক্লাউডে সিঙ্ক করুন'}</span>
+                      </button>
+                    </div>
+
+                    <div className="text-[11px] text-stone-500 pt-1">
+                      💡 Supabase-এ টেবিল তৈরি করতে প্রজেক্ট রুটের <code className="bg-stone-200 px-1 py-0.5 rounded text-stone-800 font-mono">supabase_schema.sql</code> ফাইলটির কোড Supabase SQL Editor-এ একবার রান করে নিন।
+                    </div>
+                  </div>
+                </div>
               </form>
             )}
 

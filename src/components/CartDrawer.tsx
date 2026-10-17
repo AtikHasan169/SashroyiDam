@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, ShieldCheck, AlertCircle, Sparkles, Truck } from 'lucide-react';
+import { X, ShoppingCart, Plus, Minus, Trash2, ArrowRight, ShieldCheck, AlertCircle, Sparkles, Truck } from 'lucide-react';
 import { useCart } from '../context/CartContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 
@@ -40,14 +40,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onProceedToCheckout }) =
         <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-[#0F4C3A]">
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingCart className="w-4 h-4" />
             </div>
             <div>
               <h2 className="text-base font-bold text-stone-900">
-                {t('shoppingBagTitle')}
+                {t('shoppingCartTitle')}
               </h2>
               <p className="text-[11px] text-stone-500 font-medium">
-                {items.length > 0 ? (language === 'bn' ? `${formatNumber(items.length)} টি পণ্য যোগ করা হয়েছে` : `${items.length} items added`) : (language === 'bn' ? 'কোনো পণ্য নেই' : 'No items yet')}
+                {items.length > 0 ? (language === 'bn' ? `${formatNumber(items.length)} টি পণ্য কার্টে যোগ করা হয়েছে` : `${items.length} items added`) : (language === 'bn' ? 'কোনো পণ্য নেই' : 'No items yet')}
               </p>
             </div>
           </div>
@@ -107,9 +107,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onProceedToCheckout }) =
           {items.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center py-16 text-stone-400 space-y-3">
               <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center text-stone-300">
-                <ShoppingBag className="w-8 h-8 stroke-[1.5]" />
+                <ShoppingCart className="w-8 h-8 stroke-[1.5]" />
               </div>
-              <p className="text-sm font-semibold text-stone-700">{t('emptyBag')}</p>
+              <p className="text-sm font-semibold text-stone-700">{t('emptyCart')}</p>
               <p className="text-xs text-stone-400 max-w-xs">
                 {language === 'bn'
                   ? 'আমাদের সাশ্রয়ী দামের নতুন কালেকশন ঘুরে দেখুন এবং পছন্দের পণ্য যোগ করুন।'

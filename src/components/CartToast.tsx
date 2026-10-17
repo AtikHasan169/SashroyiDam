@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { CheckCircle2, ShoppingBag, X } from 'lucide-react';
+import { CheckCircle2, ShoppingCart, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext.tsx';
 
 export interface CartToastItem {
@@ -48,7 +48,7 @@ export const CartToast: React.FC<CartToastProps> = ({
         <div className="flex-1 min-w-0 text-left">
           <div className="flex items-center gap-1.5 text-emerald-800 text-xs font-bold">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span>{t('addedToBag')}</span>
+            <span>{t('addedToCart')}</span>
           </div>
           <p className="text-xs font-semibold text-stone-900 truncate mt-0.5">
             {toastItem.title}
@@ -67,8 +67,8 @@ export const CartToast: React.FC<CartToastProps> = ({
             }}
             className="px-2.5 py-1.5 bg-[#0F4C3A] hover:bg-[#145C47] text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-1"
           >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span>{t('viewBag')}</span>
+            <ShoppingCart className="w-3.5 h-3.5" />
+            <span>{t('viewCart')}</span>
           </button>
           <button
             onClick={onClose}

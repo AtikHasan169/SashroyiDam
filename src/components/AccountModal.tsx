@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { api } from '../lib/api.ts';
 import type { Order } from '../types/index.ts';
 import { BANGLADESH_DIVISIONS } from '../data/bangladeshGeo.ts';
+import { BANGLADESH_DISTRICTS } from '../data/districts.ts';
+import { BrandLogo } from './BrandLogo.tsx';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -120,13 +122,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       <div className="bg-white rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl border border-stone-200 relative my-8 text-left">
         {/* Header */}
         <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
-          <div>
-            <h2 className="text-lg font-bold text-stone-900">
-              {user ? 'আমার অ্যাকাউন্ট' : mode === 'signin' ? 'সাইন ইন করুন' : 'নতুন অ্যাকাউন্ট তৈরি করুন'}
-            </h2>
-            <p className="text-xs text-stone-500 mt-0.5">
-              {user ? user.email : 'অর্ডারের তথ্য ও ডেলিভারি ঠিকানা সংরক্ষণের জন্য'}
-            </p>
+          <div className="flex items-center gap-3">
+            <BrandLogo variant="dark" size="sm" showTagline={false} />
+            <div className="border-l border-stone-200 pl-3">
+              <h2 className="text-base font-bold text-stone-900 leading-tight">
+                {user ? 'আমার অ্যাকাউন্ট ড্যাশবোর্ড' : mode === 'signin' ? 'সাইন ইন করুন' : 'নতুন অ্যাকাউন্ট তৈরি করুন'}
+              </h2>
+              <p className="text-[11px] text-stone-500">
+                {user ? `${user.phone} · ${user.email}` : 'অর্ডারের তথ্য ও ডেলিভারি ট্র্যাকিং'}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -430,6 +435,41 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         onChange={(e) => setAddrTitle(e.target.value)}
                         className="w-full px-2.5 py-1.5 border border-stone-200 rounded text-xs bg-white focus:outline-none"
                       />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-stone-600 mb-0.5">জেলা</label>
+                          <select
+                            value={addrDistrict}
+                            onChange={(e) => {
+                              const dName = e.target.value;
+                              setAddrDistrict(dName);
+                              const found = BANGLADESH_DISTRICTS.find(d => d.nameBn === dName);
+                              if (found) setAddrDivision(found.division.toLowerCase());
+                            }}
+                            className="w-full px-2.5 py-1.5 border border-stone-200 rounded text-xs bg-white focus:outline-none"
+                          >
+                            {BANGLADESH_DIVISIONS.map((div) => (
+                              <optgroup key={div.id} label={`${div.nameBn} বিভাগ`}>
+                                {div.districts.map((dist) => (
+                                  <option key={dist.nameBn} value={dist.nameBn}>
+                                    {dist.nameBn} ({dist.nameEn})
+                                  </option>
+                                ))}
+                              </optgroup>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-stone-600 mb-0.5">উপজেলা / থানা</label>
+                          <input
+                            type="text"
+                            placeholder="যেমন: ধানমন্ডি / উত্তরা"
+                            value={addrUpazila}
+                            onChange={(e) => setAddrUpazila(e.target.value)}
+                            className="w-full px-2.5 py-1.5 border border-stone-200 rounded text-xs bg-white focus:outline-none"
+                          />
+                        </div>
+                      </div>
                       <textarea
                         required
                         rows={2}

@@ -22,7 +22,8 @@ export const translations: Translations = {
   account: { bn: 'অ্যাকাউন্ট', en: 'Account' },
   login: { bn: 'লগইন', en: 'Login' },
   wishlist: { bn: 'পছন্দের তালিকা', en: 'Wishlist' },
-  bag: { bn: 'ব্যাগ', en: 'Bag' },
+  cart: { bn: 'কার্ট', en: 'Cart' },
+  bag: { bn: 'কার্ট', en: 'Cart' },
   trackOrder: { bn: 'অর্ডার ট্র্যাক', en: 'Track Order' },
   adminPanel: { bn: 'অ্যাডমিন প্যানেল', en: 'Admin Panel' },
   facebookPage: { bn: 'ফেসবুক পেজ', en: 'Facebook Page' },
@@ -32,7 +33,8 @@ export const translations: Translations = {
   },
 
   // Actions
-  addToBag: { bn: 'ব্যাগে যোগ করুন', en: 'Add to Bag' },
+  addToCart: { bn: 'কার্টে যোগ করুন', en: 'Add to Cart' },
+  addToBag: { bn: 'কার্টে যোগ করুন', en: 'Add to Cart' },
   buyNow: { bn: 'এখনই কিনুন', en: 'Buy Now' },
   orderNow: { bn: 'এখনই অর্ডার করুন', en: 'Order Now' },
   viewDetails: { bn: 'সম্পূর্ণ বিবরণ দেখুন', en: 'View Full Details' },
@@ -40,8 +42,10 @@ export const translations: Translations = {
   proceedToOrder: { bn: 'অর্ডারে এগিয়ে যান', en: 'Proceed to Checkout' },
   confirmOrder: { bn: 'অর্ডার নিশ্চিত করুন', en: 'Confirm Order' },
   close: { bn: 'বন্ধ করুন', en: 'Close' },
-  addedToBag: { bn: 'পণ্যটি ব্যাগে যোগ করা হয়েছে', en: 'Item added to your bag' },
-  viewBag: { bn: 'ব্যাগ দেখুন', en: 'View Bag' },
+  addedToCart: { bn: 'পণ্যটি কার্টে যোগ করা হয়েছে', en: 'Item added to your cart' },
+  addedToBag: { bn: 'পণ্যটি কার্টে যোগ করা হয়েছে', en: 'Item added to your cart' },
+  viewCart: { bn: 'কার্ট দেখুন', en: 'View Cart' },
+  viewBag: { bn: 'কার্ট দেখুন', en: 'View Cart' },
 
   // Status & Stock
   inStock: { bn: 'স্টকে আছে', en: 'In Stock' },
@@ -52,8 +56,10 @@ export const translations: Translations = {
   soldCount: { bn: 'টি বিক্রি সম্পন্ন', en: 'sold' },
 
   // Cart & Free Shipping
-  shoppingBagTitle: { bn: 'আপনার শপিং ব্যাগ', en: 'Your Shopping Bag' },
-  emptyBag: { bn: 'আপনার শপিং ব্যাগটি খালি', en: 'Your shopping bag is empty' },
+  shoppingCartTitle: { bn: 'আপনার শপিং কার্ট', en: 'Your Shopping Cart' },
+  shoppingBagTitle: { bn: 'আপনার শপিং কার্ট', en: 'Your Shopping Cart' },
+  emptyCart: { bn: 'আপনার কার্টটি খালি', en: 'Your cart is empty' },
+  emptyBag: { bn: 'আপনার কার্টটি খালি', en: 'Your cart is empty' },
   subtotal: { bn: 'পণ্যের উপমোট (Subtotal):', en: 'Subtotal:' },
   deliveryFee: { bn: 'ডেলিভারি চার্জ:', en: 'Delivery Fee:' },
   discount: { bn: 'কুপন ছাড় (Discount):', en: 'Discount:' },

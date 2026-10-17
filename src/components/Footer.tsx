@@ -1,43 +1,42 @@
 import React, { useState } from 'react';
-import { Phone, Mail, MapPin, ShieldCheck, HelpCircle, FileText, RefreshCw, Truck } from 'lucide-react';
+import { Phone, Mail, MapPin, MessageCircle, Instagram } from 'lucide-react';
+import { BrandLogo } from './BrandLogo.tsx';
 
 interface FooterProps {
   onOpenTracking: () => void;
-  onSelectCategory: (catId: string) => void;
+  onSelectCategory?: (catId: string) => void;
 }
 
 type PolicyKey = 'about' | 'contact' | 'faq' | 'shipping' | 'return' | 'privacy' | 'terms';
 
-export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory }) => {
+export const Footer: React.FC<FooterProps> = ({ onOpenTracking }) => {
   const [activePolicy, setActivePolicy] = useState<PolicyKey | null>(null);
 
   const renderPolicyContent = () => {
     switch (activePolicy) {
       case 'about':
         return {
-          title: 'আমাদের সম্পর্কে (About Sashroyi Daam)',
+          title: 'আমাদের সম্পর্কে (About Us)',
           content: (
-            <div className="space-y-3 text-xs text-stone-600 leading-relaxed">
+            <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <p>
-                <strong>সাশ্রয়ী দাম (Sashroyi Daam)</strong> একটি নির্ভরযোগ্য জাতীয় অনলাইন রিটেইল প্ল্যাটফর্ম। আমাদের মূল লক্ষ্য—বাংলাদেশের প্রতিটি গৃহস্থালিতে সুলভ মূল্যে খাঁটি, মানসম্পন্ন ও প্রয়োজনীয় পণ্য পৌঁছে দেওয়া।
+                <strong>সাশ্রয়ী দাম | Sashroyi Daam</strong> একটি নির্ভরযোগ্য জাতীয় অনলাইন রিটেইল প্ল্যাটফর্ম। আমাদের মূল লক্ষ্য—বাংলাদেশের প্রতিটি গৃহস্থালিতে সুলভ মূল্যে খাঁটি, মানসম্পন্ন ও প্রয়োজনীয় পণ্য পৌঁছে দেওয়া।
               </p>
               <p>
-                “আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান”—এই প্রতিপাদ্যকে ধারণ করে আমরা রান্নাঘরের ঐতিহ্যবাহী টেকসই সামগ্রী, টাঙ্গাইল ও জামদানি ঐতিহ্যবাহী হস্তচালিত সুতি পোশাক, দৈনন্দিন প্রয়োজনীয় গ্যাজেট সরাসরি গ্রাহকের দ্বারে সরবরাহ করি।
-              </p>
-              <p>
-                আমরা কোনো কৃত্রিম ডিসকাউন্ট বা অতিরঞ্জিত রিভিউ প্রচার করি না। আমাদের প্রতিটি পণ্যের বিবরণ বাস্তব ও পরীক্ষিত।
+                “আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান”—এই প্রতিপাদ্যকে ধারণ করে আমরা রান্নাঘরের ঐতিহ্যবাহী টেকসই সামগ্রী, দেশীয় পোশাক, দৈনন্দিন প্রয়োজনীয় গ্যাজেট সরাসরি গ্রাহকের দ্বারে সরবরাহ করি।
               </p>
             </div>
           )
         };
       case 'contact':
         return {
-          title: 'যোগাযোগ ও গ্রাহক সেবা (Contact Us)',
+          title: 'যোগাযোগ ও সাপোর্ট (Contact & Support)',
           content: (
-            <div className="space-y-3 text-xs text-stone-600 leading-relaxed">
+            <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <p>যেকোনো জিজ্ঞাসা, অর্ডার অনুসন্ধান কিংবা পরামর্শের জন্য আমাদের কাস্টমার কেয়ার টিমের সাথে যোগাযোগ করুন:</p>
               <div className="bg-stone-50 p-3 rounded-lg border border-stone-200 space-y-1.5 font-medium text-stone-800">
-                <div>📞 হেল্পলাইন: ০৯৬১২-৮৮৯৯০০ (প্রতিদিন সকাল ৯টা – রাত ১০টা)</div>
+                <div>📞 হেল্পলাইন: ০৯৬১২-৮৮৯৯০০ (সকাল ৯টা – রাত ১০টা)</div>
+                <div>💬 হোয়াটসঅ্যাপ: +880 1700-000000</div>
                 <div>✉️ ইমেইল: support@sashroyidaam.com</div>
                 <div>🏢 প্রধান কার্যালয়: বাড়ি ৪২, রোড ১১, সেক্টর ৩, উত্তরা, ঢাকা-১২৩০</div>
               </div>
@@ -48,41 +47,40 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
         return {
           title: 'সাধারণ জিজ্ঞাসা (FAQ)',
           content: (
-            <div className="space-y-3 text-xs text-stone-600 leading-relaxed">
+            <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <div>
-                <strong className="text-stone-900 block mb-0.5">১. আমি কি কোনো একাউন্ট ছাড়াই সরাসরি ক্যাশ অন ডেলিভারিতে অর্ডার করতে পারি?</strong>
-                <p>হ্যাঁ, কোনো একাউন্ট বা লগইন ছাড়াই পণ্য নির্বাচন করে নাম, মোবাইল নম্বর ও ঠিকানা দিয়ে সরাসরি অর্ডার করা যায়।</p>
+                <strong className="text-stone-900 block mb-0.5">১. আমি কি অ্যাকাউন্ট ছাড়াই অর্ডার করতে পারি?</strong>
+                <p>হ্যাঁ, কোনো অ্যাকাউন্ট ছাড়াও চেকআউটে নাম, মোবাইল ও ঠিকানা দিয়ে সরাসরি ক্যাশ অন ডেলিভারিতে অর্ডার করতে পারবেন।</p>
               </div>
               <div>
                 <strong className="text-stone-900 block mb-0.5">২. ডেলিভারি হতে কত দিন সময় লাগে?</strong>
-                <p>ঢাকা মেট্রো সিটিতে সাধারণত ১-২ কার্যদিবস এবং ঢাকার বাইরে ২-৪ কার্যদিবসের মধ্যে ডেলিভারি সম্পন্ন হয়।</p>
+                <p>ঢাকায় ২৪-৪৮ ঘণ্টা এবং ঢাকার বাইরে সারাদেশে ৭২ ঘণ্টার মধ্যে ডেলিভারি সম্পন্ন হয়।</p>
               </div>
               <div>
-                <strong className="text-stone-900 block mb-0.5">৩. ফ্রি ডেলিভারি কীভাবে পাওয়া যায়?</strong>
-                <p>কার্টে পণ্যের মূল্য ২,০০০ টাকা বা তার বেশি হলে সারাদেশে সম্পূর্ণ ফ্রি ডেলিভারি প্রদান করা হয়।</p>
+                <strong className="text-stone-900 block mb-0.5">৩. দেখে কি মূল্য পরিশোধ করা যাবে?</strong>
+                <p>হ্যাঁ, ডেলিভারিম্যানের সামনে পার্সেল যাচাই করে আসল পণ্য নিশ্চিত হয়ে মূল্য পরিশোধের শতভাগ নিশ্চয়তা রয়েছে।</p>
               </div>
             </div>
           )
         };
       case 'shipping':
         return {
-          title: 'ডেলিভারি ও শিপিং নীতিমালা (Shipping Policy)',
+          title: 'ডেলিভারি নীতিমালা (Delivery Policy)',
           content: (
-            <div className="space-y-3 text-xs text-stone-600 leading-relaxed">
-              <p>১. ঢাকা মেট্রোর অভ্যন্তরে ডেলিভারি চার্জ ৳৭০ এবং ঢাকার বাইরে সমগ্র বাংলাদেশে ৳১৩০।</p>
-              <p>২. ২,০০০ টাকার অর্ডারে সারাদেশে ফ্রি হোম ডেলিভারি প্রযোজ্য।</p>
-              <p>৩. প্রতিটি অর্ডারের সাথে একটি ইউনিক ট্র্যাকিং নম্বর প্রদান করা হয়, যার মাধ্যমে আমাদের ওয়েবসাইটে সরাসরি বর্তমান অবস্থা জানা যায়।</p>
+            <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
+              <p>১. ঢাকা মেট্রোর ভেতরে ডেলিভারি চার্জ ৳৬০ এবং ঢাকার বাইরে সারাদেশে ৳১২০।</p>
+              <p>২. ২,০০০ টাকার কেনাকাটায় সারাদেশে সম্পূর্ণ ফ্রি হোম ডেলিভারি।</p>
+              <p>৩. প্রতিটি অর্ডারে ট্র্যাকিং আইডি দেওয়া হয়, যা দিয়ে ওয়েবসাইটে সরাসরি পার্সেল ট্র্যাক করা যায়।</p>
             </div>
           )
         };
       case 'return':
         return {
-          title: 'রিটার্ন ও রিফান্ড নীতিমালা (Return & Refund Policy)',
+          title: 'রিটার্ন ও রিপ্লেসমেন্ট (Return & Replacement Policy)',
           content: (
-            <div className="space-y-3 text-xs text-stone-600 leading-relaxed">
-              <p>১. পণ্য পাওয়ার ৭ দিনের মধ্যে যেকোনো উৎপাদন ত্রুটি থাকলে বিনামূল্যে রিপ্লেসমেন্ট সুবিধা দেওয়া হয়।</p>
-              <p>২. ডেলিভারিম্যানের সামনে পণ্য চেক করে গ্রহণ করার অনুরোধ করা হচ্ছে।</p>
-              <p>৩. অনলাইন পেমেন্টে কোনো অর্ডার বাতিল হলে ৫-৭ কার্যদিবসের মধ্যে মূল পেমেন্ট মাধ্যমে সমপরিমাণ অর্থ রিফান্ড করা হয়।</p>
+            <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
+              <p>১. পণ্যে কোনো উৎপাদন ত্রুটি থাকলে ৭ কার্যদিবসের মধ্যে ১০০% ঝামেলাহীন রিপ্লেসমেন্ট প্রদান করা হয়।</p>
+              <p>২. ডেলিভারিম্যানের সামনে পণ্য যাচাই করে কোনো ত্রুটি পেলে সাথে সাথেই রিটার্ন করতে পারেন।</p>
             </div>
           )
         };
@@ -90,8 +88,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
         return {
           title: 'গোপনীয়তা নীতিমালা (Privacy Policy)',
           content: (
-            <div className="space-y-3 text-xs text-stone-600 leading-relaxed">
-              <p>আমরা গ্রাহকের ব্যক্তিগত তথ্যের সর্বোচ্চ সুরক্ষা নিশ্চিত করি। আপনার নাম, মোবাইল নম্বর এবং ঠিকানা শুধুমাত্র ডেলিভারি ও অর্ডার যাচাইকরণের জন্য ব্যবহৃত হয়। কোনো তৃতীয় পক্ষের কাছে তথ্য বিক্রয় করা হয় না।</p>
+            <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
+              <p>গ্রাহকের তথ্যের সর্বোচ্চ গোপনীয়তা আমাদের অঙ্গীকার। নাম, মোবাইল নম্বর এবং ঠিকানা কেবল অর্ডার ডেলিভারি ও যাচাইকরণের জন্য ব্যবহৃত হয়। কোনো তৃতীয় পক্ষের কাছে তথ্য হস্তান্তর করা হয় না।</p>
             </div>
           )
         };
@@ -99,8 +97,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
         return {
           title: 'ব্যবহারের শর্তাবলী (Terms & Conditions)',
           content: (
-            <div className="space-y-3 text-xs text-stone-600 leading-relaxed">
-              <p>সাশ্রয়ী দাম প্ল্যাটফর্মে অর্ডার প্রদান করার মাধ্যমে আপনি আমাদের নির্ধারিত বিক্রয় নীতিমালার সাথে একমত পোষণ করছেন। সমস্ত মূল্য বাংলাদেশি টাকা (BDT) হিসেবে নির্ধারিত এবং স্টক সাপেক্ষ।</p>
+            <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
+              <p>সাশ্রয়ী দাম প্ল্যাটফর্মে অর্ডার প্রদান করার মাধ্যমে আপনি আমাদের বিক্রয় নীতিমালার সাথে একমত পোষণ করছেন। সমস্ত মূল্য বাংলাদেশি টাকা (BDT) হিসেবে নির্ধারিত এবং স্টক সাপেক্ষ।</p>
             </div>
           )
         };
@@ -113,109 +111,120 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
 
   return (
     <footer className="bg-stone-900 text-stone-300 text-xs border-t border-stone-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
-          {/* Brand Info */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
+          {/* Brand Info & Social Links */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex flex-col text-left">
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold font-sans text-emerald-400">সাশ্রয়ী দাম</span>
-                <span className="text-base font-semibold text-stone-300 font-sans">| Sashroyi Daam</span>
-              </div>
-              <span className="text-xs text-stone-400 font-medium mt-0.5">
-                আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান
-              </span>
-            </div>
+            <BrandLogo variant="light" size="md" showTagline={true} />
             <p className="text-stone-400 text-xs leading-relaxed max-w-sm">
-              বাংলাদেশের প্রতিটি পরিবারের জন্য মানসম্মত গৃহস্থালি সামগ্রী, দেশীয় পোশাক ও টেকসই গ্যাজেটের নির্ভরযোগ্য ঠিকানা। সারাদেশে ক্যাশ অন ডেলিভারি সুবিধা।
+              বাংলাদেশের প্রতিটি পরিবারের জন্য মানসম্মত পণ্য, সাশ্রয়ী দাম ও নির্ভরযোগ্য সেবা। সারাদেশে দ্রুত হোম ডেলিভারি ও পার্সেল দেখে পরিশোধের নিশ্চয়তা।
             </p>
 
-            {/* Direct Facebook Page Link Card */}
-            <a
-              href="https://facebook.com/sashroyidaam"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2.5 px-3.5 py-2.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/80 rounded-xl text-emerald-200 transition-colors shadow-2xs group"
-            >
-              <div className="w-7 h-7 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                f
-              </div>
-              <div className="text-left">
-                <div className="text-xs font-bold text-white leading-tight">সাশ্রয়ী দাম (Sashroyi Daam)</div>
-                <div className="text-[10px] text-emerald-300">অফিসিয়াল ফেসবুক পেজে যুক্ত থাকুন</div>
-              </div>
-            </a>
+            {/* Social Links: Facebook, WhatsApp, Instagram */}
+            <div className="pt-1">
+              <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider block mb-2">
+                কানেক্টেড থাকুন (Social Links)
+              </span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Facebook */}
+                <a
+                  href="https://facebook.com/sashroyidaam"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#1877F2]/15 hover:bg-[#1877F2]/25 border border-[#1877F2]/40 rounded-lg text-white text-xs font-medium transition-colors"
+                  title="Facebook Page"
+                >
+                  <div className="w-5 h-5 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    f
+                  </div>
+                  <span>Facebook</span>
+                </a>
 
-            <div className="pt-1 space-y-1.5 text-stone-400">
+                {/* WhatsApp */}
+                <a
+                  href="https://wa.me/8801700000000"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 rounded-lg text-emerald-300 text-xs font-medium transition-colors"
+                  title="Chat on WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>WhatsApp</span>
+                </a>
+
+                {/* Instagram */}
+                <a
+                  href="https://instagram.com/sashroyidaam"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-pink-500/15 hover:bg-pink-500/25 border border-pink-500/40 rounded-lg text-pink-300 text-xs font-medium transition-colors"
+                  title="Follow on Instagram"
+                >
+                  <Instagram className="w-4 h-4 text-pink-400 shrink-0" />
+                  <span>Instagram</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Helpline details */}
+            <div className="pt-2 space-y-1.5 text-stone-400 text-xs">
               <div className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                <span>হেল্পলাইন: ০৯৬১২-৮৮৯৯০০</span>
+                <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>হেল্পলাইন: ০৯৬১২-৮৮৯৯০০ (সকাল ৯টা – রাত ১০টা)</span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                <Mail className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>ইমেইল: support@sashroyidaam.com</span>
               </div>
               <div className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>বাড়ি ৪২, রোড ১১, সেক্টর ৩, উত্তরা, ঢাকা-১২৩০</span>
               </div>
             </div>
           </div>
 
-          {/* Quick Categories */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white">জনপ্রিয় ক্যাটাগরি</h3>
-            <ul className="space-y-2 text-stone-400">
-              <li>
-                <button onClick={() => onSelectCategory('all')} className="hover:text-white transition-colors cursor-pointer text-left">
-                  সকল পণ্য
-                </button>
-              </li>
-              <li>
-                <button onClick={() => onSelectCategory('cat-kitchen')} className="hover:text-white transition-colors cursor-pointer text-left">
-                  গৃহস্থালি ও রান্নাঘর
-                </button>
-              </li>
-              <li>
-                <button onClick={() => onSelectCategory('cat-fashion')} className="hover:text-white transition-colors cursor-pointer text-left">
-                  তাঁত ও সুতি পোশাক
-                </button>
-              </li>
-              <li>
-                <button onClick={() => onSelectCategory('cat-gadgets')} className="hover:text-white transition-colors cursor-pointer text-left">
-                  স্মার্ট গ্যাজেট ও লাইফস্টাইল
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Customer Service & Policies */}
+          {/* Quick Help & Tracking */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-white">গ্রাহক সেবা</h3>
             <ul className="space-y-2 text-stone-400">
               <li>
-                <button onClick={onOpenTracking} className="hover:text-white transition-colors cursor-pointer text-left">
-                  অর্ডার ট্র্যাক করুন
+                <button
+                  onClick={onOpenTracking}
+                  className="hover:text-white transition-colors cursor-pointer text-left flex items-center gap-1.5"
+                >
+                  <span>অর্ডার ট্র্যাক করুন (Track Order)</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => setActivePolicy('shipping')} className="hover:text-white transition-colors cursor-pointer text-left">
-                  ডেলিভারি নীতিমালা
+                <button
+                  onClick={() => setActivePolicy('shipping')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  ডেলিভারি নীতিমালা (Delivery Policy)
                 </button>
               </li>
               <li>
-                <button onClick={() => setActivePolicy('return')} className="hover:text-white transition-colors cursor-pointer text-left">
-                  রিটার্ন ও রিফান্ড
+                <button
+                  onClick={() => setActivePolicy('return')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  রিটার্ন ও রিপ্লেসমেন্ট (Replacement)
                 </button>
               </li>
               <li>
-                <button onClick={() => setActivePolicy('faq')} className="hover:text-white transition-colors cursor-pointer text-left">
+                <button
+                  onClick={() => setActivePolicy('faq')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
                   সাধারণ জিজ্ঞাসা (FAQ)
                 </button>
               </li>
               <li>
-                <button onClick={() => setActivePolicy('contact')} className="hover:text-white transition-colors cursor-pointer text-left">
-                  যোগাযোগ
+                <button
+                  onClick={() => setActivePolicy('contact')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  যোগাযোগ ও সাপোর্ট (Support)
                 </button>
               </li>
             </ul>
@@ -223,43 +232,52 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, onSelectCategory
 
           {/* About & Trust */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-white">ব্র্যান্ড ও নিরাপত্তা</h3>
+            <h3 className="text-sm font-semibold text-white">ব্র্যান্ড ও শর্তাবলী</h3>
             <ul className="space-y-2 text-stone-400">
               <li>
-                <button onClick={() => setActivePolicy('about')} className="hover:text-white transition-colors cursor-pointer text-left">
-                  আমাদের সম্পর্কে
+                <button
+                  onClick={() => setActivePolicy('about')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  আমাদের সম্পর্কে (About Us)
                 </button>
               </li>
               <li>
-                <button onClick={() => setActivePolicy('privacy')} className="hover:text-white transition-colors cursor-pointer text-left">
-                  গোপনীয়তা নীতিমালা
+                <button
+                  onClick={() => setActivePolicy('privacy')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  গোপনীয়তা নীতিমালা (Privacy)
                 </button>
               </li>
               <li>
-                <button onClick={() => setActivePolicy('terms')} className="hover:text-white transition-colors cursor-pointer text-left">
-                  ব্যবহারের শর্তাবলী
+                <button
+                  onClick={() => setActivePolicy('terms')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  ব্যবহারের শর্তাবলী (Terms)
                 </button>
               </li>
             </ul>
 
             <div className="pt-2">
-              <span className="text-[11px] font-semibold text-stone-400 block mb-1.5">
+              <span className="text-[11px] font-semibold text-stone-400 block mb-1">
                 পেমেন্ট মাধ্যম:
               </span>
               <div className="text-[11px] text-stone-300 font-medium leading-relaxed">
-                ক্যাশ অন ডেলিভারি · SSLCOMMERZ · বিকাশ · নগদ · রকেট · কার্ড
+                ক্যাশ অন ডেলিভারি · বিকাশ · নগদ · রকেট · কার্ড
               </div>
             </div>
           </div>
         </div>
 
         {/* Bottom Strip */}
-        <div className="mt-10 pt-6 border-t border-stone-800 text-stone-500 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="mt-10 pt-5 border-t border-stone-800 text-stone-500 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div>
             © {new Date().getFullYear()} সাশ্রয়ী দাম | Sashroyi Daam. সর্বস্বত্ব সংরক্ষিত।
           </div>
           <div className="flex items-center gap-4">
-            <span>জাতীয় অনলাইন শপ</span>
+            <span>জাতীয় অনলাইন শপ</span>
             <span aria-hidden="true">·</span>
             <span>ঢাকা, বাংলাদেশ</span>
           </div>

@@ -155,7 +155,13 @@ export const api = {
 
   // Orders
   createOrder: (body: any) =>
-    request<{ order: Order; message: string }>('/api/orders', {
+    request<{
+      order: Order;
+      message: string;
+      autoAuthToken?: string;
+      autoUser?: any;
+      isNewAccount?: boolean;
+    }>('/api/orders', {
       method: 'POST',
       body: JSON.stringify(body)
     }),
@@ -313,8 +319,33 @@ export const api = {
       body: JSON.stringify(body)
     }),
 
-  getInventoryMovements: () =>
-    request<{ movements: InventoryMovement[] }>('/api/admin/inventory-movements'),
+  getAuditLogs: () => request<{ logs: AuditLog[] }>('/api/admin/audit-logs'),
 
-  getAuditLogs: () => request<{ logs: AuditLog[] }>('/api/admin/audit-logs')
+  // Product & Category Visibility Toggles
+  togglePublishProduct: (id: string) =>
+    request<{ product: Product; message: string }>(`/api/admin/products/${id}/toggle-publish`, {
+      method: 'PATCH'
+    }),
+
+  togglePublishCategory: (id: string) =>
+    request<{ category: Category; message: string }>(`/api/admin/categories/${id}/toggle-publish`, {
+      method: 'PATCH'
+    }),
+
+  // Supabase Cloud Persistence
+  getSupabaseStatus: () =>
+    request<{ url: string; hasKey: boolean; isConnected: boolean }>('/api/admin/supabase/status'),
+
+  configureSupabase: (body: { url: string; key: string }) =>
+    request<{ success: boolean; message: string }>('/api/admin/supabase/configure', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    }),
+
+  syncAllToSupabase: () =>
+    request<{ message: string; categoriesCount: number; productsCount: number }>(
+      '/api/admin/supabase/sync-all',
+      { method: 'POST' }
+    )
 };
+

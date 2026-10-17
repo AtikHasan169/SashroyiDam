@@ -19,6 +19,8 @@ import { LanguageProvider, useLanguage } from './context/LanguageContext.tsx';
 import { useCart } from './context/CartContext.tsx';
 import { ProductQuickActionSheet } from './components/ProductQuickActionSheet.tsx';
 import { CartToast, type CartToastItem } from './components/CartToast.tsx';
+import { SearchOverlay } from './components/SearchOverlay.tsx';
+import { TrustGuaranteeBar } from './components/TrustGuaranteeBar.tsx';
 import { Footer } from './components/Footer.tsx';
 import { FloatingSocialBadge } from './components/FloatingSocialBadge.tsx';
 import { api } from './lib/api.ts';
@@ -30,6 +32,7 @@ function StorefrontApp() {
   const { addToCart, setIsCartDrawerOpen } = useCart();
 
   // Global Modals State
+  const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -107,6 +110,17 @@ function StorefrontApp() {
       }
     }
   }, [products]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOverlayOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -195,6 +209,7 @@ function StorefrontApp() {
           setAdminEditingProduct(null);
           setIsAdminOpen(true);
         }}
+        onOpenSearch={() => setIsSearchOverlayOpen(true)}
         onSelectCategory={(catId) => {
           if (viewingProductPage) {
             handleBackFromProductPage();
@@ -240,6 +255,8 @@ function StorefrontApp() {
           {!searchQuery && (
             <div>
               <Hero
+                products={products}
+                onOpenProduct={handleOpenProductPage}
                 onExploreClick={() => {
                   const el = document.getElementById('products');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -356,7 +373,7 @@ function StorefrontApp() {
                     <ProductCard
                       key={prod.id}
                       product={prod}
-                      onOpenDetails={(p) => setQuickActionProduct(p)}
+                      onOpenDetails={(p) => handleOpenProductPage(p)}
                       onDirectBuy={(p) => handleDirectBuy(p)}
                       onQuickAddToast={(p) =>
                         setCartToastItem({
@@ -375,7 +392,10 @@ function StorefrontApp() {
         </div>
       )}
 
-      {/* 5. Footer */}
+      {/* 5. Trust & Delivery Guarantee Bar (Relocated to dedicated pre-footer) */}
+      <TrustGuaranteeBar />
+
+      {/* 6. Footer */}
       <Footer
         onOpenTracking={() => setIsTrackingOpen(true)}
         onSelectCategory={(catId) => {
@@ -490,13 +510,7 @@ function StorefrontApp() {
         <FloatingNavDock
           onOpenAccount={() => setIsAccountOpen(true)}
           onOpenCategories={() => setIsLeftDrawerOpen(true)}
-          onOpenSearch={() => {
-            const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement | null;
-            if (searchInput) {
-              searchInput.focus();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-          }}
+          onOpenSearch={() => setIsSearchOverlayOpen(true)}
           onHomeClick={() => {
             setSelectedCategory('all');
             setSearchQuery('');
@@ -504,6 +518,25 @@ function StorefrontApp() {
           }}
         />
       )}
+
+      {/* Instant Search Overlay with Autofocus Keyboard */}
+      <SearchOverlay
+        isOpen={isSearchOverlayOpen}
+        onClose={() => setIsSearchOverlayOpen(false)}
+        products={products}
+        onSelectProduct={(p) => {
+          handleOpenProductPage(p);
+          setIsSearchOverlayOpen(false);
+        }}
+        onSelectCategory={(catId) => {
+          setSelectedCategory(catId);
+          setIsSearchOverlayOpen(false);
+          setTimeout(() => {
+            const el = document.getElementById('products');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }}
+      />
     </div>
   );
 }

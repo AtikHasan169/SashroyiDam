@@ -1,12 +1,14 @@
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import { z } from 'zod';
 import { getDatabase, withTransaction, recordAuditLog } from '../db.ts';
-import { authenticateUser, type AuthenticatedRequest } from '../auth.ts';
+import { authenticateUser, createAuthToken, type AuthenticatedRequest } from '../auth.ts';
 import {
   Order,
   OrderItemSnapshot,
   OrderFulfilmentStatus,
-  InventoryMovement
+  InventoryMovement,
+  User
 } from '../../types/index.ts';
 import { syncOrderToSupabase } from '../supabase.ts';
 
@@ -57,7 +59,7 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 
     const cleanPhone = customerPhone.replace(/^(\+88|88)/, '');
 
-    const newOrder = await withTransaction(async (db) => {
+    const orderResult = await withTransaction(async (db) => {
       // 1. Concurrency Check & Item Snapshots
       const itemSnapshots: OrderItemSnapshot[] = [];
       const inventoryMovements: InventoryMovement[] = [];
@@ -213,10 +215,75 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
         }
       ];
 
+      // 5. Automatic Customer Account Association & Seamless Creation
+      let resolvedCustomerId = req.user ? req.user.id : undefined;
+      let autoUser: User | undefined = req.user;
+      let isNewAccount = false;
+
+      if (!resolvedCustomerId) {
+        // Check if an account already exists with this phone or email
+        const existing = db.users.find(
+          (u) =>
+            u.phone === cleanPhone ||
+            (customerEmail && customerEmail.trim() && u.email.toLowerCase() === customerEmail.trim().toLowerCase())
+        );
+
+        if (existing) {
+          resolvedCustomerId = existing.id;
+          autoUser = existing;
+          if (!existing.savedAddresses) existing.savedAddresses = [];
+          const hasAddr = existing.savedAddresses.some((a) => a.fullAddress === fullAddress.trim());
+          if (!hasAddr) {
+            existing.savedAddresses.push({
+              id: `addr-${Date.now()}`,
+              title: 'ডেলিভারি ঠিকানা',
+              name: customerName.trim(),
+              phone: cleanPhone,
+              division,
+              district,
+              upazila,
+              fullAddress: fullAddress.trim(),
+              isDefault: existing.savedAddresses.length === 0
+            });
+          }
+        } else {
+          // Auto-create customer account using phone number
+          isNewAccount = true;
+          const newUserId = `user-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+          const defaultPassword = cleanPhone;
+          const passwordHash = crypto.createHash('sha256').update(defaultPassword + '_oshesh_salt_2026').digest('hex');
+          const newUser: User = {
+            id: newUserId,
+            name: customerName.trim(),
+            email: customerEmail && customerEmail.trim() ? customerEmail.trim().toLowerCase() : `${cleanPhone}@customer.sashroyidaam.com`,
+            phone: cleanPhone,
+            role: 'customer',
+            passwordHash,
+            savedAddresses: [
+              {
+                id: `addr-${Date.now()}`,
+                title: 'হোম ডেলিভারি',
+                name: customerName.trim(),
+                phone: cleanPhone,
+                division,
+                district,
+                upazila,
+                fullAddress: fullAddress.trim(),
+                isDefault: true
+              }
+            ],
+            createdAt: new Date().toISOString()
+          };
+          db.users.push(newUser);
+          resolvedCustomerId = newUserId;
+          autoUser = newUser;
+        }
+      }
+
       const order: Order = {
         id: orderId,
         orderNumber,
-        customerId: req.user ? req.user.id : undefined,
+        customerId: resolvedCustomerId,
         customerName: customerName.trim(),
         customerPhone: cleanPhone,
         customerEmail: customerEmail?.trim() || undefined,
@@ -244,14 +311,25 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
       db.orders.unshift(order);
       db.inventoryMovements.push(...inventoryMovements);
 
-      return order;
+      return { order, autoUser, isNewAccount };
     });
 
     // Sync to Supabase PostgreSQL in background
-    syncOrderToSupabase(newOrder).catch((err) => console.warn('Supabase order sync error:', err));
+    syncOrderToSupabase(orderResult.order).catch((err) => console.warn('Supabase order sync error:', err));
+
+    const autoAuthToken = orderResult.autoUser ? createAuthToken(orderResult.autoUser) : undefined;
 
     res.status(201).json({
-      order: newOrder,
+      order: orderResult.order,
+      autoUser: orderResult.autoUser ? {
+        id: orderResult.autoUser.id,
+        name: orderResult.autoUser.name,
+        email: orderResult.autoUser.email,
+        phone: orderResult.autoUser.phone,
+        role: orderResult.autoUser.role
+      } : null,
+      autoAuthToken,
+      isNewAccount: orderResult.isNewAccount,
       message: 'অর্ডারটি সফলভাবে তৈরি হয়েছে'
     });
   } catch (err: any) {

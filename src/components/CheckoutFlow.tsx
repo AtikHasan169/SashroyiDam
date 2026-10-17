@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, CreditCard, Banknote, MapPin, Tag, Truck } from 'lucide-react';
+import { X, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, CreditCard, Banknote, MapPin, Tag, Truck, RefreshCw } from 'lucide-react';
 import { useCart } from '../context/CartContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { BANGLADESH_DIVISIONS } from '../data/bangladeshGeo.ts';
+import { BANGLADESH_DISTRICTS, getDistrictById } from '../data/districts.ts';
 import { api } from '../lib/api.ts';
 import type { Order, Product } from '../types/index.ts';
 
@@ -37,7 +38,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
     removeCoupon,
     clearCart
   } = useCart();
-  const { user } = useAuth();
+  const { user, setSession } = useAuth();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [customerName, setCustomerName] = useState(user?.name || '');
@@ -103,7 +104,14 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
   const handleDistrictChange = (distName: string) => {
     setSelectedDistrict(distName);
-    const distData = districts.find((d) => d.nameBn === distName);
+    const foundDistrict = BANGLADESH_DISTRICTS.find((d) => d.nameBn === distName);
+    if (foundDistrict) {
+      setSelectedDivision(foundDistrict.division.toLowerCase());
+      setCustomerDivision(foundDistrict.division.toLowerCase());
+    }
+    const targetDivId = foundDistrict ? foundDistrict.division.toLowerCase() : selectedDivision;
+    const divData = BANGLADESH_DIVISIONS.find((d) => d.id === targetDivId);
+    const distData = divData?.districts.find((d) => d.nameBn === distName);
     if (distData && distData.upazilas.length > 0) {
       setSelectedUpazila(distData.upazilas[0]);
     } else {
@@ -183,6 +191,11 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
       });
 
       const order = res.order;
+
+      // Auto-login if server auto-created an account
+      if (res.autoAuthToken && res.autoUser) {
+        setSession(res.autoAuthToken, res.autoUser);
+      }
 
       // 2. If SSLCOMMERZ Sandbox is selected, execute payment simulation
       if (paymentMethod === 'sslcommerz_sandbox') {
@@ -288,7 +301,17 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
               </div>
             </div>
 
-            <div className="text-xs text-stone-500 max-w-md mx-auto bg-amber-50 p-3 rounded-lg border border-amber-200 text-stone-700">
+            <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2.5 text-left max-w-md mx-auto">
+              <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block text-emerald-950">🎉 অ্যাকাউন্ট স্বয়ংক্রিয়ভাবে তৈরি হয়েছে!</span>
+                <span className="text-emerald-800 leading-relaxed block mt-0.5">
+                  আপনার মোবাইল নম্বর ({completedOrder.customerPhone}) দিয়ে স্বয়ংক্রিয়ভাবে কাস্টমার অ্যাকাউন্ট তৈরি ও লগইন করা হয়েছে। পরবর্তীতে অর্ডার ট্র্যাক ও দ্রুত কেনাকাটা করতে এই নম্বর ব্যবহার করতে পারবেন।
+                </span>
+              </div>
+            </div>
+
+            <div className="text-xs max-w-md mx-auto bg-amber-50 p-3 rounded-lg border border-amber-200 text-stone-700">
               আমাদের কাস্টমার কেয়ার টিম থেকে দ্রুত আপনার নম্বরে কল দিয়ে অর্ডারটি কনফার্ম করা হবে।
             </div>
 
@@ -420,17 +443,21 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      জেলা <span className="text-rose-500">*</span>
+                      জেলা (সকল ৬৪ জেলা) <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={selectedDistrict}
                       onChange={(e) => handleDistrictChange(e.target.value)}
                       className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm bg-white focus:outline-none focus:border-[#0F4C3A]"
                     >
-                      {districts.map((dist) => (
-                        <option key={dist.nameBn} value={dist.nameBn}>
-                          {dist.nameBn}
-                        </option>
+                      {BANGLADESH_DIVISIONS.map((div) => (
+                        <optgroup key={div.id} label={`${div.nameBn} বিভাগ`}>
+                          {div.districts.map((dist) => (
+                            <option key={dist.nameBn} value={dist.nameBn}>
+                              {dist.nameBn} ({dist.nameEn})
+                            </option>
+                          ))}
+                        </optgroup>
                       ))}
                     </select>
                   </div>
@@ -480,7 +507,29 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                   />
                 </div>
 
-                <div className="pt-3 flex justify-end">
+                {/* 3-Pillar Trust Guarantee Card */}
+                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-left space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#0F4C3A]">
+                    <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                    <span>সাশ্রয়ী দাম ১০০% নিশ্চয়তা ও ডেলিভারি পলিসি</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-stone-600">
+                    <div className="flex items-center gap-1.5 bg-white p-2 rounded-lg border border-stone-100">
+                      <Truck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>ঢাকায় ২৪-৪৮ ঘণ্টা, সারাদেশে ৭২ ঘণ্টা</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white p-2 rounded-lg border border-stone-100">
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>ডেলিভারিম্যানের সামনে পার্সেল যাচাই</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-white p-2 rounded-lg border border-stone-100">
+                      <RefreshCw className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                      <span>৭ দিনের সহজ রিপ্লেসমেন্ট</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
                   <button
                     type="button"
                     onClick={() => {

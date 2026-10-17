@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User as UserIcon, Heart, Menu, ShieldCheck, MapPin, Globe } from 'lucide-react';
+import { ShoppingCart, Search, User as UserIcon, Heart, Menu, ShieldCheck, MapPin, Globe } from 'lucide-react';
 import { useCart } from '../context/CartContext.tsx';
 import { useWishlist } from '../context/WishlistContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { LeftHamburgerDrawer } from './LeftHamburgerDrawer.tsx';
+import { BrandLogo } from './BrandLogo.tsx';
 import type { Category } from '../types/index.ts';
 
 interface HeaderProps {
@@ -12,6 +13,7 @@ interface HeaderProps {
   onOpenTracking: () => void;
   onOpenAdmin: () => void;
   onSelectCategory: (categoryId: string) => void;
+  onOpenSearch: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   announcement?: string;
@@ -25,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTracking,
   onOpenAdmin,
   onSelectCategory,
+  onOpenSearch,
   searchQuery,
   setSearchQuery,
   announcement,
@@ -167,35 +170,25 @@ export const Header: React.FC<HeaderProps> = ({
                   onSelectCategory('all');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="flex flex-col text-left group cursor-pointer focus:outline-none"
+                className="flex items-center text-left group cursor-pointer focus:outline-none"
               >
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold tracking-tight text-[#0F4C3A] font-sans">
-                    {t('brandName')}
-                  </span>
-                  <span className="text-sm font-semibold text-stone-500 font-sans tracking-tight">
-                    | {language === 'bn' ? 'Sashroyi Daam' : 'Affordable Store'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 -mt-0.5">
-                  <span className="text-[11px] text-stone-500 font-medium">
-                    {t('brandTagline')}
-                  </span>
-                </div>
+                <BrandLogo variant="dark" size="md" showTagline={true} />
               </button>
             </div>
 
             {/* Desktop Zone 2: Search Bar & Quick Categories */}
             <div className="flex items-center flex-1 max-w-xl gap-6">
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('searchPlaceholder')}
-                  className="w-full pl-9 pr-4 py-2 bg-stone-100 hover:bg-stone-50 focus:bg-white text-sm text-stone-900 rounded-lg border border-transparent focus:border-stone-300 focus:outline-none transition-all placeholder:text-stone-400"
-                />
-                <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <div
+                onClick={onOpenSearch}
+                className="relative w-full cursor-pointer group"
+              >
+                <div className="w-full pl-9 pr-4 py-2 bg-stone-100 hover:bg-stone-50 group-hover:border-stone-300 text-sm text-stone-500 rounded-lg border border-transparent transition-all flex items-center justify-between">
+                  <span className="truncate">{searchQuery || t('searchPlaceholder')}</span>
+                  <span className="text-[11px] font-semibold text-stone-400 bg-stone-200/80 px-1.5 py-0.5 rounded">
+                    Ctrl + K
+                  </span>
+                </div>
+                <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 group-hover:text-[#0F4C3A] transition-colors" />
               </div>
 
               <nav className="flex items-center gap-5 text-sm font-medium text-stone-600 shrink-0">
@@ -258,10 +251,10 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={() => setIsCartDrawerOpen(true)}
                 className="flex items-center gap-2 px-3.5 py-2 bg-[#0F4C3A] text-white hover:bg-[#135D48] rounded-lg font-medium text-sm transition-all shadow-sm cursor-pointer whitespace-nowrap"
-                title={t('bag')}
+                title={t('cart')}
               >
-                <ShoppingBag className="w-4 h-4" />
-                <span>{t('bag')}</span>
+                <ShoppingCart className="w-4 h-4" />
+                <span>{t('cart')}</span>
                 <span className="bg-white/20 px-1.5 py-0.2 rounded text-xs font-bold tabular-nums">
                   {totalItemCount}
                 </span>
@@ -287,19 +280,9 @@ export const Header: React.FC<HeaderProps> = ({
                 onSelectCategory('all');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="flex flex-col items-center justify-center text-center cursor-pointer focus:outline-none flex-1 px-1"
+              className="flex items-center justify-center text-center cursor-pointer focus:outline-none flex-1 px-1"
             >
-              <div className="flex items-baseline justify-center gap-1">
-                <span className="text-xl font-bold tracking-tight text-[#0F4C3A] font-sans">
-                  {t('brandName')}
-                </span>
-                <span className="text-xs font-semibold text-stone-500 font-sans tracking-tight">
-                  | Daam
-                </span>
-              </div>
-              <span className="text-[10px] text-stone-400 font-medium truncate">
-                {t('onlineShopping')}
-              </span>
+              <BrandLogo variant="dark" size="sm" showTagline={false} />
             </button>
 
             {/* Mobile Right: Wishlist & Cart Actions */}
@@ -323,9 +306,9 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={() => setIsCartDrawerOpen(true)}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#0F4C3A] text-white hover:bg-[#135D48] rounded-lg font-medium text-xs transition-all shadow-sm cursor-pointer whitespace-nowrap"
-                title={t('bag')}
+                title={t('cart')}
               >
-                <ShoppingBag className="w-4 h-4" />
+                <ShoppingCart className="w-4 h-4" />
                 <span className="bg-white/20 px-1 py-0.2 rounded text-[11px] font-bold tabular-nums">
                   {totalItemCount}
                 </span>
@@ -333,18 +316,21 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Mobile Search Bar */}
+          {/* Mobile Search Bar Trigger */}
           <div className="mt-2 lg:hidden">
-            <div className="relative w-full">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('searchPlaceholder')}
-                className="w-full pl-9 pr-4 py-2 bg-stone-100 focus:bg-white text-xs sm:text-sm text-stone-900 rounded-lg border border-transparent focus:border-stone-300 focus:outline-none placeholder:text-stone-400"
-              />
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              className="relative w-full text-left cursor-pointer"
+            >
+              <div className="w-full pl-9 pr-4 py-2 bg-stone-100 hover:bg-stone-50 active:bg-white text-xs sm:text-sm text-stone-500 rounded-lg border border-transparent transition-all flex items-center justify-between">
+                <span className="truncate">{searchQuery || t('searchPlaceholder')}</span>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded">
+                  {language === 'en' ? 'Tap to Search' : 'খুঁজুন'}
+                </span>
+              </div>
               <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            </div>
+            </button>
           </div>
         </div>
       </header>
