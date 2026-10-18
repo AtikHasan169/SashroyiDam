@@ -402,9 +402,9 @@ function StorefrontApp() {
 
           {/* Product Catalog Section */}
           <main id="products" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            {/* Catalog Header & Filter Bar */}
+            {/* Catalog Header & Filter Bar: Stock & Pick on one side, Grid Switcher on the other side */}
             <div className="flex flex-col gap-4 pb-6 border-b border-stone-200">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
                     {searchQuery
@@ -419,73 +419,47 @@ function StorefrontApp() {
                     {language === 'en' ? `Total ${products.length} products found` : `মোট ${formatNumber(products.length)} টি পণ্য পাওয়া গেছে`}
                   </p>
                 </div>
-
-                {/* Desktop Interactive Category Tabs (All + Top Categories) */}
-                <div className="hidden lg:flex items-center gap-1.5 p-1 bg-stone-100/90 rounded-xl border border-stone-200/80">
-                  <button
-                    onClick={() => handleSelectCategory('all')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      selectedCategory === 'all'
-                        ? 'bg-[#0F4C3A] text-white shadow-xs'
-                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
-                    }`}
-                  >
-                    {language === 'en' ? 'All' : 'সকল পণ্য'}
-                  </button>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => handleSelectCategory(cat.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                        selectedCategory === cat.id
-                          ? 'bg-[#0F4C3A] text-white shadow-xs'
-                          : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
-                      }`}
-                    >
-                      {language === 'en' && cat.nameEn ? cat.nameEn : cat.nameBn}
-                    </button>
-                  ))}
-                </div>
               </div>
 
-              {/* Side-by-Side Controls: Stock & Sort on Left Side, View Switcher on Right Side */}
-              <div className="w-full flex items-center justify-between gap-3 pt-1">
-                {/* Side 1 (Left): In-Stock Toggle & Sort */}
-                <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+              {/* Side-by-Side Controls: Stock & Pick on Left Side, Grid Switcher on Right Side */}
+              <div className="w-full flex items-center justify-between gap-2">
+                {/* Side 1 (Left): Stock & Pick */}
+                <div className="flex items-center gap-2 min-w-0">
                   {/* In-Stock Toggle */}
-                  <label className="flex items-center gap-2 text-xs font-semibold text-stone-700 bg-white px-3 py-2 rounded-xl border border-stone-200 hover:border-stone-300 cursor-pointer transition-colors shadow-2xs select-none">
+                  <label className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-stone-700 bg-white px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-stone-200 hover:border-stone-300 cursor-pointer transition-colors shadow-2xs shrink-0 select-none">
                     <input
                       type="checkbox"
                       checked={inStockOnly}
                       onChange={(e) => setInStockOnly(e.target.checked)}
-                      className="rounded text-[#0F4C3A] focus:ring-[#0F4C3A] w-3.5 h-3.5 cursor-pointer"
+                      className="rounded text-[#0F4C3A] focus:ring-[#0F4C3A] w-3.5 h-3.5"
                     />
-                    <span>{language === 'en' ? 'In Stock Only' : 'স্টকে আছে এমন পণ্য'}</span>
+                    <span className="hidden xs:inline sm:inline">{language === 'en' ? 'In Stock' : 'স্টকে আছে'}</span>
+                    <span className="inline xs:hidden sm:hidden">{language === 'en' ? 'Stock' : 'স্টক'}</span>
                   </label>
 
-                  {/* Sort Dropdown */}
-                  <div className="relative">
+                  {/* Sort Dropdown ("Pick") */}
+                  <div className="relative shrink-0">
                     <select
                       value={sortOption}
                       onChange={(e) => setSortOption(e.target.value as any)}
-                      className="appearance-none bg-white text-xs font-semibold text-stone-700 pl-3 pr-8 py-2 rounded-xl border border-stone-200 hover:border-stone-300 cursor-pointer focus:outline-none focus:border-[#0F4C3A] shadow-2xs"
+                      className="appearance-none bg-white text-[11px] sm:text-xs font-semibold text-stone-700 pl-2.5 pr-7 py-1.5 sm:py-2 rounded-lg border border-stone-200 hover:border-stone-300 cursor-pointer focus:outline-none focus:border-[#0F4C3A] shadow-2xs max-w-[130px] sm:max-w-none truncate"
                     >
                       <option value="featured">{language === 'en' ? 'Featured Picks' : 'বাছাইকৃত (Featured)'}</option>
                       <option value="best_selling">{language === 'en' ? 'Best Selling' : 'জনপ্রিয় ও বেশি বিক্রিত'}</option>
                       <option value="newest">{language === 'en' ? 'New Arrivals' : 'নতুন সংযোজিত'}</option>
-                      <option value="price_asc">{language === 'en' ? 'Price: Low to High' : 'মূল্য: কম থেকে বেশি'}</option>
-                      <option value="price_desc">{language === 'en' ? 'Price: High to Low' : 'মূল্য: বেশি থেকে কম'}</option>
+                      <option value="price_asc">{language === 'en' ? 'Price: Low' : 'মূল্য: কম থেকে বেশি'}</option>
+                      <option value="price_desc">{language === 'en' ? 'Price: High' : 'মূল্য: বেশি থেকে কম'}</option>
                     </select>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-stone-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <ArrowUpDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-stone-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
 
                 {/* Side 2 (Right): View Mode Switcher (Grid vs List) */}
-                <div className="flex items-center bg-white p-1 rounded-xl border border-stone-200 shadow-2xs shrink-0">
+                <div className="flex items-center bg-white p-1 rounded-lg border border-stone-200 shadow-2xs shrink-0">
                   <button
                     type="button"
                     onClick={() => setViewMode('grid')}
-                    className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
                       viewMode === 'grid'
                         ? 'bg-[#0F4C3A] text-white shadow-xs font-bold'
                         : 'text-stone-500 hover:text-stone-800'
@@ -493,13 +467,12 @@ function StorefrontApp() {
                     title={language === 'en' ? 'Grid View' : 'গ্রিড ভিউ (Grid)'}
                     aria-label="Grid view"
                   >
-                    <LayoutGrid className="w-4 h-4" />
-                    <span className="hidden sm:inline">{language === 'en' ? 'Grid' : 'গ্রিড'}</span>
+                    <LayoutGrid className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setViewMode('list')}
-                    className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
                       viewMode === 'list'
                         ? 'bg-[#0F4C3A] text-white shadow-xs font-bold'
                         : 'text-stone-500 hover:text-stone-800'
@@ -507,8 +480,7 @@ function StorefrontApp() {
                     title={language === 'en' ? 'List View' : 'লিস্ট ভিউ (List)'}
                     aria-label="List view"
                   >
-                    <List className="w-4 h-4" />
-                    <span className="hidden sm:inline">{language === 'en' ? 'List' : 'লিস্ট'}</span>
+                    <List className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>

@@ -65,8 +65,8 @@ export const CategoryShowcase: React.FC<CategoryShowcaseProps> = ({
               {language === 'en' ? 'All Products' : 'সকল পণ্য'}
             </button>
 
-            {/* Scroll Navigation Arrows (visible on mobile/tablet swipe view, hidden on desktop grid) */}
-            <div className="hidden sm:flex lg:hidden items-center gap-1">
+            {/* Scroll Navigation Arrows */}
+            <div className="hidden sm:flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => scroll('left')}
@@ -87,16 +87,16 @@ export const CategoryShowcase: React.FC<CategoryShowcaseProps> = ({
           </div>
         </div>
 
-        {/* Responsive Track: Horizontal scroll on mobile/tablet, symmetrical grid on desktop */}
+        {/* Horizontal Scrollable Carousel Track */}
         <div
           ref={scrollRef}
-          className="flex lg:grid lg:grid-cols-4 xl:grid-cols-6 items-stretch gap-3 sm:gap-4 overflow-x-auto lg:overflow-visible pb-2 pt-1 scrollbar-none snap-x snap-mandatory"
+          className="flex items-stretch gap-3 sm:gap-4 overflow-x-auto pb-2 pt-1 scrollbar-none snap-x snap-mandatory"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {/* All Categories Card */}
           <button
             onClick={() => handleCategoryClick('all')}
-            className={`snap-start shrink-0 lg:shrink w-36 sm:w-44 lg:w-auto text-left rounded-2xl overflow-hidden border transition-all cursor-pointer flex flex-col justify-between group p-3.5 ${
+            className={`snap-start shrink-0 w-36 sm:w-44 text-left rounded-2xl overflow-hidden border transition-all cursor-pointer flex flex-col justify-between group p-3.5 ${
               selectedCategory === 'all'
                 ? 'border-[#0F4C3A] ring-2 ring-[#0F4C3A]/20 bg-emerald-50/50'
                 : 'border-stone-200 hover:border-emerald-300 bg-stone-50 hover:shadow-sm'
@@ -125,7 +125,7 @@ export const CategoryShowcase: React.FC<CategoryShowcaseProps> = ({
               <button
                 key={cat.id}
                 onClick={() => handleCategoryClick(cat.id)}
-                className={`snap-start shrink-0 lg:shrink w-44 sm:w-52 lg:w-auto text-left rounded-2xl overflow-hidden border transition-all cursor-pointer flex flex-col justify-between group ${
+                className={`snap-start shrink-0 w-44 sm:w-52 text-left rounded-2xl overflow-hidden border transition-all cursor-pointer flex flex-col justify-between group ${
                   isSelected
                     ? 'border-[#0F4C3A] ring-2 ring-[#0F4C3A]/25 bg-emerald-50/40 shadow-sm'
                     : 'border-stone-200/90 hover:border-emerald-300 bg-white hover:shadow-md'
