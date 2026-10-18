@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, CreditCard, Banknote, MapPin, Tag, Truck, RefreshCw } from 'lucide-react';
 import { useCart } from '../context/CartContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
+import { useLanguage } from '../context/LanguageContext.tsx';
 import { BANGLADESH_DIVISIONS } from '../data/bangladeshGeo.ts';
 import { BANGLADESH_DISTRICTS, getDistrictById } from '../data/districts.ts';
 import { api } from '../lib/api.ts';
@@ -39,6 +40,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
     clearCart
   } = useCart();
   const { user, setSession } = useAuth();
+  const { language, t, formatPrice } = useLanguage();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [customerName, setCustomerName] = useState(user?.name || '');
@@ -379,21 +381,21 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      আপনার পূর্ণ নাম <span className="text-rose-500">*</span>
+                      {language === 'en' ? 'Full Name' : 'আপনার পূর্ণ নাম'} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="যেমন: তানভীর আহমেদ"
+                      placeholder={language === 'en' ? 'e.g., Tanvir Ahmed' : 'যেমন: তানভীর আহমেদ'}
                       className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-[#0F4C3A]"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      মোবাইল নম্বর <span className="text-rose-500">*</span>
+                      {language === 'en' ? 'Mobile Number' : 'মোবাইল নম্বর'} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="tel"
@@ -408,13 +410,13 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-1">
-                    ইমেইল এড্রেস (ঐচ্ছিক)
+                    {language === 'en' ? 'Email Address (Optional)' : 'ইমেইল এড্রেস (ঐচ্ছিক)'}
                   </label>
                   <input
                     type="email"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    placeholder="আপনার ইমেইল (অর্ডার রসিদের জন্য)"
+                    placeholder={language === 'en' ? 'your.email@example.com (for order receipt)' : 'আপনার ইমেইল (অর্ডার রসিদের জন্য)'}
                     className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-[#0F4C3A]"
                   />
                 </div>
@@ -423,7 +425,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      বিভাগ <span className="text-rose-500">*</span>
+                      {language === 'en' ? 'Division' : 'বিভাগ'} <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={selectedDivision}
@@ -432,7 +434,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                     >
                       {BANGLADESH_DIVISIONS.map((div) => (
                         <option key={div.id} value={div.id}>
-                          {div.nameBn} ({div.nameEn})
+                          {language === 'en' ? div.nameEn : div.nameBn}
                         </option>
                       ))}
                     </select>
@@ -440,7 +442,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      জেলা ({districts.length}টি জেলা) <span className="text-rose-500">*</span>
+                      {language === 'en' ? 'District' : 'জেলা'} <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={selectedDistrict}
@@ -449,7 +451,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                     >
                       {districts.map((dist) => (
                         <option key={dist.nameBn} value={dist.nameBn}>
-                          {dist.nameBn} ({dist.nameEn})
+                          {language === 'en' ? dist.nameEn : dist.nameBn}
                         </option>
                       ))}
                     </select>
@@ -457,7 +459,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      উপজেলা / থানা <span className="text-rose-500">*</span>
+                      {language === 'en' ? 'Upazila / Thana' : 'উপজেলা / থানা'} <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={selectedUpazila}
@@ -475,14 +477,18 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-1">
-                    পূর্ণ ডেলিভারি ঠিকানা <span className="text-rose-500">*</span>
+                    {language === 'en' ? 'Full Delivery Address' : 'পূর্ণ ডেলিভারি ঠিকানা'} <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     required
                     rows={2}
                     value={fullAddress}
                     onChange={(e) => setFullAddress(e.target.value)}
-                    placeholder="বাড়ি নম্বর, রোড নম্বর, ফ্ল্যাট নম্বর, এলাকা..."
+                    placeholder={
+                      language === 'en'
+                        ? 'House number, road number, flat, area details...'
+                        : 'বাড়ি নম্বর, রোড নম্বর, ফ্ল্যাট নম্বর, এলাকা...'
+                    }
                     className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-[#0F4C3A]"
                   />
                 </div>

@@ -108,8 +108,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return [...prev, { productId, variantId, quantity }];
       }
     });
-
-    setIsCartDrawerOpen(true);
   };
 
   const removeFromCart = (productId: string, variantId?: string) => {

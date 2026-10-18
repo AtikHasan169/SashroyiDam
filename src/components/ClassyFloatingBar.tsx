@@ -23,7 +23,19 @@ export const ClassyFloatingBar: React.FC<ClassyFloatingBarProps> = ({
   const { totalItemCount, cartValidation, setIsCartDrawerOpen, isCartDrawerOpen } = useCart();
   const { language, t, formatPrice, formatNumber } = useLanguage();
   const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const prevCountRef = useRef(totalItemCount);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Pulse effect when items are added to cart
+  useEffect(() => {
+    if (totalItemCount > prevCountRef.current) {
+      setIsPulsing(true);
+      const timer = setTimeout(() => setIsPulsing(false), 800);
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = totalItemCount;
+  }, [totalItemCount]);
 
   // Close support card when clicking outside
   useEffect(() => {
@@ -173,7 +185,9 @@ export const ClassyFloatingBar: React.FC<ClassyFloatingBarProps> = ({
       {totalItemCount > 0 && (
         <button
           onClick={() => setIsCartDrawerOpen(true)}
-          className="flex items-center gap-2.5 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-[#0F4C3A] hover:bg-[#145C47] text-white rounded-full shadow-[0_6px_25px_rgba(15,76,58,0.35)] border border-emerald-500/40 text-xs font-medium transition-all hover:scale-105 active:scale-95 cursor-pointer animate-in slide-in-from-bottom-2 fade-in duration-200"
+          className={`flex items-center gap-2.5 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-[#0F4C3A] hover:bg-[#145C47] text-white rounded-full shadow-[0_6px_25px_rgba(15,76,58,0.35)] border border-emerald-500/40 text-xs font-medium transition-all duration-300 active:scale-95 cursor-pointer animate-in slide-in-from-bottom-2 fade-in ${
+            isPulsing ? 'scale-110 ring-4 ring-amber-400/80 shadow-emerald-500/50' : 'hover:scale-105'
+          }`}
           title={t('shoppingCartTitle')}
           aria-label={t('cart')}
         >
