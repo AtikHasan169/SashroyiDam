@@ -118,6 +118,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [reviewSuccessMsg, setReviewSuccessMsg] = useState('');
   const [reviewErrorMsg, setReviewErrorMsg] = useState('');
 
+  // Pre-fill reviewer details from logged in user if available
+  React.useEffect(() => {
+    if (user) {
+      if (!revName && user.name) setRevName(user.name);
+      if (!revPhone && user.phone) setRevPhone(user.phone);
+    }
+  }, [user]);
+
   // Calculate price and stock based on selected variant
   const selectedVariant = product.variants?.find((v) => v.id === selectedVariantId);
   const currentPrice = product.price + (selectedVariant?.priceDelta || 0);
@@ -273,7 +281,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
               {/* Auto-changing Product Highlight Badge */}
               {!isZoomed && !isHovering && (
-                <div className="absolute top-3 left-3 z-10 pointer-events-none max-w-[80%]">
+                <div className="absolute top-3 left-3 z-10 pointer-events-none max-w-[calc(100%-85px)]">
                   <ProductHighlightBadge product={product} variant="detail" />
                 </div>
               )}
@@ -688,9 +696,17 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
                         {reviews.map((r) => (
                           <div key={r.id} className="p-2.5 bg-stone-50 rounded-lg border border-stone-200/70">
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span className="font-bold text-stone-800">{r.customerName}</span>
-                              <div className="flex text-amber-500">
+                            <div className="flex items-center justify-between text-[11px] gap-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-stone-800">{r.customerName}</span>
+                                {r.isVerifiedPurchase !== false && (
+                                  <span className="inline-flex items-center gap-1 text-[9.5px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-full">
+                                    <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
+                                    <span>{language === 'en' ? 'Verified Buyer' : 'ভেরিফায়েড ক্রেতা'}</span>
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex text-amber-500 shrink-0">
                                 {Array.from({ length: r.rating }).map((_, i) => (
                                   <Star key={i} className="w-3 h-3 fill-current" />
                                 ))}
@@ -701,42 +717,77 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                         ))}
                       </div>
                     ) : (
-                      <p className="text-stone-400">এখনও কোনো রিভিউ যুক্ত হয়নি। আপনার মতামত দিন।</p>
+                      <p className="text-stone-400 text-xs">
+                        {language === 'en'
+                          ? 'No reviews yet. Be the first verified customer to share your experience!'
+                          : 'এখনও কোনো রিভিউ যুক্ত হয়নি। পণ্যটি কিনে থাকলে প্রথম রিভিউ দিন আপনি!'}
+                      </p>
                     )}
 
                     {/* Submit Review Form */}
-                    <form onSubmit={handleReviewSubmit} className="pt-2 border-t border-stone-200 space-y-2">
-                      <div className="font-semibold text-stone-800 text-xs">আপনার রিভিউ দিন</div>
+                    <form onSubmit={handleReviewSubmit} className="pt-3 border-t border-stone-200 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="font-bold text-stone-900 text-xs flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>{language === 'en' ? 'Write a Verified Customer Review' : 'ভেরিফায়েড ক্রেতার রিভিউ দিন'}</span>
+                        </div>
+                      </div>
+
+                      {/* Verified Buyer Instruction Note */}
+                      <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-lg p-2 text-[10.5px] text-emerald-900 flex items-start gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span className="leading-relaxed">
+                          {language === 'en'
+                            ? 'Policy: Only customers who purchased this product can leave a review. Please enter the mobile number used during ordering.'
+                            : 'পলিসি: শুধুমাত্র এই পণ্যটি ক্রয়কৃত ভেরিফায়েড ক্রেতারা রিভিউ দিতে পারবেন। অর্ডার করার সময় ব্যবহৃত মোবাইল নম্বরটি লিখুন।'}
+                        </span>
+                      </div>
+
                       {reviewSuccessMsg && (
-                        <div className="p-2 bg-emerald-50 text-emerald-800 text-[11px] rounded">
-                          {reviewSuccessMsg}
+                        <div className="p-2 bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] rounded-lg font-medium flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>{reviewSuccessMsg}</span>
                         </div>
                       )}
                       {reviewErrorMsg && (
-                        <div className="p-2 bg-rose-50 text-rose-800 text-[11px] rounded">
+                        <div className="p-2 bg-rose-50 border border-rose-200 text-rose-800 text-[11px] rounded-lg font-medium">
                           {reviewErrorMsg}
                         </div>
                       )}
+
                       <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          required
-                          placeholder="আপনার নাম"
-                          value={revName}
-                          onChange={(e) => setRevName(e.target.value)}
-                          className="px-2.5 py-1.5 border border-stone-200 rounded text-xs focus:outline-none focus:border-[#0F4C3A]"
-                        />
-                        <input
-                          type="tel"
-                          required
-                          placeholder="মোবাইল নম্বর (017...)"
-                          value={revPhone}
-                          onChange={(e) => setRevPhone(e.target.value)}
-                          className="px-2.5 py-1.5 border border-stone-200 rounded text-xs focus:outline-none focus:border-[#0F4C3A]"
-                        />
+                        <div>
+                          <label className="block text-[10.5px] font-semibold text-stone-600 mb-0.5">
+                            {language === 'en' ? 'Your Name *' : 'আপনার নাম *'}
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder={language === 'en' ? 'Full Name' : 'আপনার নাম'}
+                            value={revName}
+                            onChange={(e) => setRevName(e.target.value)}
+                            className="w-full px-2.5 py-1.5 border border-stone-200 rounded-lg text-xs focus:outline-none focus:border-[#0F4C3A]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10.5px] font-semibold text-stone-600 mb-0.5">
+                            {language === 'en' ? 'Order Phone *' : 'অর্ডারের মোবাইল নম্বর *'}
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            placeholder="017xxxxxxxx"
+                            value={revPhone}
+                            onChange={(e) => setRevPhone(e.target.value)}
+                            className="w-full px-2.5 py-1.5 border border-stone-200 rounded-lg text-xs focus:outline-none focus:border-[#0F4C3A]"
+                          />
+                        </div>
                       </div>
+
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-stone-500">রেটিং:</span>
+                        <span className="text-[11px] font-semibold text-stone-600">
+                          {language === 'en' ? 'Rating:' : 'রেটিং:'}
+                        </span>
                         <div className="flex gap-1">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <button
@@ -750,20 +801,28 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                           ))}
                         </div>
                       </div>
-                      <textarea
-                        required
-                        rows={2}
-                        placeholder="পণ্যটি সম্পর্কে আপনার অভিজ্ঞতা লিখুন..."
-                        value={revComment}
-                        onChange={(e) => setRevComment(e.target.value)}
-                        className="w-full px-2.5 py-1.5 border border-stone-200 rounded text-xs focus:outline-none focus:border-[#0F4C3A]"
-                      />
+
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-stone-600 mb-0.5">
+                          {language === 'en' ? 'Your Experience *' : 'পণ্যের গুণমান ও অভিজ্ঞতা *'}
+                        </label>
+                        <textarea
+                          required
+                          rows={2}
+                          placeholder={language === 'en' ? 'Write about product quality, finishing...' : 'পণ্যটি সম্পর্কে আপনার বাস্তব অভিজ্ঞতা লিখুন...'}
+                          value={revComment}
+                          onChange={(e) => setRevComment(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-stone-200 rounded-lg text-xs focus:outline-none focus:border-[#0F4C3A]"
+                        />
+                      </div>
+
                       <button
                         type="submit"
                         disabled={submittingReview}
-                        className="px-3 py-1.5 bg-[#0F4C3A] text-white rounded text-xs font-semibold hover:bg-[#135D48] transition-colors cursor-pointer"
+                        className="px-4 py-2 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
                       >
-                        {submittingReview ? 'জমা হচ্ছে...' : 'রিভিউ জমা দিন'}
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>{submittingReview ? (language === 'en' ? 'Verifying...' : 'যাচাই হচ্ছে...') : (language === 'en' ? 'Submit Verified Review' : 'ভেরিফায়েড রিভিউ দিন')}</span>
                       </button>
                     </form>
                   </div>

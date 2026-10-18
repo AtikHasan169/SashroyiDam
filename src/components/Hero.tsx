@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Zap, ArrowRight, ShieldCheck } from 'lucide-react';
 import type { Product } from '../types/index.ts';
+import { useLanguage } from '../context/LanguageContext.tsx';
 
 interface HeroSlide {
   id: string;
@@ -23,6 +24,7 @@ export const Hero: React.FC<HeroProps> = ({
   products = [],
   onOpenProduct
 }) => {
+  const { language, formatPrice } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -54,7 +56,7 @@ export const Hero: React.FC<HeroProps> = ({
     }
   ];
 
-  // If products are available with images, incorporate top products into the pure image carousel
+  // If products are available with images, incorporate top products into the carousel
   const productSlides: HeroSlide[] = products
     .filter(p => !p.isArchived && p.isPublished !== false && p.images && p.images.length > 0)
     .slice(0, 3)
@@ -68,12 +70,12 @@ export const Hero: React.FC<HeroProps> = ({
   const allSlides = productSlides.length > 0 ? [...defaultSlides.slice(0, 2), ...productSlides] : defaultSlides;
   const totalSlides = allSlides.length;
 
-  // Auto-change timer every 4 seconds
+  // Auto-change timer every 4.5 seconds
   useEffect(() => {
     if (isPaused || totalSlides <= 1) return;
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % totalSlides);
-    }, 4000);
+    }, 4500);
     return () => clearInterval(interval);
   }, [isPaused, totalSlides]);
 
@@ -120,17 +122,19 @@ export const Hero: React.FC<HeroProps> = ({
   return (
     <section className="bg-[#FAF9F6] py-3 sm:py-5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Pure Auto-Changing Banner Carousel */}
+        {/* Banner Carousel */}
         <div
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-900 shadow-md group select-none aspect-[16/7] sm:aspect-[21/8] md:aspect-[24/8] min-h-[190px] sm:min-h-[280px] md:min-h-[340px] max-h-[460px]"
+          className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-900 shadow-md group select-none aspect-[16/7] sm:aspect-[21/8] lg:aspect-[24/9] min-h-[220px] sm:min-h-[300px] md:min-h-[360px] lg:min-h-[400px] max-h-[460px]"
         >
-          {/* Images with smooth opacity crossfade */}
+          {/* Images / Split Product Cards with smooth crossfade */}
           {allSlides.map((slide, idx) => {
             const isActive = idx === currentIndex;
+            const featuredProd = slide.productId ? products.find(p => p.id === slide.productId) : null;
+
             return (
               <div
                 key={slide.id}
@@ -139,13 +143,67 @@ export const Hero: React.FC<HeroProps> = ({
                   isActive ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'
                 }`}
               >
-                <img
-                  src={slide.image}
-                  alt={slide.alt}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover object-center transform scale-100 group-hover:scale-[1.01] transition-transform duration-700"
-                  loading={idx === 0 ? 'eager' : 'lazy'}
-                />
+                {featuredProd ? (
+                  /* High-End Product Feature Split Banner (no blurry zoomed cropping) */
+                  <div className="w-full h-full bg-gradient-to-r from-stone-950 via-[#0F4C3A] to-stone-900 flex items-center justify-between p-5 sm:p-8 lg:p-14 text-white relative overflow-hidden">
+                    <div className="relative z-10 max-w-xl space-y-2 sm:space-y-4">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-stone-950 text-[10px] sm:text-xs font-extrabold uppercase tracking-wider shadow-sm">
+                        <Zap className="w-3 sm:w-3.5 h-3 sm:h-3.5 fill-current" />
+                        <span>{language === 'bn' ? 'আজকের সেরা ডিল' : "Today's Top Pick"}</span>
+                      </div>
+
+                      <h2 className="text-lg sm:text-2xl lg:text-3xl font-extrabold tracking-tight line-clamp-2 leading-tight">
+                        {language === 'en' && featuredProd.titleEn ? featuredProd.titleEn : featuredProd.titleBn}
+                      </h2>
+
+                      <div className="flex items-baseline gap-2 sm:gap-3 flex-wrap">
+                        <span className="text-xl sm:text-3xl font-extrabold text-amber-300 tabular-nums">
+                          {formatPrice(featuredProd.price)}
+                        </span>
+                        {featuredProd.originalPrice && featuredProd.originalPrice > featuredProd.price && (
+                          <span className="text-xs sm:text-base text-stone-400 line-through tabular-nums">
+                            {formatPrice(featuredProd.originalPrice)}
+                          </span>
+                        )}
+                        {featuredProd.originalPrice && featuredProd.originalPrice > featuredProd.price && (
+                          <span className="text-[11px] sm:text-xs font-bold text-rose-300 bg-rose-950/80 border border-rose-600/40 px-2 py-0.5 rounded-full">
+                            {Math.round(((featuredProd.originalPrice - featuredProd.price) / featuredProd.originalPrice) * 100)}% {language === 'bn' ? 'ছাড়' : 'OFF'}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="pt-1 flex items-center gap-3">
+                        <span className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 text-xs sm:text-sm font-bold shadow-md transition-all group-hover:scale-105">
+                          <span>{language === 'bn' ? 'অর্ডার করুন' : 'Order Now'}</span>
+                          <ArrowRight className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+                        </span>
+                        <span className="hidden md:inline-flex items-center gap-1 text-xs text-emerald-200">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>{language === 'bn' ? 'ক্যাশ অন ডেলিভারি' : 'Cash on Delivery'}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Uncropped Right Showcase Card */}
+                    <div className="relative z-10 w-36 sm:w-56 md:w-68 lg:w-80 aspect-square rounded-2xl bg-white/10 p-2.5 sm:p-4 backdrop-blur-md border border-white/20 shadow-2xl flex items-center justify-center shrink-0">
+                      <img
+                        src={featuredProd.images[0]}
+                        alt={featuredProd.titleBn}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-contain rounded-xl drop-shadow-lg"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  /* Curated Wide Landscape Promotional Banner */
+                  <img
+                    src={slide.image}
+                    alt={slide.alt}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover object-center transform scale-100 group-hover:scale-[1.01] transition-transform duration-700"
+                    loading={idx === 0 ? 'eager' : 'lazy'}
+                  />
+                )}
               </div>
             );
           })}

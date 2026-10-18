@@ -39,10 +39,10 @@ export const Header: React.FC<HeaderProps> = ({
   isDrawerOpen: controlledDrawerOpen,
   setIsDrawerOpen: controlledSetDrawerOpen
 }) => {
-  const { totalItemCount, setIsCartDrawerOpen } = useCart();
+  const { totalItemCount, setIsCartDrawerOpen, cartValidation } = useCart();
   const { wishlistIds } = useWishlist();
   const { user, isAdmin } = useAuth();
-  const { language, setLanguage, toggleLanguage, t } = useLanguage();
+  const { language, setLanguage, toggleLanguage, t, formatPrice } = useLanguage();
   const [internalDrawerOpen, setInternalDrawerOpen] = useState(false);
 
   const isDrawerOpen = controlledDrawerOpen !== undefined ? controlledDrawerOpen : internalDrawerOpen;
@@ -199,45 +199,28 @@ export const Header: React.FC<HeaderProps> = ({
                 <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 group-hover:text-[#0F4C3A] transition-colors" />
               </div>
 
-              <nav className="flex items-center gap-5 text-sm font-medium text-stone-600 shrink-0">
+              <nav className="flex items-center gap-4 text-xs xl:text-sm font-semibold text-stone-600 shrink-0">
                 <button
                   onClick={() => onSelectCategory('all')}
                   className="hover:text-[#0F4C3A] transition-colors whitespace-nowrap cursor-pointer"
                 >
                   {t('allProducts')}
                 </button>
-                <button
-                  onClick={() => onSelectCategory('cat-kitchen')}
-                  className="hover:text-[#0F4C3A] transition-colors whitespace-nowrap cursor-pointer"
-                >
-                  {language === 'bn' ? 'গৃহস্থালি' : 'Kitchen'}
-                </button>
-                <button
-                  onClick={() => onSelectCategory('cat-fashion')}
-                  className="hover:text-[#0F4C3A] transition-colors whitespace-nowrap cursor-pointer"
-                >
-                  {language === 'bn' ? 'ফ্যাশন' : 'Fashion'}
-                </button>
-                <button
-                  onClick={() => onSelectCategory('cat-gadgets')}
-                  className="hover:text-[#0F4C3A] transition-colors whitespace-nowrap cursor-pointer"
-                >
-                  {language === 'bn' ? 'গ্যাজেট' : 'Gadgets'}
-                </button>
+                {categories.slice(0, 4).map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => onSelectCategory(cat.id)}
+                    className="hover:text-[#0F4C3A] transition-colors whitespace-nowrap cursor-pointer"
+                  >
+                    {language === 'en' && cat.nameEn ? cat.nameEn : cat.nameBn}
+                  </button>
+                ))}
               </nav>
             </div>
 
-            {/* Desktop Zone 3: Actions */}
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={onOpenSearch}
-                className="p-2 text-stone-700 hover:text-[#0F4C3A] rounded-xl hover:bg-stone-50 transition-colors cursor-pointer border border-transparent hover:border-stone-200"
-                title={language === 'bn' ? 'পণ্য খুঁজুন' : 'Search'}
-              >
-                <Search className="w-5 h-5" />
-              </button>
-
-              {/* Wishlist / Love First */}
+            {/* Desktop Zone 3: Actions (Wishlist, Profile, Shopping Cart) */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              {/* Wishlist */}
               <button
                 onClick={() => {
                   const el = document.getElementById('products');
@@ -254,7 +237,7 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </button>
 
-              {/* Profile / Account Second */}
+              {/* Profile / Account */}
               <button
                 onClick={onOpenAccount}
                 className="flex items-center gap-2 px-3 py-1.5 text-stone-700 hover:text-[#0F4C3A] hover:bg-stone-50 rounded-xl transition-colors cursor-pointer text-sm font-medium border border-transparent hover:border-stone-200"
@@ -266,6 +249,30 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="whitespace-nowrap font-semibold text-xs sm:text-sm">
                   {user ? user.name.split(' ')[0] : (language === 'bn' ? 'প্রোফাইল' : 'Profile')}
                 </span>
+              </button>
+
+              {/* Desktop Shopping Cart with Item Count & Live Subtotal */}
+              <button
+                onClick={() => setIsCartDrawerOpen(true)}
+                className="flex items-center gap-2.5 px-3.5 py-1.5 bg-[#0F4C3A] hover:bg-[#145C47] text-white rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer group active:scale-95"
+                title={t('cart')}
+              >
+                <div className="relative">
+                  <ShoppingCart className="w-4 h-4 text-emerald-100 group-hover:scale-110 transition-transform" />
+                  {totalItemCount > 0 && (
+                    <span className="absolute -top-2 -right-2.5 bg-amber-400 text-stone-950 font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs tabular-nums">
+                      {totalItemCount}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col text-left leading-tight">
+                  <span className="text-[10px] text-emerald-200 font-semibold uppercase tracking-wider">
+                    {language === 'bn' ? 'কার্ট' : 'Cart'}
+                  </span>
+                  <span className="text-xs font-bold text-amber-300 tabular-nums">
+                    {formatPrice(cartValidation?.subtotal || 0)}
+                  </span>
+                </div>
               </button>
             </div>
           </div>

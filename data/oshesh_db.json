@@ -6,7 +6,7 @@
       "email": "admin@sashroyidaam.com",
       "phone": "01700000001",
       "role": "super_admin",
-      "passwordHash": "55bdafe818451e4dd5f47b5548cd3574819c099799aa7ccb910a8caa893d3d8c",
+      "passwordHash": "10b4e4e1738b974f700de966e6b8e5ed6fe1cc7fa05023f847385b3690f12ccf",
       "createdAt": "2026-08-01T00:00:00.000Z"
     },
     {
@@ -262,8 +262,8 @@
       "isPublished": true,
       "isArchived": false,
       "salesCount": 34,
-      "rating": 4.8,
-      "reviewCount": 9,
+      "rating": 5,
+      "reviewCount": 2,
       "tags": [
         "Best Sellers",
         "Kitchen",
@@ -760,6 +760,17 @@
     }
   ],
   "reviews": [
+    {
+      "id": "rev-1792320601897-nx4",
+      "productId": "prod-copper-cookware-set",
+      "customerName": "তানভীর আহমেদ",
+      "customerPhone": "01711***44",
+      "rating": 5,
+      "comment": "সত্যিই দুর্দান্ত মানের কপার কুকার সেট। ব্যবহার করে মুগ্ধ!",
+      "isApproved": true,
+      "isVerifiedPurchase": true,
+      "createdAt": "2026-10-18T10:50:01.898Z"
+    },
     {
       "id": "rev-01",
       "productId": "prod-copper-cookware-set",

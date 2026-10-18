@@ -212,6 +212,7 @@ export interface Review {
   rating: number;
   comment: string;
   isApproved: boolean;
+  isVerifiedPurchase?: boolean;
   createdAt: string;
 }
 

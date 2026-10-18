@@ -87,6 +87,14 @@ export const ProductPage: React.FC<ProductPageProps> = ({
   const [reviewSuccessMsg, setReviewSuccessMsg] = useState('');
   const [reviewErrorMsg, setReviewErrorMsg] = useState('');
 
+  // Pre-fill reviewer details from logged in user if available
+  useEffect(() => {
+    if (user) {
+      if (!revName && user.name) setRevName(user.name);
+      if (!revPhone && user.phone) setRevPhone(user.phone);
+    }
+  }, [user]);
+
   // Selected variant calculation
   const selectedVariant = product.variants?.find((v) => v.id === selectedVariantId);
   const currentPrice = product.price + (selectedVariant?.priceDelta || 0);
@@ -156,8 +164,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!revName.trim() || !revComment.trim()) {
-      setReviewErrorMsg('দয়া করে আপনার নাম এবং মন্তব্য লিখুন');
+    if (!revName.trim() || !revPhone.trim() || !revComment.trim()) {
+      setReviewErrorMsg(
+        language === 'en'
+          ? 'Please enter your name, order mobile number, and your review'
+          : 'দয়া করে আপনার নাম, অর্ডারের মোবাইল নম্বর এবং রিভিউ লিখুন'
+      );
       return;
     }
     setSubmittingReview(true);
@@ -172,12 +184,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({
       });
       setReviews((prev) => [res.review, ...prev]);
       setRevComment('');
-      setRevPhone('');
       setRevRating(5);
-      setReviewSuccessMsg('আপনার রিভিউটি যাচাইয়ের পর প্রকাশিত হবে। ধন্যবাদ!');
-      setTimeout(() => setReviewSuccessMsg(''), 4000);
+      setReviewSuccessMsg(res.message || (language === 'en' ? 'Your verified review has been submitted successfully!' : 'আপনার ভেরিফায়েড ক্রেতা রিভিউ সফলভাবে যুক্ত হয়েছে!'));
+      setTimeout(() => setReviewSuccessMsg(''), 5000);
     } catch (err: any) {
-      setReviewErrorMsg(err.message || 'রিভিউ জমা দেওয়া যায়নি');
+      setReviewErrorMsg(err.message || (language === 'en' ? 'Could not submit review' : 'রিভিউ জমা দেওয়া যায়নি'));
     } finally {
       setSubmittingReview(false);
     }
@@ -331,7 +342,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                 />
 
                 {/* Top overlay badges */}
-                <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start">
+                <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start max-w-[calc(100%-80px)] pointer-events-none">
                   <ProductHighlightBadge product={product} variant="detail" />
                 </div>
 
@@ -715,9 +726,17 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                     ) : (
                       reviews.map((r) => (
                         <div key={r.id} className="p-4 bg-stone-50 rounded-xl border border-stone-200/80 space-y-1.5 text-xs">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-stone-900">{r.customerName}</span>
-                            <div className="flex items-center gap-1 text-amber-500">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-stone-900">{r.customerName}</span>
+                              {r.isVerifiedPurchase !== false && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+                                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                                  <span>{language === 'en' ? 'Verified Buyer' : 'ভেরিফায়েড ক্রেতা'}</span>
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 text-amber-500 shrink-0">
                               {Array.from({ length: 5 }).map((_, i) => (
                                 <Star
                                   key={i}
@@ -726,9 +745,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                               ))}
                             </div>
                           </div>
-                          <p className="text-stone-700">{r.comment}</p>
-                          <span className="text-[10px] text-stone-400">
-                            {new Date(r.createdAt).toLocaleDateString('bn-BD')}
+                          <p className="text-stone-700 leading-relaxed">{r.comment}</p>
+                          <span className="text-[10px] text-stone-400 block">
+                            {new Date(r.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'bn-BD')}
                           </span>
                         </div>
                       ))
@@ -736,21 +755,41 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                   </div>
 
                   {/* Add Review Form */}
-                  <div className="p-5 bg-white rounded-2xl border border-stone-200 max-w-xl space-y-3">
-                    <h4 className="text-sm font-bold text-stone-900">একটি রিভিউ ও রেটিং লিখুন</h4>
+                  <div className="p-5 bg-white rounded-2xl border border-stone-200 max-w-xl space-y-3.5 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-bold text-stone-900 flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                        <span>{language === 'en' ? 'Write a Verified Customer Review' : 'ভেরিফায়েড ক্রেতার রিভিউ ও রেটিং লিখুন'}</span>
+                      </h4>
+                    </div>
+
+                    {/* Verified Buyer Policy Notice */}
+                    <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 text-xs text-emerald-900 flex items-start gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span className="leading-relaxed">
+                        {language === 'en'
+                          ? 'Policy: Only customers who purchased this product can leave a review. Please enter the mobile number used during ordering to verify your purchase.'
+                          : 'পলিসি: শুধুমাত্র এই পণ্যটি ক্রয়কৃত ভেরিফায়েড ক্রেতারা রিভিউ দিতে পারবেন। অর্ডার করার সময় ব্যবহৃত আপনার মোবাইল নম্বরটি লিখে যাচাই করুন।'}
+                      </span>
+                    </div>
+
                     {reviewSuccessMsg && (
-                      <div className="p-3 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-semibold">
-                        {reviewSuccessMsg}
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>{reviewSuccessMsg}</span>
                       </div>
                     )}
                     {reviewErrorMsg && (
-                      <div className="p-3 bg-rose-50 text-rose-700 rounded-lg text-xs font-semibold">
+                      <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
                         {reviewErrorMsg}
                       </div>
                     )}
+
                     <form onSubmit={handleReviewSubmit} className="space-y-3 text-xs">
                       <div>
-                        <label className="block text-stone-600 mb-1 font-semibold">আপনার রেটিং:</label>
+                        <label className="block text-stone-600 mb-1 font-semibold">
+                          {language === 'en' ? 'Your Rating:' : 'আপনার রেটিং:'}
+                        </label>
                         <div className="flex gap-1.5 text-amber-500">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <button
@@ -767,46 +806,54 @@ export const ProductPage: React.FC<ProductPageProps> = ({
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-stone-600 mb-1 font-semibold">আপনার নাম *</label>
+                          <label className="block text-stone-600 mb-1 font-semibold">
+                            {language === 'en' ? 'Your Name *' : 'আপনার নাম *'}
+                          </label>
                           <input
                             type="text"
                             required
                             value={revName}
                             onChange={(e) => setRevName(e.target.value)}
-                            className="w-full px-3 py-2 border border-stone-200 rounded-lg"
-                            placeholder="যেমন: সাকিব হাসান"
+                            className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs focus:outline-none focus:border-[#0F4C3A]"
+                            placeholder={language === 'en' ? 'e.g. John Doe' : 'যেমন: সাকিব হাসান'}
                           />
                         </div>
                         <div>
-                          <label className="block text-stone-600 mb-1 font-semibold">মোবাইল নম্বর (ঐচ্ছিক)</label>
+                          <label className="block text-stone-600 mb-1 font-semibold">
+                            {language === 'en' ? 'Order Mobile Number *' : 'অর্ডারের মোবাইল নম্বর *'}
+                          </label>
                           <input
-                            type="text"
+                            type="tel"
+                            required
                             value={revPhone}
                             onChange={(e) => setRevPhone(e.target.value)}
-                            className="w-full px-3 py-2 border border-stone-200 rounded-lg"
+                            className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs focus:outline-none focus:border-[#0F4C3A]"
                             placeholder="017xxxxxxxx"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-stone-600 mb-1 font-semibold">মন্তব্য *</label>
+                        <label className="block text-stone-600 mb-1 font-semibold">
+                          {language === 'en' ? 'Your Review *' : 'মন্তব্য ও বাস্তব অভিজ্ঞতা *'}
+                        </label>
                         <textarea
                           rows={3}
                           required
                           value={revComment}
                           onChange={(e) => setRevComment(e.target.value)}
-                          className="w-full px-3 py-2 border border-stone-200 rounded-lg"
-                          placeholder="পণ্যের গুণগত মান ও অভিজ্ঞতা সম্পর্কে লিখুন..."
+                          className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs focus:outline-none focus:border-[#0F4C3A]"
+                          placeholder={language === 'en' ? 'Share your experience regarding quality, fitting...' : 'পণ্যের গুণগত মান ও অভিজ্ঞতা সম্পর্কে লিখুন...'}
                         />
                       </div>
 
                       <button
                         type="submit"
                         disabled={submittingReview}
-                        className="px-5 py-2.5 bg-[#0F4C3A] text-white rounded-lg font-semibold hover:bg-[#135D48] transition-colors cursor-pointer disabled:opacity-50"
+                        className="px-5 py-2.5 bg-[#0F4C3A] text-white rounded-xl font-semibold hover:bg-[#135D48] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-xs"
                       >
-                        {submittingReview ? 'জমা হচ্ছে...' : 'রিভিউ সাবমিট করুন'}
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>{submittingReview ? (language === 'en' ? 'Verifying Purchase...' : 'যাচাই হচ্ছে...') : (language === 'en' ? 'Submit Verified Review' : 'ভেরিফায়েড রিভিউ দিন')}</span>
                       </button>
                     </form>
                   </div>

@@ -33,7 +33,7 @@ export const CartToast: React.FC<CartToastProps> = ({
   if (!toastItem) return null;
 
   return (
-    <div className="fixed top-20 right-4 sm:right-6 z-50 max-w-sm w-full animate-in slide-in-from-top-4 fade-in duration-300">
+    <div className="fixed top-20 left-3 right-3 sm:left-auto sm:right-6 z-50 sm:max-w-sm animate-in slide-in-from-top-4 fade-in duration-300">
       <div className="bg-white rounded-2xl shadow-2xl border border-emerald-200/90 p-3.5 flex items-center gap-3 backdrop-blur-md">
         {/* Product Thumbnail */}
         <div className="w-12 h-12 rounded-xl overflow-hidden bg-stone-100 border border-stone-200 shrink-0">

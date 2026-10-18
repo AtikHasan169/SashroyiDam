@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { getDatabase, withTransaction } from '../db.ts';
+import { authenticateUser, type AuthenticatedRequest } from '../auth.ts';
 import type { Product, Review } from '../../types/index.ts';
 
 const router = Router();
@@ -187,7 +188,7 @@ const reviewSchema = z.object({
   comment: z.string().min(5, 'মতামত অন্তত ৫ অক্ষরের হতে হবে')
 });
 
-router.post('/reviews', async (req, res) => {
+router.post('/reviews', authenticateUser, async (req: AuthenticatedRequest, res) => {
   try {
     const parse = reviewSchema.safeParse(req.body);
     if (!parse.success) {
@@ -196,14 +197,59 @@ router.post('/reviews', async (req, res) => {
     }
 
     const { productId, customerName, customerPhone, rating, comment } = parse.data;
-    const cleanPhone = customerPhone.replace(/^(\+88|88)/, '');
+    const cleanPhone = customerPhone.replace(/^(\+88|88)/, '').trim();
 
     const newReview = await withTransaction((db) => {
       const product = db.products.find((p) => p.id === productId);
       if (!product) throw new Error('পণ্য পাওয়া যায়নি');
 
-      // Mask phone for public privacy: 01712***89
+      // CRITICAL POLICY: ONLY CUSTOMERS WHO PURCHASED THIS PRODUCT CAN REVIEW
+      const hasPurchased = db.orders.some((order) => {
+        // Exclude cancelled or returned/refunded orders
+        if (
+          order.fulfilmentStatus === 'cancelled' ||
+          order.fulfilmentStatus === 'returned' ||
+          order.fulfilmentStatus === 'refunded'
+        ) {
+          return false;
+        }
+
+        // Match customer phone (ignoring any +88 or 88 prefix)
+        const orderPhone = (order.customerPhone || '').replace(/^(\+88|88)/, '').trim();
+        const phoneMatches = orderPhone === cleanPhone;
+
+        // Match logged in user if available
+        const userMatches = Boolean(
+          req.user &&
+          (order.customerId === req.user.id ||
+            (req.user.phone &&
+              orderPhone === req.user.phone.replace(/^(\+88|88)/, '').trim()))
+        );
+
+        if (!phoneMatches && !userMatches) {
+          return false;
+        }
+
+        // Check if the order contains this specific product
+        return order.items && order.items.some((item) => item.productId === productId);
+      });
+
+      if (!hasPurchased) {
+        throw new Error(
+          'শুধুমাত্র এই পণ্যটি ক্রয়কৃত ভেরিফায়েড ক্রেতারা রিভিউ দিতে পারবেন। আপনি যদি পণ্যটি ক্রয় করে থাকেন, তবে অর্ডার করার সময় ব্যবহৃত সঠিক মোবাইল নম্বরটি লিখুন।'
+        );
+      }
+
+      // Check if this customer has already reviewed this product
       const maskedPhone = `${cleanPhone.slice(0, 5)}***${cleanPhone.slice(-2)}`;
+      const alreadyReviewed = db.reviews.some(
+        (r) =>
+          r.productId === productId &&
+          (r.customerPhone === maskedPhone || (req.user && r.customerName === req.user.name))
+      );
+      if (alreadyReviewed) {
+        throw new Error('আপনি ইতিপূর্বে এই পণ্যে রিভিউ জমা দিয়েছেন। ধন্যবাদ!');
+      }
 
       const review: Review = {
         id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
@@ -212,11 +258,12 @@ router.post('/reviews', async (req, res) => {
         customerPhone: maskedPhone,
         rating,
         comment: comment.trim(),
-        isApproved: true, // Approved immediately for realistic interaction
+        isApproved: true,
+        isVerifiedPurchase: true,
         createdAt: new Date().toISOString()
       };
 
-      db.reviews.push(review);
+      db.reviews.unshift(review);
 
       // Re-calculate product rating and review count
       const productReviews = db.reviews.filter(
@@ -234,7 +281,7 @@ router.post('/reviews', async (req, res) => {
 
     res.status(201).json({
       review: newReview,
-      message: 'আপনার রিভিউ সফলভাবে যুক্ত হয়েছে। ধন্যবাদ!'
+      message: 'আপনার ভেরিফায়েড ক্রেতা রিভিউ সফলভাবে যুক্ত হয়েছে। ধন্যবাদ!'
     });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'রিভিউ যুক্ত করা সম্ভব হয়নি' });

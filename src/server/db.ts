@@ -697,6 +697,7 @@ function getInitialData(): DatabaseSchema {
       rating: 5,
       comment: 'খুবই ভারী এবং সলিড কপার প্যান। রান্না করতে খুব অল্প তেল লাগে এবং পরিষ্কার করাও বেশ সহজ। চমৎকার প্যাকেজিং!',
       isApproved: true,
+      isVerifiedPurchase: true,
       createdAt: '2026-10-10T12:00:00.000Z'
     },
     {
@@ -707,6 +708,7 @@ function getInitialData(): DatabaseSchema {
       rating: 5,
       comment: 'সুতি ফেব্রিক অসাধারণ আরামদায়ক। জামদানি বুননের ফিনিশিং বেশ নিখুঁত। সাইজ চার্ট একদম নিখুঁত ছিল।',
       isApproved: true,
+      isVerifiedPurchase: true,
       createdAt: '2026-10-12T15:30:00.000Z'
     }
   ];
