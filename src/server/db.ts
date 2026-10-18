@@ -47,8 +47,15 @@ export function verifyPassword(password: string, hash: string): boolean {
   return hashPassword(password) === hash;
 }
 
+export function getSuperAdminEnvCredentials() {
+  const email = (process.env.SUPER_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@sashroyidaam.com').trim().toLowerCase();
+  const password = (process.env.SUPER_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'OsheshAdmin2026!').trim();
+  return { email, password };
+}
+
 function getInitialData(): DatabaseSchema {
-  const superAdminHash = hashPassword('OsheshAdmin2026!');
+  const { email: superAdminEmail, password: superAdminPassword } = getSuperAdminEnvCredentials();
+  const superAdminHash = hashPassword(superAdminPassword);
   const staffHash = hashPassword('OsheshStaff2026!');
   const customerHash = hashPassword('OsheshUser2026!');
 
@@ -708,7 +715,7 @@ function getInitialData(): DatabaseSchema {
     {
       id: 'user-superadmin',
       name: 'সাশ্রয়ী দাম অ্যাডমিন',
-      email: 'admin@sashroyidaam.com',
+      email: superAdminEmail,
       phone: '01700000001',
       role: 'super_admin',
       passwordHash: superAdminHash,
@@ -913,6 +920,37 @@ export function getDatabase(): DatabaseSchema {
         memoryDb!.storeSettings.facebookPageName = 'সাশ্রয়ী দাম | Sashroyi Daam';
         memoryDb!.storeSettings.facebookUsername = '@sashroyidaam';
         memoryDb!.storeSettings.facebookUrl = 'https://facebook.com/sashroyidaam';
+        hasChanges = true;
+      }
+
+      // Ensure superadmin credentials match .env configuration
+      const { email: envSuperEmail, password: envSuperPass } = getSuperAdminEnvCredentials();
+      const envSuperHash = hashPassword(envSuperPass);
+      let existingSuper = memoryDb!.users.find(
+        (u) =>
+          u.role === 'super_admin' ||
+          u.id === 'user-superadmin' ||
+          u.email.toLowerCase() === envSuperEmail ||
+          u.email.toLowerCase() === 'admin@sashroyidaam.com' ||
+          u.email.toLowerCase() === 'admin@oshesh.com.bd'
+      );
+      if (existingSuper) {
+        if (existingSuper.email !== envSuperEmail || existingSuper.passwordHash !== envSuperHash || existingSuper.role !== 'super_admin') {
+          existingSuper.email = envSuperEmail;
+          existingSuper.passwordHash = envSuperHash;
+          existingSuper.role = 'super_admin';
+          hasChanges = true;
+        }
+      } else {
+        memoryDb!.users.push({
+          id: 'user-superadmin',
+          name: 'সাশ্রয়ী দাম অ্যাডমিন',
+          email: envSuperEmail,
+          phone: '01700000001',
+          role: 'super_admin',
+          passwordHash: envSuperHash,
+          createdAt: new Date().toISOString()
+        });
         hasChanges = true;
       }
 

@@ -6,7 +6,7 @@
       "email": "admin@sashroyidaam.com",
       "phone": "01700000001",
       "role": "super_admin",
-      "passwordHash": "10b4e4e1738b974f700de966e6b8e5ed6fe1cc7fa05023f847385b3690f12ccf",
+      "passwordHash": "55bdafe818451e4dd5f47b5548cd3574819c099799aa7ccb910a8caa893d3d8c",
       "createdAt": "2026-08-01T00:00:00.000Z"
     },
     {
@@ -118,6 +118,23 @@
       "displayOrder": 4,
       "isFeatured": false,
       "variantType": "none"
+    },
+    {
+      "id": "cat-grocery",
+      "slug": "grocery-food",
+      "nameBn": "মুদি ও খাঁটি খাদ্যদ্রব্য",
+      "nameEn": "Grocery & Food",
+      "descriptionBn": "গ্রামের ঘানিভাঙা খাঁটি সরিষার তেল, সুন্দরবনের প্রাকৃতিক মধু, প্রিমিয়াম গাওয়া ঘি ও পুষ্টিকর খাদ্য।",
+      "image": "/src/assets/images/category_kitchen_cookware_1792084991823.jpg",
+      "displayOrder": 5,
+      "isFeatured": true,
+      "variantType": "weight_options",
+      "defaultOptions": [
+        "১ কেজি",
+        "২ কেজি",
+        "৫ কেজি",
+        "১ লিটার"
+      ]
     }
   ],
   "products": [
@@ -530,6 +547,69 @@
       ],
       "createdAt": "2026-10-05T08:00:00.000Z",
       "updatedAt": "2026-10-15T09:00:00.000Z"
+    },
+    {
+      "id": "prod-mustard-oil-pure",
+      "slug": "pure-cold-pressed-mustard-oil-1l",
+      "titleBn": "ঘানিভাঙা খাঁটি সরিষার তেল (১ লিটার)",
+      "titleEn": "100% Pure Cold-Pressed Mustard Oil (1 Liter)",
+      "descriptionBn": "দেশি জাতের সরিষা থেকে কাঠের ঘানিতে ভাঙানো সম্পূর্ণ প্রাকৃতিক ও কেমিক্যালমুক্ত সরিষার তেল। ঝাঁঝালো সুবাস ও রান্নায় খাঁটি স্বাদ।",
+      "descriptionEn": "Cold-pressed traditional mustard oil with rich pungent aroma, naturally unfiltered for authentic Bengali flavor.",
+      "price": 360,
+      "originalPrice": 420,
+      "stock": 35,
+      "categoryId": "cat-grocery",
+      "categorySlug": "grocery-food",
+      "categoryNameBn": "মুদি ও খাঁটি খাদ্যদ্রব্য",
+      "brand": "সাশ্রয়ী খাদ্য",
+      "sku": "OSH-GROC-001",
+      "images": [
+        "/src/assets/images/category_kitchen_cookware_1792084991823.jpg"
+      ],
+      "variants": [
+        {
+          "id": "v-oil-1l",
+          "nameBn": "১ লিটার বোতল",
+          "nameEn": "1 Liter Bottle",
+          "sku": "OSH-GROC-001-1L",
+          "priceDelta": 0,
+          "stock": 25,
+          "attributes": {
+            "ওজন/পরিমাণ": "১ লিটার"
+          }
+        },
+        {
+          "id": "v-oil-2l",
+          "nameBn": "২ লিটার ফ্যামিলি প্যাক",
+          "nameEn": "2 Liter Family Pack",
+          "sku": "OSH-GROC-001-2L",
+          "priceDelta": 340,
+          "stock": 10,
+          "attributes": {
+            "ওজন/পরিমাণ": "২ লিটার"
+          }
+        }
+      ],
+      "attributes": {
+        "প্রকৃতি": "১০০% খাঁটি ঘানিভাঙা",
+        "মেয়াদ": "১২ মাস",
+        "উৎস": "সিরাজগঞ্জ"
+      },
+      "isFeatured": true,
+      "isPublished": true,
+      "isArchived": false,
+      "salesCount": 88,
+      "rating": 4.9,
+      "reviewCount": 34,
+      "tags": [
+        "Mustard Oil",
+        "সরিষার তেল",
+        "Grocery",
+        "মুদি",
+        "Food"
+      ],
+      "createdAt": "2026-10-12T08:00:00.000Z",
+      "updatedAt": "2026-10-17T08:00:00.000Z"
     }
   ],
   "orders": [

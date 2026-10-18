@@ -205,6 +205,17 @@ export const api = {
       body: JSON.stringify(body)
     }),
 
+  deleteAddress: (id: string) =>
+    request<{ user: User; message: string }>(`/api/auth/address/${id}`, {
+      method: 'DELETE'
+    }),
+
+  changePassword: (body: { currentPassword?: string; newPassword: string }) =>
+    request<{ user: User; message: string }>('/api/auth/change-password', {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    }),
+
   // Products & Store
   getCategories: () => request<{ categories: Category[] }>('/api/categories'),
 

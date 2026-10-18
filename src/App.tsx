@@ -13,6 +13,7 @@ import { CartDrawer } from './components/CartDrawer.tsx';
 import { CheckoutFlow, type DirectBuyItem } from './components/CheckoutFlow.tsx';
 import { OrderTrackingModal } from './components/OrderTrackingModal.tsx';
 import { AccountModal } from './components/AccountModal.tsx';
+import { ProfilePage } from './components/ProfilePage.tsx';
 import { AdminDashboard } from './components/admin/AdminDashboard.tsx';
 import { FloatingNavDock } from './components/FloatingNavDock.tsx';
 import { SmartBazaarCartPill } from './components/SmartBazaarCartPill.tsx';
@@ -26,7 +27,7 @@ import { Footer } from './components/Footer.tsx';
 import { FloatingSocialBadge } from './components/FloatingSocialBadge.tsx';
 import { api } from './lib/api.ts';
 import type { Product, Category, Order } from './types/index.ts';
-import { Filter, ArrowUpDown, Check, RefreshCw } from 'lucide-react';
+import { Filter, ArrowUpDown, Check, RefreshCw, LayoutGrid, List } from 'lucide-react';
 
 function StorefrontApp() {
   const { language, t, formatNumber } = useLanguage();
@@ -42,6 +43,7 @@ function StorefrontApp() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [viewingProductPage, setViewingProductPage] = useState<Product | null>(null);
   const [viewingCategory, setViewingCategory] = useState<Category | null>(null);
+  const [isProfilePageOpen, setIsProfilePageOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [quickActionProduct, setQuickActionProduct] = useState<Product | null>(null);
   const [cartToastItem, setCartToastItem] = useState<CartToastItem | null>(null);
@@ -60,6 +62,7 @@ function StorefrontApp() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortOption, setSortOption] = useState<'featured' | 'newest' | 'price_asc' | 'price_desc' | 'best_selling'>('featured');
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Fetch store configuration and categories
   const loadStoreMeta = useCallback(async () => {
@@ -101,11 +104,16 @@ function StorefrontApp() {
     loadProducts();
   }, [loadProducts]);
 
-  // Deep linking: detect ?product=... or ?category=... on load
+  // Deep linking: detect ?product=..., ?category=..., or ?view=profile on load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const prodParam = params.get('product');
     const catParam = params.get('category');
+    const viewParam = params.get('view');
+
+    if (viewParam === 'profile') {
+      setIsProfilePageOpen(true);
+    }
     if (prodParam && products.length > 0) {
       const found = products.find((p) => p.slug === prodParam || p.id === prodParam);
       if (found) {
@@ -137,6 +145,10 @@ function StorefrontApp() {
       const params = new URLSearchParams(window.location.search);
       const prodParam = params.get('product');
       const catParam = params.get('category');
+      const viewParam = params.get('view');
+
+      setIsProfilePageOpen(viewParam === 'profile');
+
       if (prodParam && products.length > 0) {
         const found = products.find((p) => p.slug === prodParam || p.id === prodParam);
         if (found) {
@@ -168,9 +180,11 @@ function StorefrontApp() {
 
   const handleOpenProductPage = (prod: Product) => {
     setSelectedProduct(null);
+    setIsProfilePageOpen(false);
     setViewingProductPage(prod);
     const url = new URL(window.location.href);
     url.searchParams.set('product', prod.slug || prod.id);
+    url.searchParams.delete('view');
     window.history.pushState({}, '', url.toString());
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -183,7 +197,21 @@ function StorefrontApp() {
     window.history.pushState({}, '', newUrl);
   };
 
+  const handleOpenProfilePage = () => {
+    setSelectedProduct(null);
+    setViewingProductPage(null);
+    setViewingCategory(null);
+    setIsProfilePageOpen(true);
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', 'profile');
+    url.searchParams.delete('product');
+    url.searchParams.delete('category');
+    window.history.pushState({}, '', url.toString());
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSelectCategory = (catId: string) => {
+    setIsProfilePageOpen(false);
     if (viewingProductPage) {
       setViewingProductPage(null);
     }
@@ -193,6 +221,7 @@ function StorefrontApp() {
       const url = new URL(window.location.href);
       url.searchParams.delete('category');
       url.searchParams.delete('product');
+      url.searchParams.delete('view');
       window.history.pushState({}, '', url.pathname + (url.search ? url.search : ''));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -203,6 +232,7 @@ function StorefrontApp() {
         const url = new URL(window.location.href);
         url.searchParams.set('category', cat.slug || cat.id);
         url.searchParams.delete('product');
+        url.searchParams.delete('view');
         window.history.pushState({}, '', url.toString());
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
@@ -214,11 +244,13 @@ function StorefrontApp() {
   const handleBackToHome = () => {
     setViewingCategory(null);
     setViewingProductPage(null);
+    setIsProfilePageOpen(false);
     setSelectedCategory('all');
     setSearchQuery('');
     const url = new URL(window.location.href);
     url.searchParams.delete('category');
     url.searchParams.delete('product');
+    url.searchParams.delete('view');
     window.history.pushState({}, '', url.pathname + (url.search ? url.search : ''));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -266,7 +298,8 @@ function StorefrontApp() {
     <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-stone-900 font-sans pb-16 md:pb-0">
       {/* 1. Header with balanced mobile layout and clean marquee */}
       <Header
-        onOpenAccount={() => setIsAccountOpen(true)}
+        onOpenAccount={handleOpenProfilePage}
+        onHomeClick={handleBackToHome}
         onOpenTracking={() => setIsTrackingOpen(true)}
         onOpenAdmin={() => {
           setAdminEditingProduct(null);
@@ -283,6 +316,9 @@ function StorefrontApp() {
           if (viewingCategory) {
             setViewingCategory(null);
           }
+          if (isProfilePageOpen) {
+            setIsProfilePageOpen(false);
+          }
           setSearchQuery(q);
         }}
         announcement={storeInfo?.settings?.announcementStripBn}
@@ -291,7 +327,7 @@ function StorefrontApp() {
         setIsDrawerOpen={setIsLeftDrawerOpen}
       />
 
-      {/* 2. DEDICATED PRODUCT PAGE VIEW, DEDICATED CATEGORY PAGE, OR HOMEPAGE CATALOG */}
+      {/* 2. DEDICATED PRODUCT PAGE, CATEGORY PAGE, DEDICATED PROFILE PAGE, OR HOMEPAGE CATALOG */}
       {viewingProductPage ? (
         <ProductPage
           product={viewingProductPage}
@@ -325,6 +361,16 @@ function StorefrontApp() {
             })
           }
         />
+      ) : isProfilePageOpen ? (
+        <ProfilePage
+          onBackToShopping={handleBackToHome}
+          onTrackOrder={handleOpenTrackingWithNumber}
+          onOpenAdmin={() => {
+            setIsProfilePageOpen(false);
+            setAdminEditingProduct(null);
+            setIsAdminOpen(true);
+          }}
+        />
       ) : (
         <div className="flex-1 flex flex-col">
           {/* Hero Section (shown when no specific search query is typed) */}
@@ -351,55 +397,91 @@ function StorefrontApp() {
 
           {/* Product Catalog Section */}
           <main id="products" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            {/* Catalog Header & Filter Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-stone-200">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
-                  {searchQuery
-                    ? (language === 'en' ? `Search results for: "${searchQuery}"` : `খোঁজার ফলাফল: "${searchQuery}"`)
-                    : selectedCategory === 'all'
-                    ? (language === 'en' ? 'All Products Collection' : 'সকল পণ্য সম্ভার')
-                    : (language === 'en'
-                        ? categories.find((c) => c.id === selectedCategory)?.nameEn || categories.find((c) => c.id === selectedCategory)?.nameBn || 'Products'
-                        : categories.find((c) => c.id === selectedCategory)?.nameBn || 'পণ্যসমূহ')}
-                </h2>
-                <p className="text-xs sm:text-sm text-stone-500 mt-0.5">
-                  {language === 'en' ? `Total ${products.length} products found` : `মোট ${formatNumber(products.length)} টি পণ্য পাওয়া গেছে`}
-                </p>
+            {/* Catalog Header & Filter Bar: Stock & Pick on one side, Grid Switcher on the other side */}
+            <div className="flex flex-col gap-4 pb-6 border-b border-stone-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
+                    {searchQuery
+                      ? (language === 'en' ? `Search results for: "${searchQuery}"` : `খোঁজার ফলাফল: "${searchQuery}"`)
+                      : selectedCategory === 'all'
+                      ? (language === 'en' ? 'All Products Collection' : 'সকল পণ্য সম্ভার')
+                      : (language === 'en'
+                          ? categories.find((c) => c.id === selectedCategory)?.nameEn || categories.find((c) => c.id === selectedCategory)?.nameBn || 'Products'
+                          : categories.find((c) => c.id === selectedCategory)?.nameBn || 'পণ্যসমূহ')}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-stone-500 mt-0.5">
+                    {language === 'en' ? `Total ${products.length} products found` : `মোট ${formatNumber(products.length)} টি পণ্য পাওয়া গেছে`}
+                  </p>
+                </div>
               </div>
 
-              {/* Sort & Quick Filter Controls */}
-              <div className="flex flex-wrap items-center gap-3">
-                {/* In-Stock Toggle */}
-                <label className="flex items-center gap-2 text-xs font-semibold text-stone-700 bg-white px-3 py-2 rounded-lg border border-stone-200 hover:border-stone-300 cursor-pointer transition-colors shadow-2xs">
-                  <input
-                    type="checkbox"
-                    checked={inStockOnly}
-                    onChange={(e) => setInStockOnly(e.target.checked)}
-                    className="rounded text-[#0F4C3A] focus:ring-[#0F4C3A]"
-                  />
-                  <span>{language === 'en' ? 'In Stock Only' : 'শুধুমাত্র স্টকে থাকা পণ্য'}</span>
-                </label>
+              {/* Side-by-Side Controls: Stock & Pick on Left Side, Grid Switcher on Right Side */}
+              <div className="w-full flex items-center justify-between gap-2">
+                {/* Side 1 (Left): Stock & Pick */}
+                <div className="flex items-center gap-2 min-w-0">
+                  {/* In-Stock Toggle */}
+                  <label className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-stone-700 bg-white px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-stone-200 hover:border-stone-300 cursor-pointer transition-colors shadow-2xs shrink-0 select-none">
+                    <input
+                      type="checkbox"
+                      checked={inStockOnly}
+                      onChange={(e) => setInStockOnly(e.target.checked)}
+                      className="rounded text-[#0F4C3A] focus:ring-[#0F4C3A] w-3.5 h-3.5"
+                    />
+                    <span className="hidden xs:inline sm:inline">{language === 'en' ? 'In Stock' : 'স্টকে আছে'}</span>
+                    <span className="inline xs:hidden sm:hidden">{language === 'en' ? 'Stock' : 'স্টক'}</span>
+                  </label>
 
-                {/* Sort Dropdown */}
-                <div className="relative">
-                  <select
-                    value={sortOption}
-                    onChange={(e) => setSortOption(e.target.value as any)}
-                    className="appearance-none bg-white text-xs font-semibold text-stone-700 pl-3 pr-8 py-2 rounded-lg border border-stone-200 hover:border-stone-300 cursor-pointer focus:outline-none focus:border-[#0F4C3A] shadow-2xs"
+                  {/* Sort Dropdown ("Pick") */}
+                  <div className="relative shrink-0">
+                    <select
+                      value={sortOption}
+                      onChange={(e) => setSortOption(e.target.value as any)}
+                      className="appearance-none bg-white text-[11px] sm:text-xs font-semibold text-stone-700 pl-2.5 pr-7 py-1.5 sm:py-2 rounded-lg border border-stone-200 hover:border-stone-300 cursor-pointer focus:outline-none focus:border-[#0F4C3A] shadow-2xs max-w-[130px] sm:max-w-none truncate"
+                    >
+                      <option value="featured">{language === 'en' ? 'Featured Picks' : 'বাছাইকৃত (Featured)'}</option>
+                      <option value="best_selling">{language === 'en' ? 'Best Selling' : 'জনপ্রিয় ও বেশি বিক্রিত'}</option>
+                      <option value="newest">{language === 'en' ? 'New Arrivals' : 'নতুন সংযোজিত'}</option>
+                      <option value="price_asc">{language === 'en' ? 'Price: Low' : 'মূল্য: কম থেকে বেশি'}</option>
+                      <option value="price_desc">{language === 'en' ? 'Price: High' : 'মূল্য: বেশি থেকে কম'}</option>
+                    </select>
+                    <ArrowUpDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-stone-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Side 2 (Right): View Mode Switcher (Grid vs List) */}
+                <div className="flex items-center bg-white p-1 rounded-lg border border-stone-200 shadow-2xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                      viewMode === 'grid'
+                        ? 'bg-[#0F4C3A] text-white shadow-xs font-bold'
+                        : 'text-stone-500 hover:text-stone-800'
+                    }`}
+                    title={language === 'en' ? 'Grid View' : 'গ্রিড ভিউ (Grid)'}
+                    aria-label="Grid view"
                   >
-                    <option value="featured">{language === 'en' ? 'Featured Picks' : 'বাছাইকৃত (Featured)'}</option>
-                    <option value="best_selling">{language === 'en' ? 'Best Selling' : 'জনপ্রিয় ও বেশি বিক্রিত'}</option>
-                    <option value="newest">{language === 'en' ? 'New Arrivals' : 'নতুন সংযোজিত (Newest)'}</option>
-                    <option value="price_asc">{language === 'en' ? 'Price: Low to High' : 'মূল্য: কম থেকে বেশি'}</option>
-                    <option value="price_desc">{language === 'en' ? 'Price: High to Low' : 'মূল্য: বেশি থেকে কম'}</option>
-                  </select>
-                  <ArrowUpDown className="w-3.5 h-3.5 text-stone-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                      viewMode === 'list'
+                        ? 'bg-[#0F4C3A] text-white shadow-xs font-bold'
+                        : 'text-stone-500 hover:text-stone-800'
+                    }`}
+                    title={language === 'en' ? 'List View' : 'লিস্ট ভিউ (List)'}
+                    aria-label="List view"
+                  >
+                    <List className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Product Cards Grid with direct 1-click buy button */}
+            {/* Product Cards Grid / List with direct 1-click buy button */}
             <div className="pt-8">
               {isLoadingProducts ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -436,11 +518,18 @@ function StorefrontApp() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                <div
+                  className={
+                    viewMode === 'grid'
+                      ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6'
+                      : 'flex flex-col gap-4'
+                  }
+                >
                   {products.map((prod) => (
                     <ProductCard
                       key={prod.id}
                       product={prod}
+                      viewMode={viewMode}
                       onOpenDetails={(p) => handleOpenProductPage(p)}
                       onDirectBuy={(p) => handleDirectBuy(p)}
                       onQuickAddToast={(p) =>
@@ -552,6 +641,10 @@ function StorefrontApp() {
         isOpen={isAccountOpen}
         onClose={() => setIsAccountOpen(false)}
         onTrackOrder={handleOpenTrackingWithNumber}
+        onOpenAdmin={() => {
+          setIsAccountOpen(false);
+          setIsAdminOpen(true);
+        }}
       />
 
       <AdminDashboard
@@ -570,7 +663,7 @@ function StorefrontApp() {
       {/* Shreshtho-Style Floating Rounded Pill Dock (Shown on Storefront Catalog) */}
       {!viewingProductPage && (
         <FloatingNavDock
-          onOpenAccount={() => setIsAccountOpen(true)}
+          onOpenAccount={handleOpenProfilePage}
           onOpenCategories={() => setIsLeftDrawerOpen(true)}
           onOpenSearch={() => setIsSearchOverlayOpen(true)}
           onOpenCart={() => setIsCartDrawerOpen(true)}

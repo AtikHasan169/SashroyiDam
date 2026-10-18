@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, ArrowUpDown, Filter, ChevronRight, Layers, SlidersHorizontal, Check } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Filter, ChevronRight, Layers, SlidersHorizontal, Check, LayoutGrid, List } from 'lucide-react';
 import type { Category, Product } from '../types/index.ts';
 import { ProductCard } from './ProductCard.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
@@ -30,6 +30,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   const [sortOption, setSortOption] = useState<'featured' | 'price_asc' | 'price_desc' | 'rating' | 'newest'>('featured');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [maxPrice, setMaxPrice] = useState<number>(10000);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Filter and sort products for this category
   const filteredProducts = useMemo(() => {
@@ -136,47 +137,79 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
         )}
 
         {/* 4. Filter & Sort Toolbar */}
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-center gap-3">
-            <SlidersHorizontal className="w-4 h-4 text-[#0F4C3A]" />
-            <span className="text-xs font-bold text-stone-800">
-              {language === 'bn' ? 'ফিল্টার ও সাজানো' : 'Filters & Sort'}
-            </span>
-
+        {/* 4. Filter & Sort Toolbar: Stock & Pick on one side, Grid on the other side */}
+        <div className="bg-white p-2.5 sm:p-4 rounded-xl border border-stone-200 flex items-center justify-between gap-2 shadow-2xs">
+          {/* Side 1 (Left): Stock & Pick */}
+          <div className="flex items-center gap-2 min-w-0">
             {/* In Stock Only Checkbox */}
-            <label className="flex items-center gap-1.5 text-xs text-stone-600 hover:text-stone-900 cursor-pointer ml-2">
+            <label className="flex items-center gap-1.5 text-[11px] sm:text-xs text-stone-700 bg-stone-50 hover:bg-stone-100 px-2 sm:px-2.5 py-1.5 rounded-lg border border-stone-200 cursor-pointer shrink-0 select-none transition-colors">
               <input
                 type="checkbox"
                 checked={inStockOnly}
                 onChange={(e) => setInStockOnly(e.target.checked)}
-                className="rounded border-stone-300 text-[#0F4C3A] focus:ring-[#0F4C3A]"
+                className="rounded border-stone-300 text-[#0F4C3A] focus:ring-[#0F4C3A] w-3.5 h-3.5"
               />
-              <span>{language === 'bn' ? 'শুধুমাত্র স্টকে আছে' : 'In Stock Only'}</span>
+              <span className="hidden xs:inline sm:inline">{language === 'bn' ? 'স্টকে আছে' : 'In Stock'}</span>
+              <span className="inline xs:hidden sm:hidden">{language === 'bn' ? 'স্টক' : 'Stock'}</span>
             </label>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs text-stone-600">
-              <ArrowUpDown className="w-3.5 h-3.5 text-stone-400" />
-              <span>{language === 'bn' ? 'সাজান:' : 'Sort:'}</span>
+            {/* Sort Dropdown ("Pick") */}
+            <div className="relative shrink-0">
               <select
                 value={sortOption}
                 onChange={(e: any) => setSortOption(e.target.value)}
-                className="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#0F4C3A] cursor-pointer"
+                className="appearance-none bg-stone-50 border border-stone-200 rounded-lg pl-2.5 pr-7 py-1.5 text-[11px] sm:text-xs font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#0F4C3A] cursor-pointer max-w-[130px] sm:max-w-none truncate"
               >
                 <option value="featured">{language === 'bn' ? 'ফিচার্ড পণ্য' : 'Featured'}</option>
-                <option value="price_asc">{language === 'bn' ? 'দাম: কম থেকে বেশি' : 'Price: Low to High'}</option>
-                <option value="price_desc">{language === 'bn' ? 'দাম: বেশি থেকে কম' : 'Price: High to Low'}</option>
-                <option value="rating">{language === 'bn' ? 'সর্বোচ্চ রেটিং' : 'Top Rated'}</option>
-                <option value="newest">{language === 'bn' ? 'নতুন পণ্য' : 'New Arrivals'}</option>
+                <option value="price_asc">{language === 'bn' ? 'দাম: কম থেকে বেশি' : 'Price: Low'}</option>
+                <option value="price_desc">{language === 'bn' ? 'দাম: বেশি থেকে কম' : 'Price: High'}</option>
+                <option value="rating">{language === 'bn' ? 'রেটিং' : 'Rating'}</option>
+                <option value="newest">{language === 'bn' ? 'নতুন পণ্য' : 'Newest'}</option>
               </select>
+              <ArrowUpDown className="w-3 h-3 text-stone-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
+          </div>
+
+          {/* Side 2 (Right): Grid View Mode Switcher */}
+          <div className="flex items-center bg-stone-100 p-0.5 rounded-lg border border-stone-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                viewMode === 'grid'
+                  ? 'bg-white text-[#0F4C3A] shadow-xs font-bold'
+                  : 'text-stone-500 hover:text-stone-800'
+              }`}
+              title={language === 'bn' ? 'গ্রিড ভিউ (Grid View)' : 'Grid View'}
+              aria-label="Grid view"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                viewMode === 'list'
+                  ? 'bg-white text-[#0F4C3A] shadow-xs font-bold'
+                  : 'text-stone-500 hover:text-stone-800'
+              }`}
+              title={language === 'bn' ? 'লিস্ট ভিউ (List View)' : 'List View'}
+              aria-label="List view"
+            >
+              <List className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
-        {/* 5. Product Grid */}
+        {/* 5. Product Grid / List */}
         {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div
+            className={
+              viewMode === 'grid'
+                ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6'
+                : 'flex flex-col gap-4'
+            }
+          >
             {filteredProducts.map((prod) => (
               <ProductCard
                 key={prod.id}
@@ -184,6 +217,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
                 onOpenDetails={onOpenProduct}
                 onDirectBuy={onDirectBuy}
                 onQuickAddToast={onQuickAddToast}
+                viewMode={viewMode}
               />
             ))}
           </div>

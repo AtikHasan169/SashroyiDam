@@ -577,6 +577,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <input
                 type="email"
                 required
+                placeholder="admin@sashroyidaam.com"
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-[#0F4C3A]"
@@ -595,8 +596,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onChange={(e) => setAdminPass(e.target.value)}
                 className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-[#0F4C3A]"
               />
+              <p className="text-[11px] text-stone-500 mt-1">
+                সুপার অ্যাডমিন ইমেইল ও পাসওয়ার্ড আপনার .env (SUPER_ADMIN_PASSWORD) ফাইল দ্বারা নিয়ন্ত্রিত।
+              </p>
             </div>
-
 
             <button
               type="submit"

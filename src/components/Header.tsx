@@ -15,6 +15,7 @@ interface HeaderProps {
   onOpenHelp?: () => void;
   onSelectCategory: (categoryId: string) => void;
   onOpenSearch: () => void;
+  onHomeClick?: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   announcement?: string;
@@ -30,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenHelp,
   onSelectCategory,
   onOpenSearch,
+  onHomeClick,
   searchQuery,
   setSearchQuery,
   announcement,
@@ -169,8 +171,12 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => {
-                  onSelectCategory('all');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  if (onHomeClick) {
+                    onHomeClick();
+                  } else {
+                    onSelectCategory('all');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
                 }}
                 className="flex items-center text-left group cursor-pointer focus:outline-none"
               >
@@ -221,16 +227,18 @@ export const Header: React.FC<HeaderProps> = ({
               </nav>
             </div>
 
-            {/* Desktop Zone 3: Actions */}
+            {/* Desktop Zone 3: Actions (Cart & Help removed per user request) */}
             <div className="flex items-center gap-3 shrink-0">
               <button
                 onClick={onOpenAccount}
-                className="flex items-center gap-2 px-2.5 py-1.5 text-stone-700 hover:text-[#0F4C3A] rounded-lg transition-colors cursor-pointer text-sm font-medium"
-                title={t('account')}
+                className="flex items-center gap-2 px-3 py-1.5 text-stone-700 hover:text-[#0F4C3A] hover:bg-stone-50 rounded-xl transition-colors cursor-pointer text-sm font-medium border border-transparent hover:border-stone-200"
+                title={user ? (language === 'bn' ? 'ইউজার প্রোফাইল ও অর্ডার' : 'User Profile & Orders') : t('account')}
               >
-                <UserIcon className="w-5 h-5" />
-                <span className="whitespace-nowrap">
-                  {user ? user.name.split(' ')[0] : t('account')}
+                <div className="w-7 h-7 rounded-full bg-emerald-100 text-[#0F4C3A] flex items-center justify-center font-bold text-xs shrink-0">
+                  {user ? user.name.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4 text-[#0F4C3A]" />}
+                </div>
+                <span className="whitespace-nowrap font-semibold text-xs sm:text-sm">
+                  {user ? user.name.split(' ')[0] : (language === 'bn' ? 'প্রোফাইল / লগইন' : 'Profile / Login')}
                 </span>
               </button>
 
@@ -239,7 +247,7 @@ export const Header: React.FC<HeaderProps> = ({
                   const el = document.getElementById('products');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="relative p-2 text-stone-700 hover:text-[#0F4C3A] rounded-lg transition-colors cursor-pointer"
+                className="relative p-2 text-stone-700 hover:text-[#0F4C3A] rounded-xl hover:bg-stone-50 transition-colors cursor-pointer border border-transparent hover:border-stone-200"
                 title={t('wishlist')}
               >
                 <Heart className="w-5 h-5" />
@@ -249,20 +257,10 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 )}
               </button>
-
-              {/* Top Help ("সহায়তা") Button */}
-              <button
-                onClick={onOpenHelp}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#0F4C3A] border border-emerald-200/90 rounded-lg font-bold text-xs transition-all shadow-2xs cursor-pointer whitespace-nowrap group"
-                title={language === 'bn' ? 'সহায়তা ও কাস্টমার কেয়ার' : 'Help & Support'}
-              >
-                <Headphones className="w-4 h-4 text-[#0F4C3A] group-hover:scale-105 transition-transform" />
-                <span>{language === 'bn' ? 'সহায়তা' : 'Help'}</span>
-              </button>
             </div>
           </div>
 
-          {/* MOBILE LAYOUT (lg:hidden): Balanced 3-Zone Header (Left: Hamburger, Center: Logo, Right: Actions) */}
+          {/* MOBILE LAYOUT (lg:hidden): Balanced 3-Zone Header (Left: Hamburger, Center: Logo, Right: Profile & Wishlist) */}
           <div className="lg:hidden flex items-center justify-between gap-2">
             {/* Mobile Left: 3-line Hamburger Menu Button (opens Left Sliding Drawer) */}
             <button
@@ -277,22 +275,36 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Mobile Center: Brand Logo Wordmark */}
             <button
               onClick={() => {
-                onSelectCategory('all');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                if (onHomeClick) {
+                  onHomeClick();
+                } else {
+                  onSelectCategory('all');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
               }}
               className="flex items-center justify-center text-center cursor-pointer focus:outline-none flex-1 px-1"
             >
               <BrandLogo variant="dark" size="sm" showTagline={false} />
             </button>
 
-            {/* Mobile Right: Wishlist & Help Actions */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            {/* Mobile Right: Profile & Wishlist Actions (Cart removed from title as requested) */}
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={onOpenAccount}
+                className="p-1.5 text-stone-700 hover:text-[#0F4C3A] rounded-lg hover:bg-stone-100 transition-colors cursor-pointer flex items-center justify-center"
+                title={user ? user.name : t('login')}
+              >
+                <div className="w-7 h-7 rounded-full bg-emerald-100 text-[#0F4C3A] flex items-center justify-center font-bold text-xs shrink-0">
+                  {user ? user.name.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4 text-[#0F4C3A]" />}
+                </div>
+              </button>
+
               <button
                 onClick={() => {
                   const el = document.getElementById('products');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="relative p-2 text-stone-700 hover:text-[#0F4C3A] rounded-lg transition-colors cursor-pointer"
+                className="relative p-2 text-stone-700 hover:text-[#0F4C3A] rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
                 title={t('wishlist')}
               >
                 <Heart className="w-5 h-5" />
@@ -301,15 +313,6 @@ export const Header: React.FC<HeaderProps> = ({
                     {wishlistIds.length}
                   </span>
                 )}
-              </button>
-
-              <button
-                onClick={onOpenHelp}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#0F4C3A] border border-emerald-200/90 rounded-lg font-bold text-xs transition-all shadow-2xs cursor-pointer whitespace-nowrap"
-                title={language === 'bn' ? 'সহায়তা' : 'Help'}
-              >
-                <Headphones className="w-3.5 h-3.5 text-[#0F4C3A]" />
-                <span>{language === 'bn' ? 'সহায়তা' : 'Help'}</span>
               </button>
             </div>
           </div>

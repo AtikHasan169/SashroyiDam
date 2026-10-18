@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import crypto from 'node:crypto';
-import { z } from 'zod';
-import { getDatabase, withTransaction, recordAuditLog, verifyPassword, saveDatabaseSync } from '../db.ts';
+import { getDatabase, withTransaction, recordAuditLog, verifyPassword, saveDatabaseSync, getSuperAdminEnvCredentials } from '../db.ts';
 import { createAuthToken, authenticateUser, requireAuth, type AuthenticatedRequest } from '../auth.ts';
 import type { User, Address } from '../../types/index.ts';
 import { syncUserToSupabase, findSupabaseUser, isSupabaseConfigured } from '../supabase.ts';
@@ -93,16 +92,23 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const rawId = String(req.body.identifier || '').trim();
-    const rawPassword = String(req.body.password || '');
+    const rawId = String(req.body.identifier || req.body.email || req.body.loginId || req.body.phone || '').trim();
+    const rawPassword = String(req.body.password || '').trim();
 
     if (!rawId || !rawPassword) {
       res.status(400).json({ error: 'ইমেইল/ফোন এবং পাসওয়ার্ড উভয়ই প্রদান করুন' });
       return;
     }
 
+    const envCreds = getSuperAdminEnvCredentials();
     const cleanId = rawId.toLowerCase();
     const cleanPhone = rawId.replace(/^(\+88|88)/, '').replace(/[\s\-\(\)]/g, '');
+
+    const isTargetingSuperAdmin =
+      cleanId === envCreds.email ||
+      cleanId === 'admin@sashroyidaam.com' ||
+      cleanId === 'admin@oshesh.com.bd' ||
+      cleanId === 'admin';
 
     const db = getDatabase();
     let user = db.users.find(
@@ -111,8 +117,24 @@ router.post('/login', async (req, res) => {
         u.phone === cleanPhone ||
         u.phone === rawId ||
         (cleanId === 'admin@oshesh.com.bd' && u.email.toLowerCase() === 'admin@sashroyidaam.com') ||
-        (cleanId === 'admin@sashroyidaam.com' && u.email.toLowerCase() === 'admin@oshesh.com.bd')
+        (cleanId === 'admin@sashroyidaam.com' && u.email.toLowerCase() === 'admin@oshesh.com.bd') ||
+        (isTargetingSuperAdmin && u.role === 'super_admin')
     );
+
+    // If user targeting superadmin and not found, auto-create super admin
+    if (!user && isTargetingSuperAdmin) {
+      user = {
+        id: 'user-superadmin',
+        name: 'সাশ্রয়ী দাম অ্যাডমিন',
+        email: envCreds.email,
+        phone: '01700000001',
+        role: 'super_admin',
+        passwordHash: hashPassword(envCreds.password),
+        createdAt: new Date().toISOString()
+      };
+      db.users.push(user);
+      saveDatabaseSync(db);
+    }
 
     // If user not in local memory, check Supabase
     if (!user && isSupabaseConfigured()) {
@@ -136,15 +158,26 @@ router.post('/login', async (req, res) => {
     }
 
     const isPasswordValid =
-      (user.passwordHash && verifyPassword(rawPassword, user.passwordHash)) ||
-      (user.role === 'super_admin' &&
-        (rawPassword === 'OsheshAdmin2026!' || rawPassword === 'SashroyiAdmin2026!')) ||
-      (user.role === 'order_manager' && rawPassword === 'OsheshStaff2026!') ||
-      (user.role === 'customer' && rawPassword === 'OsheshUser2026!');
+      (isTargetingSuperAdmin || user.role === 'super_admin')
+        ? (rawPassword === envCreds.password ||
+           rawPassword === 'OsheshAdmin2026!' ||
+           rawPassword === 'SashroyiAdmin2026!' ||
+           (user.passwordHash && verifyPassword(rawPassword, user.passwordHash)))
+        : ((user.passwordHash && verifyPassword(rawPassword, user.passwordHash)) ||
+           (user.role === 'order_manager' && rawPassword === 'OsheshStaff2026!') ||
+           (user.role === 'customer' && rawPassword === 'OsheshUser2026!'));
 
     if (!isPasswordValid) {
       res.status(401).json({ error: 'ভুল পাসওয়ার্ড। অনুগ্রহ করে সঠিক পাসওয়ার্ড দিন।' });
       return;
+    }
+
+    // Ensure super admin role and credentials stay up to date
+    if (isTargetingSuperAdmin || user.role === 'super_admin') {
+      user.role = 'super_admin';
+      user.email = envCreds.email;
+      user.passwordHash = hashPassword(envCreds.password);
+      saveDatabaseSync(db);
     }
 
     const token = createAuthToken(user);
@@ -236,6 +269,55 @@ router.post('/address', authenticateUser, requireAuth, async (req: Authenticated
     res.json({ user: safeUser, message: 'নতুন ডেলিভারি ঠিকানা সংরক্ষিত হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'ঠিকানা যোগ করতে ব্যর্থ হয়েছে' });
+  }
+});
+
+router.delete('/address/:id', authenticateUser, requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const updatedUser = await withTransaction((db) => {
+      const user = db.users.find((u) => u.id === req.user!.id);
+      if (!user) throw new Error('ইউজার পাওয়া যায়নি');
+      if (user.savedAddresses) {
+        user.savedAddresses = user.savedAddresses.filter((a) => a.id !== id);
+      }
+      return user;
+    });
+
+    const { passwordHash, ...safeUser } = updatedUser;
+    res.json({ user: safeUser, message: 'ঠিকানা মুছে ফেলা হয়েছে' });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'ঠিকানা মুছতে সমস্যা হয়েছে' });
+  }
+});
+
+router.put('/change-password', authenticateUser, requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!newPassword || String(newPassword).length < 6) {
+      res.status(400).json({ error: 'নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে' });
+      return;
+    }
+
+    const updatedUser = await withTransaction((db) => {
+      const user = db.users.find((u) => u.id === req.user!.id);
+      if (!user) throw new Error('ইউজার পাওয়া যায়নি');
+
+      if (user.passwordHash && currentPassword) {
+        const matches = verifyPassword(String(currentPassword), user.passwordHash);
+        if (!matches) {
+          throw new Error('বর্তমান পাসওয়ার্ডটি সঠিক নয়');
+        }
+      }
+
+      user.passwordHash = hashPassword(String(newPassword));
+      return user;
+    });
+
+    const { passwordHash, ...safeUser } = updatedUser;
+    res.json({ user: safeUser, message: 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে' });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'পাসওয়ার্ড পরিবর্তনে সমস্যা হয়েছে' });
   }
 });
 
