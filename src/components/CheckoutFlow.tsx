@@ -99,18 +99,15 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
       } else {
         setSelectedUpazila('');
       }
+    } else {
+      setSelectedDistrict('');
+      setSelectedUpazila('');
     }
   };
 
   const handleDistrictChange = (distName: string) => {
     setSelectedDistrict(distName);
-    const foundDistrict = BANGLADESH_DISTRICTS.find((d) => d.nameBn === distName);
-    if (foundDistrict) {
-      setSelectedDivision(foundDistrict.division.toLowerCase());
-      setCustomerDivision(foundDistrict.division.toLowerCase());
-    }
-    const targetDivId = foundDistrict ? foundDistrict.division.toLowerCase() : selectedDivision;
-    const divData = BANGLADESH_DIVISIONS.find((d) => d.id === targetDivId);
+    const divData = BANGLADESH_DIVISIONS.find((d) => d.id === selectedDivision);
     const distData = divData?.districts.find((d) => d.nameBn === distName);
     if (distData && distData.upazilas.length > 0) {
       setSelectedUpazila(distData.upazilas[0]);
@@ -443,21 +440,17 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      জেলা (সকল ৬৪ জেলা) <span className="text-rose-500">*</span>
+                      জেলা ({districts.length}টি জেলা) <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={selectedDistrict}
                       onChange={(e) => handleDistrictChange(e.target.value)}
                       className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm bg-white focus:outline-none focus:border-[#0F4C3A]"
                     >
-                      {BANGLADESH_DIVISIONS.map((div) => (
-                        <optgroup key={div.id} label={`${div.nameBn} বিভাগ`}>
-                          {div.districts.map((dist) => (
-                            <option key={dist.nameBn} value={dist.nameBn}>
-                              {dist.nameBn} ({dist.nameEn})
-                            </option>
-                          ))}
-                        </optgroup>
+                      {districts.map((dist) => (
+                        <option key={dist.nameBn} value={dist.nameBn}>
+                          {dist.nameBn} ({dist.nameEn})
+                        </option>
                       ))}
                     </select>
                   </div>

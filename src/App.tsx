@@ -16,7 +16,7 @@ import { AccountModal } from './components/AccountModal.tsx';
 import { ProfilePage } from './components/ProfilePage.tsx';
 import { AdminDashboard } from './components/admin/AdminDashboard.tsx';
 import { FloatingNavDock } from './components/FloatingNavDock.tsx';
-import { SmartBazaarCartPill } from './components/SmartBazaarCartPill.tsx';
+import { ClassyFloatingBar } from './components/ClassyFloatingBar.tsx';
 import { LanguageProvider, useLanguage } from './context/LanguageContext.tsx';
 import { useCart } from './context/CartContext.tsx';
 import { ProductQuickActionSheet } from './components/ProductQuickActionSheet.tsx';
@@ -24,7 +24,6 @@ import { CartToast, type CartToastItem } from './components/CartToast.tsx';
 import { SearchOverlay } from './components/SearchOverlay.tsx';
 import { TrustGuaranteeBar } from './components/TrustGuaranteeBar.tsx';
 import { Footer } from './components/Footer.tsx';
-import { FloatingSocialBadge } from './components/FloatingSocialBadge.tsx';
 import { api } from './lib/api.ts';
 import type { Product, Category, Order } from './types/index.ts';
 import { Filter, ArrowUpDown, Check, RefreshCw, LayoutGrid, List } from 'lucide-react';
@@ -295,7 +294,7 @@ function StorefrontApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-stone-900 font-sans pb-16 md:pb-0">
+    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-stone-900 font-sans pb-28 md:pb-0">
       {/* 1. Header with balanced mobile layout and clean marquee */}
       <Header
         onOpenAccount={handleOpenProfilePage}
@@ -329,50 +328,56 @@ function StorefrontApp() {
 
       {/* 2. DEDICATED PRODUCT PAGE, CATEGORY PAGE, DEDICATED PROFILE PAGE, OR HOMEPAGE CATALOG */}
       {viewingProductPage ? (
-        <ProductPage
-          product={viewingProductPage}
-          categories={categories}
-          allProducts={products}
-          onBack={handleBackFromProductPage}
-          onOpenProduct={handleOpenProductPage}
-          onOpenCheckout={() => {
-            setDirectBuyItem(null);
-            setIsCheckoutOpen(true);
-          }}
-          onDirectBuy={handleDirectBuy}
-          onEditProduct={handleAdminEditProduct}
-          onDeleteProduct={handleAdminDeleteProduct}
-        />
+        <div className="animate-in fade-in duration-300 ease-out">
+          <ProductPage
+            product={viewingProductPage}
+            categories={categories}
+            allProducts={products}
+            onBack={handleBackFromProductPage}
+            onOpenProduct={handleOpenProductPage}
+            onOpenCheckout={() => {
+              setDirectBuyItem(null);
+              setIsCheckoutOpen(true);
+            }}
+            onDirectBuy={handleDirectBuy}
+            onEditProduct={handleAdminEditProduct}
+            onDeleteProduct={handleAdminDeleteProduct}
+          />
+        </div>
       ) : viewingCategory ? (
-        <CategoryPage
-          category={viewingCategory}
-          allCategories={categories}
-          products={products}
-          onBackToHome={handleBackToHome}
-          onSelectCategory={handleSelectCategory}
-          onOpenProduct={handleOpenProductPage}
-          onDirectBuy={handleDirectBuy}
-          onQuickAddToast={(p) =>
-            setCartToastItem({
-              id: p.id,
-              title: language === 'en' && p.titleEn ? p.titleEn : p.titleBn,
-              imageUrl: p.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg',
-              price: p.price
-            })
-          }
-        />
+        <div className="animate-in fade-in duration-300 ease-out">
+          <CategoryPage
+            category={viewingCategory}
+            allCategories={categories}
+            products={products}
+            onBackToHome={handleBackToHome}
+            onSelectCategory={handleSelectCategory}
+            onOpenProduct={handleOpenProductPage}
+            onDirectBuy={handleDirectBuy}
+            onQuickAddToast={(p) =>
+              setCartToastItem({
+                id: p.id,
+                title: language === 'en' && p.titleEn ? p.titleEn : p.titleBn,
+                imageUrl: p.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg',
+                price: p.price
+              })
+            }
+          />
+        </div>
       ) : isProfilePageOpen ? (
-        <ProfilePage
-          onBackToShopping={handleBackToHome}
-          onTrackOrder={handleOpenTrackingWithNumber}
-          onOpenAdmin={() => {
-            setIsProfilePageOpen(false);
-            setAdminEditingProduct(null);
-            setIsAdminOpen(true);
-          }}
-        />
+        <div className="animate-in fade-in duration-300 ease-out">
+          <ProfilePage
+            onBackToShopping={handleBackToHome}
+            onTrackOrder={handleOpenTrackingWithNumber}
+            onOpenAdmin={() => {
+              setIsProfilePageOpen(false);
+              setAdminEditingProduct(null);
+              setIsAdminOpen(true);
+            }}
+          />
+        </div>
       ) : (
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col animate-in fade-in duration-300 ease-out">
           {/* Hero Section (shown when no specific search query is typed) */}
           {!searchQuery && (
             <div>
@@ -558,14 +563,8 @@ function StorefrontApp() {
         onSelectCategory={handleSelectCategory}
       />
 
-      {/* Floating Classy Minimal Customer Support Badge */}
-      <FloatingSocialBadge
-        isOpenControlled={isHelpOpen}
-        onOpenChangeControlled={setIsHelpOpen}
-      />
-
-      {/* SmartBazaar Style Persistent Floating Side Cart Pill */}
-      <SmartBazaarCartPill />
+      {/* Classy Floating Bar: Live Cart Total + 'সহায়তা' WhatsApp Help */}
+      <ClassyFloatingBar />
 
       {/* Product Tap Quick-Action Bottom Sheet (Add to Cart / Buy Now / View Details) */}
       <ProductQuickActionSheet

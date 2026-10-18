@@ -8,11 +8,15 @@ import cartRouter from './src/server/routes/cart.ts';
 import ordersRouter from './src/server/routes/orders.ts';
 import paymentRouter from './src/server/routes/payment.ts';
 import adminRouter from './src/server/routes/admin.ts';
+import { getDatabase } from './src/server/db.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
+  // Eagerly initialize in-memory database & Supabase sync
+  getDatabase();
+
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
   const isProduction = process.env.NODE_ENV === 'production';

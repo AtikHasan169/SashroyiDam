@@ -227,21 +227,17 @@ export const Header: React.FC<HeaderProps> = ({
               </nav>
             </div>
 
-            {/* Desktop Zone 3: Actions (Cart & Help removed per user request) */}
+            {/* Desktop Zone 3: Actions */}
             <div className="flex items-center gap-3 shrink-0">
               <button
-                onClick={onOpenAccount}
-                className="flex items-center gap-2 px-3 py-1.5 text-stone-700 hover:text-[#0F4C3A] hover:bg-stone-50 rounded-xl transition-colors cursor-pointer text-sm font-medium border border-transparent hover:border-stone-200"
-                title={user ? (language === 'bn' ? 'ইউজার প্রোফাইল ও অর্ডার' : 'User Profile & Orders') : t('account')}
+                onClick={onOpenSearch}
+                className="p-2 text-stone-700 hover:text-[#0F4C3A] rounded-xl hover:bg-stone-50 transition-colors cursor-pointer border border-transparent hover:border-stone-200"
+                title={language === 'bn' ? 'পণ্য খুঁজুন' : 'Search'}
               >
-                <div className="w-7 h-7 rounded-full bg-emerald-100 text-[#0F4C3A] flex items-center justify-center font-bold text-xs shrink-0">
-                  {user ? user.name.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4 text-[#0F4C3A]" />}
-                </div>
-                <span className="whitespace-nowrap font-semibold text-xs sm:text-sm">
-                  {user ? user.name.split(' ')[0] : (language === 'bn' ? 'প্রোফাইল / লগইন' : 'Profile / Login')}
-                </span>
+                <Search className="w-5 h-5" />
               </button>
 
+              {/* Wishlist / Love First */}
               <button
                 onClick={() => {
                   const el = document.getElementById('products');
@@ -257,15 +253,29 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 )}
               </button>
+
+              {/* Profile / Account Second */}
+              <button
+                onClick={onOpenAccount}
+                className="flex items-center gap-2 px-3 py-1.5 text-stone-700 hover:text-[#0F4C3A] hover:bg-stone-50 rounded-xl transition-colors cursor-pointer text-sm font-medium border border-transparent hover:border-stone-200"
+                title={user ? (language === 'bn' ? 'ইউজার প্রোফাইল ও অর্ডার' : 'User Profile & Orders') : t('account')}
+              >
+                <div className="w-7 h-7 rounded-full bg-emerald-100 text-[#0F4C3A] flex items-center justify-center font-bold text-xs shrink-0">
+                  {user ? user.name.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4 text-[#0F4C3A]" />}
+                </div>
+                <span className="whitespace-nowrap font-semibold text-xs sm:text-sm">
+                  {user ? user.name.split(' ')[0] : (language === 'bn' ? 'প্রোফাইল' : 'Profile')}
+                </span>
+              </button>
             </div>
           </div>
 
-          {/* MOBILE LAYOUT (lg:hidden): Balanced 3-Zone Header (Left: Hamburger, Center: Logo, Right: Profile & Wishlist) */}
-          <div className="lg:hidden flex items-center justify-between gap-2">
-            {/* Mobile Left: 3-line Hamburger Menu Button (opens Left Sliding Drawer) */}
+          {/* MOBILE LAYOUT (lg:hidden): Sleek Single-Row Header (No 2nd line) */}
+          <div className="lg:hidden flex items-center justify-between gap-1.5 py-0.5">
+            {/* Mobile Left: 3-line Hamburger Menu Button */}
             <button
               onClick={() => setIsDrawerOpen(true)}
-              className="p-2 -ml-1 text-stone-800 hover:text-stone-900 rounded-lg hover:bg-stone-100 transition-colors focus:outline-none shrink-0 cursor-pointer"
+              className="p-1.5 -ml-1 text-stone-800 hover:text-stone-900 rounded-lg hover:bg-stone-100 transition-colors focus:outline-none shrink-0 cursor-pointer"
               aria-label={t('menu')}
               title={t('menu')}
             >
@@ -282,56 +292,50 @@ export const Header: React.FC<HeaderProps> = ({
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
               }}
-              className="flex items-center justify-center text-center cursor-pointer focus:outline-none flex-1 px-1"
+              className="flex items-center justify-center text-center cursor-pointer focus:outline-none flex-1 px-1 min-w-0"
             >
               <BrandLogo variant="dark" size="sm" showTagline={false} />
             </button>
 
-            {/* Mobile Right: Profile & Wishlist Actions (Cart removed from title as requested) */}
+            {/* Mobile Right: Single Row Actions (Search, Wishlist, Profile) */}
             <div className="flex items-center gap-1 shrink-0">
               <button
-                onClick={onOpenAccount}
-                className="p-1.5 text-stone-700 hover:text-[#0F4C3A] rounded-lg hover:bg-stone-100 transition-colors cursor-pointer flex items-center justify-center"
-                title={user ? user.name : t('login')}
+                onClick={onOpenSearch}
+                className="p-1.5 text-stone-700 hover:text-[#0F4C3A] rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+                title={language === 'bn' ? 'পণ্য খুঁজুন' : 'Search'}
+                aria-label="Search"
               >
-                <div className="w-7 h-7 rounded-full bg-emerald-100 text-[#0F4C3A] flex items-center justify-center font-bold text-xs shrink-0">
-                  {user ? user.name.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4 text-[#0F4C3A]" />}
-                </div>
+                <Search className="w-5 h-5 text-stone-700" />
               </button>
 
+              {/* Wishlist / Love First */}
               <button
                 onClick={() => {
                   const el = document.getElementById('products');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="relative p-2 text-stone-700 hover:text-[#0F4C3A] rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+                className="relative p-1.5 text-stone-700 hover:text-[#0F4C3A] rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
                 title={t('wishlist')}
               >
                 <Heart className="w-5 h-5" />
                 {wishlistIds.length > 0 && (
-                  <span className="absolute top-1 right-1 w-3.5 h-3.5 text-[9px] font-bold bg-amber-600 text-white rounded-full flex items-center justify-center tabular-nums">
+                  <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 text-[9px] font-bold bg-amber-600 text-white rounded-full flex items-center justify-center tabular-nums">
                     {wishlistIds.length}
                   </span>
                 )}
               </button>
-            </div>
-          </div>
 
-          {/* Mobile Search Bar Trigger */}
-          <div className="mt-2 lg:hidden">
-            <button
-              type="button"
-              onClick={onOpenSearch}
-              className="relative w-full text-left cursor-pointer"
-            >
-              <div className="w-full pl-9 pr-4 py-2 bg-stone-100 hover:bg-stone-50 active:bg-white text-xs sm:text-sm text-stone-500 rounded-lg border border-transparent transition-all flex items-center justify-between">
-                <span className="truncate">{searchQuery || t('searchPlaceholder')}</span>
-                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded">
-                  {language === 'en' ? 'Tap to Search' : 'খুঁজুন'}
-                </span>
-              </div>
-              <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            </button>
+              {/* Profile / Account Second */}
+              <button
+                onClick={onOpenAccount}
+                className="p-1.5 text-stone-700 hover:text-[#0F4C3A] rounded-lg hover:bg-stone-100 transition-colors cursor-pointer flex items-center justify-center"
+                title={user ? user.name : t('login')}
+              >
+                <div className="w-6 h-6 rounded-full bg-emerald-100 text-[#0F4C3A] flex items-center justify-center font-bold text-xs shrink-0">
+                  {user ? user.name.charAt(0).toUpperCase() : <UserIcon className="w-3.5 h-3.5 text-[#0F4C3A]" />}
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </header>

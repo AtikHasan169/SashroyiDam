@@ -125,19 +125,17 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking }) => {
               <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider block mb-2">
                 কানেক্টেড থাকুন (Social Links)
               </span>
-              <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex items-center gap-2.5">
                 {/* Facebook */}
                 <a
                   href="https://facebook.com/sashroyidaam"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#1877F2]/15 hover:bg-[#1877F2]/25 border border-[#1877F2]/40 rounded-lg text-white text-xs font-medium transition-colors"
-                  title="Facebook Page"
+                  className="w-9 h-9 rounded-full bg-[#1877F2]/20 hover:bg-[#1877F2] text-white border border-[#1877F2]/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
+                  title="Facebook (@sashroyidaam)"
+                  aria-label="Facebook"
                 >
-                  <div className="w-5 h-5 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-bold text-xs shrink-0">
-                    f
-                  </div>
-                  <span>Facebook</span>
+                  <span className="font-bold text-sm leading-none">f</span>
                 </a>
 
                 {/* WhatsApp */}
@@ -145,11 +143,11 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking }) => {
                   href="https://wa.me/8801700000000"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 rounded-lg text-emerald-300 text-xs font-medium transition-colors"
-                  title="Chat on WhatsApp"
+                  className="w-9 h-9 rounded-full bg-[#25D366]/20 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
+                  title="WhatsApp (+8801700000000)"
+                  aria-label="WhatsApp"
                 >
-                  <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>WhatsApp</span>
+                  <MessageCircle className="w-4 h-4 fill-current/20 group-hover:fill-current" />
                 </a>
 
                 {/* Instagram */}
@@ -157,11 +155,11 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking }) => {
                   href="https://instagram.com/sashroyidaam"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-pink-500/15 hover:bg-pink-500/25 border border-pink-500/40 rounded-lg text-pink-300 text-xs font-medium transition-colors"
-                  title="Follow on Instagram"
+                  className="w-9 h-9 rounded-full bg-pink-500/20 hover:bg-gradient-to-tr hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] text-pink-400 hover:text-white border border-pink-500/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
+                  title="Instagram (@sashroyidaam)"
+                  aria-label="Instagram"
                 >
-                  <Instagram className="w-4 h-4 text-pink-400 shrink-0" />
-                  <span>Instagram</span>
+                  <Instagram className="w-4 h-4" />
                 </a>
               </div>
             </div>

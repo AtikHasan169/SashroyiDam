@@ -1016,6 +1016,50 @@ export function getDatabase(): DatabaseSchema {
   const initial = getInitialData();
   memoryDb = initial;
   saveDatabaseSync(initial);
+
+  // If Supabase is configured on fresh container boot, fetch cloud records immediately
+  if (isSupabaseConfigured()) {
+    fetchSupabaseData().then((supaData) => {
+      if (supaData && memoryDb) {
+        if (supaData.products && supaData.products.length > 0) {
+          memoryDb.products = supaData.products as Product[];
+        }
+        if (supaData.orders && supaData.orders.length > 0) {
+          memoryDb.orders = supaData.orders as Order[];
+        }
+        if (supaData.categories && supaData.categories.length > 0) {
+          memoryDb.categories = supaData.categories as Category[];
+        }
+        if (supaData.storeSettings) {
+          memoryDb.storeSettings = supaData.storeSettings as StoreSettings;
+        }
+        if (supaData.users && supaData.users.length > 0) {
+          for (const su of supaData.users) {
+            const idx = memoryDb.users.findIndex(
+              (u) => u.id === su.id || u.email.toLowerCase() === su.email.toLowerCase() || u.phone === su.phone
+            );
+            if (idx !== -1) {
+              memoryDb.users[idx] = {
+                ...su,
+                passwordHash: su.passwordHash || memoryDb.users[idx].passwordHash
+              };
+            } else {
+              memoryDb.users.push(su);
+            }
+          }
+        }
+        saveDatabaseSync(memoryDb);
+
+        if (!supaData.products || supaData.products.length === 0) {
+          console.log('⚡ Supabase is connected but empty. Automatically pushing initial catalog and users...');
+          syncAllToSupabase(memoryDb).catch((e) => {
+            console.warn('⚠️ Auto-push to Supabase skipped:', e.message);
+          });
+        }
+      }
+    }).catch((err) => console.warn('Supabase fresh boot sync error:', err));
+  }
+
   return memoryDb;
 }
 
