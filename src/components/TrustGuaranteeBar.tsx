@@ -8,7 +8,7 @@ interface TrustGuaranteeBarProps {
 export const TrustGuaranteeBar: React.FC<TrustGuaranteeBarProps> = ({ className = '' }) => {
   return (
     <section className={`border-t border-b border-stone-200/70 bg-white py-4 sm:py-5 ${className}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
           {/* Guarantee 1: Nationwide Delivery */}
           <div className="flex items-center gap-3 p-3 rounded-xl bg-stone-50/80 border border-stone-200/60 transition-all hover:bg-emerald-50/30">

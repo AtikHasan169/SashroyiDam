@@ -401,7 +401,7 @@ function StorefrontApp() {
           )}
 
           {/* Product Catalog Section */}
-          <main id="products" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <main id="products" className="flex-1 max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] w-full mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-8 sm:py-10">
             {/* Catalog Header & Filter Bar: Stock & Pick on one side, Grid Switcher on the other side */}
             <div className="flex flex-col gap-4 pb-6 border-b border-stone-200">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -489,8 +489,8 @@ function StorefrontApp() {
             {/* Product Cards Grid / List with direct 1-click buy button */}
             <div className="pt-8">
               {isLoadingProducts ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                  {Array.from({ length: 8 }).map((_, i) => (
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-5 lg:gap-6">
+                  {Array.from({ length: 12 }).map((_, i) => (
                     <div key={i} className="animate-pulse bg-white rounded-xl border border-stone-200 p-4 space-y-3">
                       <div className="aspect-4/3 bg-stone-200 rounded-lg" />
                       <div className="h-4 bg-stone-200 rounded w-3/4" />
@@ -526,7 +526,7 @@ function StorefrontApp() {
                 <div
                   className={
                     viewMode === 'grid'
-                      ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6'
+                      ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-5 lg:gap-6'
                       : 'flex flex-col gap-4'
                   }
                 >

@@ -119,14 +119,14 @@ export const Hero: React.FC<HeroProps> = ({
 
   return (
     <section className="bg-[#FAF9F6] py-3 sm:py-5">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12">
         {/* Pure Auto-Changing Banner Carousel */}
         <div
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-900 shadow-md group select-none aspect-[16/7] sm:aspect-[21/8] md:aspect-[24/8] min-h-[190px] sm:min-h-[280px] md:min-h-[340px] max-h-[460px]"
+          className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-900 shadow-md group select-none aspect-[16/7] sm:aspect-[21/8] md:aspect-[24/8] 2xl:aspect-[26/8] min-h-[190px] sm:min-h-[280px] md:min-h-[340px] 2xl:min-h-[380px] max-h-[460px] 2xl:max-h-[520px]"
         >
           {/* Images with smooth opacity crossfade */}
           {allSlides.map((slide, idx) => {

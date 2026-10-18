@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200">
         {/* 1. Moving Announcement Strip with Language Switcher */}
         <div className="bg-[#0F4C3A] text-white text-xs py-1.5 px-3 sm:px-4 font-medium tracking-wide border-b border-emerald-900/40 overflow-hidden">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] 2xl:px-4 mx-auto flex items-center justify-between gap-3">
             {/* Moving Marquee Ticker */}
             <div className="flex-1 overflow-hidden relative group cursor-default">
               <div className="animate-marquee whitespace-nowrap flex items-center gap-8 text-[11px] sm:text-xs text-emerald-100">
@@ -154,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* 2. Main Navigation Bar */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-3">
           {/* DESKTOP LAYOUT (lg:flex) */}
           <div className="hidden lg:flex items-center justify-between gap-8">
             {/* Desktop Zone 1: Hamburger Menu Drawer Trigger + Brand Wordmark */}
@@ -185,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Desktop Zone 2: Search Bar & Quick Categories */}
-            <div className="flex items-center flex-1 max-w-xl gap-6">
+            <div className="flex items-center flex-1 max-w-xl xl:max-w-2xl gap-6">
               <div
                 onClick={onOpenSearch}
                 className="relative w-full cursor-pointer group"

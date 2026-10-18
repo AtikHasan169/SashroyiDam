@@ -472,8 +472,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   // VIEW: LOGGED IN USER PROFILE PAGE
   // ==========================================
   return (
-    <div className="min-h-screen bg-stone-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-stone-50 py-8 px-4 sm:px-6 lg:px-8 2xl:px-12">
+      <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto space-y-6">
         {/* Top Navigation & Breadcrumbs */}
         <div className="flex items-center justify-between gap-4">
           <button
