@@ -1,6 +1,6 @@
 {
-  "summary": "Revised implementation plan: Completely removes all Supabase code, dependencies, routes, and admin UI. Configures MongoDB strictly via environment variable (MONGODB_URI in env, not in Admin UI). Stores product photos directly in MongoDB as base64 data strings.",
-  "updatedAt": "2026-10-19T07:05:46.199657157Z",
+  "summary": "Implementation plan for removing all demo products, dummy orders, reviews, and inventory history while keeping store categories and adding an elegant zero-product empty state for the store owner.",
+  "updatedAt": "2026-10-19T08:04:12.666239993Z",
   "requestFeedback": true,
   "userFacing": true
 }

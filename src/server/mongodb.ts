@@ -277,6 +277,21 @@ export async function syncAllToMongo(data: DatabaseSchema): Promise<{ success: b
   }
 
   try {
+    // Clean up products and orders removed locally
+    const currentProdIds = data.products.map((p) => p.id);
+    if (currentProdIds.length === 0) {
+      await db.collection('products').deleteMany({});
+    } else {
+      await db.collection('products').deleteMany({ id: { $nin: currentProdIds } });
+    }
+
+    const currentOrderIds = data.orders.map((o) => o.id);
+    if (currentOrderIds.length === 0) {
+      await db.collection('orders').deleteMany({});
+    } else {
+      await db.collection('orders').deleteMany({ id: { $nin: currentOrderIds } });
+    }
+
     // Upsert categories
     for (const cat of data.categories) {
       await db.collection('categories').updateOne({ id: cat.id }, { $set: cat }, { upsert: true });

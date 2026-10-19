@@ -502,25 +502,39 @@ function StorefrontApp() {
               ) : products.length === 0 ? (
                 /* Clear Empty State */
                 <div className="text-center py-16 bg-white rounded-2xl border border-stone-200 p-8 max-w-lg mx-auto space-y-4">
-                  <div className="w-12 h-12 bg-stone-100 text-stone-400 rounded-full flex items-center justify-center mx-auto">
+                  <div className="w-12 h-12 bg-emerald-50 text-[#0F4C3A] rounded-full flex items-center justify-center mx-auto">
                     <Filter className="w-6 h-6" />
                   </div>
                   <h3 className="text-base font-bold text-stone-900">
-                    {language === 'en' ? 'No products found matching your criteria' : 'প্রদত্ত শর্তানুসারে কোনো পণ্য পাওয়া যায়নি'}
+                    {searchQuery || selectedCategory !== 'all' || inStockOnly
+                      ? (language === 'en' ? 'No products found matching your criteria' : 'প্রদত্ত শর্তানুসারে কোনো পণ্য পাওয়া যায়নি')
+                      : (language === 'en' ? 'Catalog is Ready — Awaiting New Products' : 'শীঘ্রই নতুন পণ্য যুক্ত হচ্ছে')}
                   </h3>
                   <p className="text-xs text-stone-500">
-                    {language === 'en' ? 'Try searching for a different keyword or reset active filters.' : 'অন্য কোনো শব্দ দিয়ে খুঁজুন অথবা ফিল্টার পরিবর্তন করে পুনরায় চেষ্টা করুন।'}
+                    {searchQuery || selectedCategory !== 'all' || inStockOnly
+                      ? (language === 'en' ? 'Try searching for a different keyword or reset active filters.' : 'অন্য কোনো শব্দ দিয়ে খুঁজুন অথবা ফিল্টার পরিবর্তন করে পুনরায় চেষ্টা করুন।')
+                      : (language === 'en' ? 'Store owner: Login to the Admin Panel to add your original products, prices, and photos.' : 'দোকানদার হিসেবে অ্যাডমিন প্যানেলে লগইন করে আপনার পছন্দমতো পণ্য, মূল্য ও ছবি যুক্ত করুন।')}
                   </p>
-                  <button
-                    onClick={() => {
-                      setSearchQuery('');
-                      setSelectedCategory('all');
-                      setInStockOnly(false);
-                    }}
-                    className="px-4 py-2 bg-[#0F4C3A] text-white rounded-lg text-xs font-semibold hover:bg-[#135D48] transition-colors cursor-pointer"
-                  >
-                    {language === 'en' ? 'Clear All Filters' : 'সকল ফিল্টার মুছুন'}
-                  </button>
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                    {(searchQuery || selectedCategory !== 'all' || inStockOnly) && (
+                      <button
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedCategory('all');
+                          setInStockOnly(false);
+                        }}
+                        className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        {language === 'en' ? 'Clear All Filters' : 'ফিল্টার মুছুন'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setIsAdminOpen(true)}
+                      className="px-5 py-2 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      {language === 'en' ? 'Admin: Add Product' : 'অ্যাডমিন: পণ্য যোগ করুন'}
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div
