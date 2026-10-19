@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan for removing all demo products, dummy orders, reviews, and inventory history while keeping store categories and adding an elegant zero-product empty state for the store owner.",
-  "updatedAt": "2026-10-19T08:04:12.666239993Z",
+  "summary": "Implementation plan to remove the database notice and demo brand defaults, and implement a full-featured Manual Order creation modal in the Admin Dashboard.",
+  "updatedAt": "2026-10-19T08:21:15.634996802Z",
   "requestFeedback": true,
   "userFacing": true
 }
