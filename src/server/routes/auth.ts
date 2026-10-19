@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { getDatabase, withTransaction, recordAuditLog, verifyPassword, saveDatabaseSync, getSuperAdminEnvCredentials } from '../db.ts';
 import { createAuthToken, authenticateUser, requireAuth, type AuthenticatedRequest } from '../auth.ts';
 import type { User, Address } from '../../types/index.ts';
-import { syncUserToSupabase, findSupabaseUser, isSupabaseConfigured } from '../supabase.ts';
+import { syncUserToMongo, findMongoUser, isMongoConfigured } from '../mongodb.ts';
 
 const router = Router();
 
@@ -68,9 +68,9 @@ router.post('/register', async (req, res) => {
 
       db.users.push(newUser);
 
-      // Async sync to Supabase if connected
-      syncUserToSupabase(newUser).catch((err) => {
-        console.warn('Background Supabase user sync warning:', err);
+      // Async sync to MongoDB if connected
+      syncUserToMongo(newUser).catch((err) => {
+        console.warn('Background MongoDB user sync warning:', err);
       });
 
       return createAuthToken(newUser);
@@ -136,17 +136,17 @@ router.post('/login', async (req, res) => {
       saveDatabaseSync(db);
     }
 
-    // If user not in local memory, check Supabase
-    if (!user && isSupabaseConfigured()) {
+    // If user not in local memory, check MongoDB
+    if (!user && isMongoConfigured()) {
       try {
-        const supaUser = await findSupabaseUser(rawId);
-        if (supaUser) {
-          user = supaUser;
-          db.users.push(supaUser);
+        const mongoUser = await findMongoUser(rawId);
+        if (mongoUser) {
+          user = mongoUser;
+          db.users.push(mongoUser);
           saveDatabaseSync(db);
         }
       } catch (lookupErr) {
-        console.warn('Supabase auth lookup error:', lookupErr);
+        console.warn('MongoDB auth lookup error:', lookupErr);
       }
     }
 

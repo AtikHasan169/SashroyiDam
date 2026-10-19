@@ -215,12 +215,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
 
-  // Supabase Cloud Persistence state
-  const [supabaseUrl, setSupabaseUrl] = useState('');
-  const [supabaseKey, setSupabaseKey] = useState('');
-  const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
-  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
-  const [isSyncingSupabase, setIsSyncingSupabase] = useState(false);
+  // MongoDB Cloud Persistence state (Configured strictly via MONGODB_URI in environment)
+  const [mongoStatus, setMongoStatus] = useState<{
+    isConfigured: boolean;
+    isConnected: boolean;
+    dbName: string;
+    collections: { products: number; categories: number; orders: number; users: number };
+  } | null>(null);
+  const [isSyncingMongo, setIsSyncingMongo] = useState(false);
 
   // Initial load
   useEffect(() => {
@@ -259,9 +261,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setShippingRates(setRes.shippingRates);
       setAuditLogs(logRes.logs);
 
-      api.getSupabaseStatus().then((s) => {
-        if (s.url) setSupabaseUrl(s.url);
-        setIsSupabaseConnected(s.isConnected);
+      api.getMongoStatus().then((s) => {
+        setMongoStatus(s);
       }).catch(() => {});
     } catch (err) {
       console.error('Failed to load admin data:', err);
@@ -420,35 +421,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  const handleSaveSupabaseConfig = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!supabaseUrl.trim() || !supabaseKey.trim()) {
-      setFeedbackMsg('URL ও Key উভয়ই প্রদান করুন');
-      return;
-    }
-    setIsTestingSupabase(true);
+  const handleSyncAllMongo = async () => {
+    setIsSyncingMongo(true);
     try {
-      const res = await api.configureSupabase({ url: supabaseUrl, key: supabaseKey });
-      setIsSupabaseConnected(true);
+      const res = await api.syncAllToMongo();
       setFeedbackMsg(res.message);
       setTimeout(() => setFeedbackMsg(''), 4000);
+      const updatedStatus = await api.getMongoStatus();
+      setMongoStatus(updatedStatus);
     } catch (err: any) {
-      setFeedbackMsg(err.message || 'Supabase সংযোগ ব্যর্থ হয়েছে');
+      setFeedbackMsg(err.message || 'MongoDB সিঙ্ক ব্যর্থ হয়েছে');
     } finally {
-      setIsTestingSupabase(false);
-    }
-  };
-
-  const handleSyncAllSupabase = async () => {
-    setIsSyncingSupabase(true);
-    try {
-      const res = await api.syncAllToSupabase();
-      setFeedbackMsg(res.message);
-      setTimeout(() => setFeedbackMsg(''), 4000);
-    } catch (err: any) {
-      setFeedbackMsg(err.message || 'সিঙ্ক ব্যর্থ হয়েছে');
-    } finally {
-      setIsSyncingSupabase(false);
+      setIsSyncingMongo(false);
     }
   };
 
@@ -1665,75 +1649,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   সেটিংস সংরক্ষণ করুন
                 </button>
 
-                {/* Supabase Cloud Persistence Configuration */}
+                {/* Database Persistence Status (Configured strictly via environment variable) */}
                 <div className="mt-8 pt-6 border-t border-stone-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                        <span>⚡ Supabase ক্লাউড ডেটাবেস সংযোগ (Cloud Database)</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          isSupabaseConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {isSupabaseConnected ? 'সংযুক্ত (Connected)' : 'অসংযুক্ত (Local File Only)'}
+                  <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-stone-900">ডেটাবেস স্টোরেজ:</span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            mongoStatus?.isConnected
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-stone-200 text-stone-700'
+                          }`}
+                        >
+                          {mongoStatus?.isConnected
+                            ? `MongoDB Atlas সংযুক্ত (${mongoStatus.dbName})`
+                            : 'লোকাল ফাইল ডেটাবেস (Local File)'}
                         </span>
-                      </h4>
-                      <p className="text-xs text-stone-500 mt-0.5">
-                        ডেপ্লয়মেন্টের পর ডেটা স্থায়ী রাখতে Supabase PostgreSQL সংযোগ করুন
+                      </div>
+                      <p className="text-[11px] text-stone-500">
+                        {mongoStatus?.isConnected
+                          ? `সংরক্ষিত ডেটা: ${mongoStatus.collections.products} পণ্য, ${mongoStatus.collections.categories} ক্যাটাগরি, ${mongoStatus.collections.orders} অর্ডার। পণ্যের ছবি সরাসরি Base64 হিসেবে ক্লাউডে সংরক্ষিত।`
+                          : 'MongoDB ক্লাউড ডেটাবেস সক্রিয় করতে সার্ভার এনভায়রনমেন্টে MONGODB_URI প্রদান করুন। অ্যাডমিন প্যানেলে কোনো কি-ইনপুট দেওয়ার প্রয়োজন নেই।'}
                       </p>
                     </div>
-                  </div>
 
-                  <div className="space-y-3 bg-stone-50 p-4 rounded-xl border border-stone-200">
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
-                        Supabase Project URL
-                      </label>
-                      <input
-                        type="text"
-                        value={supabaseUrl}
-                        onChange={(e) => setSupabaseUrl(e.target.value)}
-                        placeholder="https://xyzproject.supabase.co"
-                        className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs bg-white font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
-                        Supabase Anon Key / Service Role Key
-                      </label>
-                      <input
-                        type="password"
-                        value={supabaseKey}
-                        onChange={(e) => setSupabaseKey(e.target.value)}
-                        placeholder="eyJhbGciOi..."
-                        className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs bg-white font-mono"
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                    {mongoStatus?.isConnected && (
                       <button
                         type="button"
-                        onClick={handleSaveSupabaseConfig}
-                        disabled={isTestingSupabase}
-                        className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                        onClick={handleSyncAllMongo}
+                        disabled={isSyncingMongo}
+                        className="px-3.5 py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
                       >
-                        {isTestingSupabase ? 'যাচাই করা হচ্ছে...' : 'সংযুক্ত ও সংরক্ষণ করুন'}
+                        <RefreshCw className={`w-3.5 h-3.5 ${isSyncingMongo ? 'animate-spin' : ''}`} />
+                        <span>{isSyncingMongo ? 'সিঙ্ক হচ্ছে...' : 'MongoDB সিঙ্ক'}</span>
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={handleSyncAllSupabase}
-                        disabled={isSyncingSupabase || !isSupabaseConnected}
-                        className="px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSupabase ? 'animate-spin' : ''}`} />
-                        <span>{isSyncingSupabase ? 'সিঙ্ক হচ্ছে...' : 'সকল ডেটা ক্লাউডে সিঙ্ক করুন'}</span>
-                      </button>
-                    </div>
-
-                    <div className="text-[11px] text-stone-500 pt-1">
-                      💡 Supabase-এ টেবিল তৈরি করতে প্রজেক্ট রুটের <code className="bg-stone-200 px-1 py-0.5 rounded text-stone-800 font-mono">supabase_schema.sql</code> ফাইলটির কোড Supabase SQL Editor-এ একবার রান করে নিন।
-                    </div>
+                    )}
                   </div>
                 </div>
               </form>

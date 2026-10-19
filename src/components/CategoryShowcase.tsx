@@ -36,7 +36,7 @@ export const CategoryShowcase: React.FC<CategoryShowcaseProps> = ({
 
   return (
     <section id="categories" className="py-6 sm:py-8 bg-white border-b border-stone-200">
-      <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12">
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10">
         {/* Section Header with Left/Right Scroll Controls */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div>

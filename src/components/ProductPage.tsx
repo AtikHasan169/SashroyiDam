@@ -241,7 +241,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
     <div className="min-h-screen bg-[#FAF9F6] text-stone-900 pb-20">
       {/* Top Breadcrumb & Navigation Bar */}
       <div className="bg-white border-b border-stone-200 sticky top-14 md:top-16 z-30 shadow-2xs">
-        <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-3 flex items-center justify-between gap-4">
+        <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs text-stone-600 truncate">
             <button
               onClick={onBack}
@@ -309,7 +309,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
       </div>
 
       {/* Main Product Stage Container */}
-      <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-6 sm:py-10">
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8">
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200/90 shadow-sm overflow-hidden p-4 sm:p-8 lg:p-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
             

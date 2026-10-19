@@ -111,7 +111,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking }) => {
 
   return (
     <footer className="bg-stone-900 text-stone-300 text-xs border-t border-stone-800">
-      <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-10 lg:py-12">
+      <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 pt-10 pb-24 md:py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
           {/* Brand Info & Social Links */}
           <div className="lg:col-span-2 space-y-4">

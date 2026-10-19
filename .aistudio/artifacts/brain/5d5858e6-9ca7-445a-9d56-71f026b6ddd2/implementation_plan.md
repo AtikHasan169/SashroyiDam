@@ -1,66 +1,85 @@
-# Implementation Plan: Auto-Adapting Desktop Widescreen Layout
+# Implementation Plan: Pure MongoDB Environment Integration (Zero Supabase, Base64 Photos)
 
-## 1. Problem Diagnosis & User Feedback
-When visiting the site on Chromium and desktop screens (especially 1440px, 1680px, and 1920px+ resolutions), the entire store layout was constricted inside a rigid `max-w-7xl` (1280px) container with a fixed 4-column maximum grid. On standard 1080p and higher desktop monitors, this leaves over 320px–500px of empty gutter space on both sides, making the entire website look squeezed and clustered down the center ("It's like all middle").
-
-The user chose **"Auto adapt"** width, with no architectural changes required to the product catalog structure itself.
-
----
-
-## 2. Spatial & Responsive Architecture Strategy
-To create a natural, auto-adapting widescreen experience that utilizes modern desktop displays while maintaining pristine visual balance:
-
-### A. Fluid & Auto-Adapting Container Math
-- **Previous Container**: Rigid `max-w-7xl` (1280px / 80rem).
-- **New Auto-Adapting Container**: `w-full max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12`.
-  - On 1024px–1280px: Balanced margins with full visibility.
-  - On 1440px laptops/monitors: Expands naturally to 1440px.
-  - On 1920px+ Chromium desktops: Gracefully spans to 1620px, eliminating excessive dead gutters while preventing text lines from becoming unreadably wide.
-
-### B. Auto-Adapting Product Grid Scaling
-- Expand catalog grid breakpoints from `lg:grid-cols-4` to:
-  `grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-5 lg:gap-6`
-  - 1024px: 4 columns
-  - 1440px (xl): 5 columns
-  - 1920px+ (2xl): 6 columns
-- Product cards maintain golden ratio proportions (~1:1.3) with consistent image aspect ratio (`aspect-4/3` or `aspect-square`).
-
-### C. Header & Hero Widescreen Harmony
-- **Header**: Allows search bar and navigation to breathe (`max-w-xl` to `max-w-2xl` on large monitors) and aligns brand logo cleanly to the left content edge.
-- **Hero Carousel**: Responsive aspect ratio (`md:aspect-[24/8] 2xl:aspect-[28/8]`) with max height scale (`2xl:max-h-[500px]`), ensuring promotional banners look cinematic rather than stubby.
-- **Category Showcase**: Expands across the wider container so more category cards are visible simultaneously with smooth horizontal navigation.
-- **Trust Guarantee & Footer**: Auto-adapt across the 1620px baseline with proportional column distribution.
+## 1. User Directives & Scope
+Based on the revised requirements:
+1. **Completely Remove Supabase**: Remove `@supabase/supabase-js`, `src/server/supabase.ts`, `src/lib/clientSupabase.ts`, `supabase_schema.sql`, all Supabase API routes, and the Supabase configuration tab from `AdminDashboard.tsx`.
+2. **MongoDB ONLY in ENV (Not in Admin UI)**:
+   - MongoDB connection is configured **strictly via environment variable** (`MONGODB_URI` and optional `MONGODB_DB_NAME` in `.env` / environment).
+   - **No database configuration form or input fields in the Admin Dashboard**.
+   - The server reads `process.env.MONGODB_URI` on startup. If present, it connects to MongoDB Atlas; if absent, it safely falls back to local storage.
+3. **Product Photos Stored in MongoDB as Base64**:
+   - Product photos uploaded through the admin panel or store are saved and stored directly inside the MongoDB `products` documents (and dedicated `photos` collection if needed) as Base64 data URLs (`data:image/...;base64,...`), requiring no external S3/Supabase storage buckets.
 
 ---
 
-## 3. Step-by-Step Changes
+## 2. Architecture & File Strategy
 
-### Step 1: Update Storefront Root Layout & Catalog Grid (`src/App.tsx`)
-- Update `main#products` container from `max-w-7xl` to `max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] 2xl:px-12`.
-- Update catalog grid to `grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-5 lg:gap-6`.
-- Update loading skeleton to match new column tiers (up to 12 items).
+### A. Environment Configuration (`.env.example` & `server.ts`)
+- Update `.env.example` to define:
+  ```env
+  # MONGODB CLOUD DATABASE PERSISTENCE (Zero SQL)
+  MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/sashroyidaam?retryWrites=true&w=majority
+  MONGODB_DB_NAME=sashroyidaam
+  ```
+- No UI inputs in Admin for database credentials. The app owner manages connection via environment variables.
 
-### Step 2: Update Header Container & Navigation Breadth (`src/components/Header.tsx`)
-- Update announcement strip container, main navigation bar, and sticky header container to `max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] 2xl:px-12`.
-- Give search bar container adaptive width (`flex-1 max-w-xl xl:max-w-2xl`).
+### B. Core MongoDB Service (`src/server/mongodb.ts`)
+- Install `mongodb` driver.
+- Create a clean singleton `MongoDBManager`:
+  - Reads `process.env.MONGODB_URI` and `process.env.MONGODB_DB_NAME`.
+  - Connects on server boot without blocking server startup.
+  - Exposes collections: `products`, `categories`, `orders`, `users`, `store_settings`, `coupons`, `reviews`.
+  - Helper functions for document queries, upserts, and deletions.
+  - Ensures photos in `images` array are safely validated and stored as Base64 strings.
 
-### Step 3: Update Hero Carousel (`src/components/Hero.tsx`)
-- Update Hero container to `max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] 2xl:px-12`.
-- Adjust aspect ratio and min/max heights for widescreen monitors (`aspect-[16/7] sm:aspect-[21/8] md:aspect-[24/8] 2xl:aspect-[26/8] max-h-[480px] 2xl:max-h-[520px]`).
+### C. Unified Server Database Engine (`src/server/db.ts`)
+- Remove all Supabase imports and references (`isSupabaseConfigured`, `syncAllToSupabase`, `fetchSupabaseData`).
+- When `MONGODB_URI` is provided:
+  - On server start: loads initial state from MongoDB collections (products, categories, orders, users, settings).
+  - On write: syncs updates directly to MongoDB collections.
+  - Stores all image uploads directly as Base64 strings in documents.
 
-### Step 4: Update Category Showcase, Trust Bar & Footer (`src/components/CategoryShowcase.tsx`, `TrustGuaranteeBar.tsx`, `Footer.tsx`)
-- Align containers to `max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] 2xl:px-12`.
-- Ensure footer grid columns distribute proportionally across 4 columns on large screens.
+### D. Complete Supabase Cleanup
+- **Delete**: `src/server/supabase.ts`, `src/lib/clientSupabase.ts`, `supabase_schema.sql`, `data/supabase_config.json`.
+- **Remove from `package.json`**: `@supabase/supabase-js`.
+- **Remove from routes**:
+  - `src/server/routes/admin.ts`: Remove `/supabase/*` routes.
+  - `src/server/routes/auth.ts`: Remove Supabase sync.
+  - `src/server/routes/orders.ts`: Remove Supabase sync.
+- **Remove from frontend**:
+  - `src/lib/api.ts`: Remove `getSupabaseStatus`, `configureSupabase`, `syncAllToSupabase`.
+  - `src/components/admin/AdminDashboard.tsx`: Completely remove Supabase tab, inputs, state, and buttons. Display only a subtle badge in the header ("Database: MongoDB Cloud" or "Database: Local File").
 
-### Step 5: Update Dedicated Category & Product Pages (`CategoryPage.tsx`, `ProductPage.tsx`)
-- Ensure consistent auto-adapting widths when viewing a dedicated product page or category page.
+---
+
+## 3. Step-by-Step Implementation
+
+### Step 1: Install MongoDB & Remove Supabase Dependency
+- Install `mongodb` driver via `install_applet_package`.
+- Remove `@supabase/supabase-js` from `package.json`.
+
+### Step 2: Delete Supabase Files & Clean Routes
+- Remove `src/server/supabase.ts`, `src/lib/clientSupabase.ts`, and `supabase_schema.sql`.
+- Clean up `src/server/routes/admin.ts`, `auth.ts`, `orders.ts` to remove all Supabase calls.
+
+### Step 3: Implement MongoDB Client (`src/server/mongodb.ts`)
+- Create `src/server/mongodb.ts` reading `process.env.MONGODB_URI`.
+- Implement collection sync and Base64 product photo handling.
+
+### Step 4: Update Database Core (`src/server/db.ts`)
+- Wire `src/server/db.ts` to sync with `mongodb.ts`.
+- Ensure base64 product photos are preserved and stored directly in MongoDB.
+
+### Step 5: Clean Admin Dashboard UI (`src/components/admin/AdminDashboard.tsx` & `src/lib/api.ts`)
+- Remove Supabase tab and all database input fields.
+- Keep the Admin UI clean and focused on products, orders, categories, coupons, and store settings.
+
+### Step 6: Update Environment Example
+- Update `.env.example` with `MONGODB_URI` and remove Supabase keys.
 
 ---
 
 ## 4. Verification & Testing Plan
-1. **Compilation & Linting**: Run `compile_applet` and `lint_applet` to verify zero TypeScript or syntax errors.
-2. **Multi-Resolution Desktop Check**:
-   - 1024px (Standard tablet / small laptop) -> 4 columns, clean margins.
-   - 1440px (MacBook / standard desktop) -> 5 columns, fluid expansion.
-   - 1920px (Full HD Chromium monitor) -> 6 columns, full use of screen width without clustered middle column.
-3. **Card & Image Integrity**: Ensure product card images, badges, price tags, and buttons scale crisply without distortion or clipping.
+1. **Compilation & Linting**: Run `compile_applet` and `lint_applet` to verify no remaining Supabase imports or type errors.
+2. **Environment Variable Boot**: Verify server starts cleanly with or without `MONGODB_URI`.
+3. **Base64 Photo Upload**: Verify creating/updating a product with an uploaded photo stores the image as a Base64 string in MongoDB without external file dependencies.

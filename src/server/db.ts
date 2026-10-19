@@ -14,7 +14,16 @@ import type {
   InventoryMovement,
   AuditLog
 } from '../types/index.ts';
-import { isSupabaseConfigured, fetchSupabaseData, syncAllToSupabase } from './supabase.ts';
+import {
+  isMongoConfigured,
+  fetchMongoData,
+  syncAllToMongo,
+  syncProductToMongo,
+  syncCategoryToMongo,
+  syncOrderToMongo,
+  syncUserToMongo,
+  syncStoreSettingsToMongo
+} from './mongodb.ts';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'oshesh_db.json');
@@ -960,53 +969,41 @@ export function getDatabase(): DatabaseSchema {
         saveDatabaseSync(memoryDb!);
       }
 
-      // If Supabase is configured, fetch latest cloud records in background
-      if (isSupabaseConfigured()) {
-        fetchSupabaseData().then((supaData) => {
-          if (supaData && memoryDb) {
-            if (supaData.products && supaData.products.length > 0) {
-              memoryDb.products = supaData.products as Product[];
+      // If MongoDB is configured in environment, fetch latest cloud records in background
+      if (isMongoConfigured()) {
+        fetchMongoData().then((mongoData) => {
+          if (mongoData && memoryDb) {
+            if (mongoData.products && mongoData.products.length > 0) {
+              memoryDb.products = mongoData.products as Product[];
             }
-            if (supaData.orders && supaData.orders.length > 0) {
-              memoryDb.orders = supaData.orders as Order[];
+            if (mongoData.orders && mongoData.orders.length > 0) {
+              memoryDb.orders = mongoData.orders as Order[];
             }
-            if (supaData.categories && supaData.categories.length > 0) {
-              memoryDb.categories = supaData.categories as Category[];
+            if (mongoData.categories && mongoData.categories.length > 0) {
+              memoryDb.categories = mongoData.categories as Category[];
             }
-            if (supaData.storeSettings) {
-              memoryDb.storeSettings = supaData.storeSettings as StoreSettings;
+            if (mongoData.storeSettings) {
+              memoryDb.storeSettings = mongoData.storeSettings as StoreSettings;
             }
-            if (supaData.users && supaData.users.length > 0) {
-              for (const su of supaData.users) {
+            if (mongoData.users && mongoData.users.length > 0) {
+              for (const mu of mongoData.users) {
                 const idx = memoryDb.users.findIndex(
-                  (u) => u.id === su.id || u.email.toLowerCase() === su.email.toLowerCase() || u.phone === su.phone
+                  (u) => u.id === mu.id || u.email.toLowerCase() === mu.email.toLowerCase() || u.phone === mu.phone
                 );
                 if (idx !== -1) {
                   // Keep passwordHash if local has it and remote doesn't
                   memoryDb.users[idx] = {
-                    ...su,
-                    passwordHash: su.passwordHash || memoryDb.users[idx].passwordHash
+                    ...mu,
+                    passwordHash: mu.passwordHash || memoryDb.users[idx].passwordHash
                   };
                 } else {
-                  memoryDb.users.push(su);
+                  memoryDb.users.push(mu);
                 }
               }
             }
             saveDatabaseSync(memoryDb);
-
-            // Auto-push initial data if Supabase tables are empty
-            if (!supaData.products || supaData.products.length === 0) {
-              console.log('⚡ Supabase is connected but empty. Automatically pushing initial catalog and users...');
-              syncAllToSupabase(memoryDb)
-                .then((res) => {
-                  console.log(`✅ Auto-pushed to Supabase: ${res.categoriesCount} categories, ${res.productsCount} products, ${res.usersCount} users.`);
-                })
-                .catch((e) => {
-                  console.warn('⚠️ Auto-push to Supabase skipped (ensure supabase_schema.sql has been executed):', e.message);
-                });
-            }
           }
-        }).catch((err) => console.warn('Supabase background sync skipped:', err));
+        }).catch((err) => console.warn('MongoDB background sync note:', err));
       }
 
       return memoryDb!;
@@ -1019,47 +1016,40 @@ export function getDatabase(): DatabaseSchema {
   memoryDb = initial;
   saveDatabaseSync(initial);
 
-  // If Supabase is configured on fresh container boot, fetch cloud records immediately
-  if (isSupabaseConfigured()) {
-    fetchSupabaseData().then((supaData) => {
-      if (supaData && memoryDb) {
-        if (supaData.products && supaData.products.length > 0) {
-          memoryDb.products = supaData.products as Product[];
+  // If MongoDB is configured on fresh container boot, fetch cloud records immediately
+  if (isMongoConfigured()) {
+    fetchMongoData().then((mongoData) => {
+      if (mongoData && memoryDb) {
+        if (mongoData.products && mongoData.products.length > 0) {
+          memoryDb.products = mongoData.products as Product[];
         }
-        if (supaData.orders && supaData.orders.length > 0) {
-          memoryDb.orders = supaData.orders as Order[];
+        if (mongoData.orders && mongoData.orders.length > 0) {
+          memoryDb.orders = mongoData.orders as Order[];
         }
-        if (supaData.categories && supaData.categories.length > 0) {
-          memoryDb.categories = supaData.categories as Category[];
+        if (mongoData.categories && mongoData.categories.length > 0) {
+          memoryDb.categories = mongoData.categories as Category[];
         }
-        if (supaData.storeSettings) {
-          memoryDb.storeSettings = supaData.storeSettings as StoreSettings;
+        if (mongoData.storeSettings) {
+          memoryDb.storeSettings = mongoData.storeSettings as StoreSettings;
         }
-        if (supaData.users && supaData.users.length > 0) {
-          for (const su of supaData.users) {
+        if (mongoData.users && mongoData.users.length > 0) {
+          for (const mu of mongoData.users) {
             const idx = memoryDb.users.findIndex(
-              (u) => u.id === su.id || u.email.toLowerCase() === su.email.toLowerCase() || u.phone === su.phone
+              (u) => u.id === mu.id || u.email.toLowerCase() === mu.email.toLowerCase() || u.phone === mu.phone
             );
             if (idx !== -1) {
               memoryDb.users[idx] = {
-                ...su,
-                passwordHash: su.passwordHash || memoryDb.users[idx].passwordHash
+                ...mu,
+                passwordHash: mu.passwordHash || memoryDb.users[idx].passwordHash
               };
             } else {
-              memoryDb.users.push(su);
+              memoryDb.users.push(mu);
             }
           }
         }
         saveDatabaseSync(memoryDb);
-
-        if (!supaData.products || supaData.products.length === 0) {
-          console.log('⚡ Supabase is connected but empty. Automatically pushing initial catalog and users...');
-          syncAllToSupabase(memoryDb).catch((e) => {
-            console.warn('⚠️ Auto-push to Supabase skipped:', e.message);
-          });
-        }
       }
-    }).catch((err) => console.warn('Supabase fresh boot sync error:', err));
+    }).catch((err) => console.warn('MongoDB fresh boot sync note:', err));
   }
 
   return memoryDb;

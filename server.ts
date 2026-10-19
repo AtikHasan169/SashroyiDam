@@ -9,12 +9,13 @@ import ordersRouter from './src/server/routes/orders.ts';
 import paymentRouter from './src/server/routes/payment.ts';
 import adminRouter from './src/server/routes/admin.ts';
 import { getDatabase } from './src/server/db.ts';
+import { getMongoDatabase } from './src/server/mongodb.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
-  // Eagerly initialize in-memory database & Supabase sync
+  // Eagerly initialize in-memory database & MongoDB sync
   getDatabase();
 
   const app = express();
@@ -70,6 +71,25 @@ async function startServer() {
         fs.writeFileSync(filePath, buffer);
       } catch (e) {
         // Fallback gracefully if disk is read-only
+      }
+
+      // If MongoDB is connected, store in photos collection
+      const mongoDb = getMongoDatabase();
+      if (mongoDb) {
+        mongoDb.collection('photos').updateOne(
+          { name: safeName },
+          {
+            $set: {
+              name: safeName,
+              data,
+              contentType: `image/${ext}`,
+              createdAt: new Date().toISOString()
+            }
+          },
+          { upsert: true }
+        ).catch((err) => {
+          console.warn('MongoDB photo store warning:', err.message);
+        });
       }
 
       // Return full base64 data URL so it is saved directly into the database row

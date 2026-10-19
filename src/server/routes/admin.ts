@@ -14,14 +14,13 @@ import type {
   InventoryMovement
 } from '../../types/index.ts';
 import {
-  configureSupabase,
-  getSupabaseConfig,
-  syncAllToSupabase,
-  syncProductToSupabase,
-  deleteProductFromSupabase,
-  syncCategoryToSupabase,
-  deleteCategoryFromSupabase
-} from '../supabase.ts';
+  syncProductToMongo,
+  deleteProductFromMongo,
+  syncCategoryToMongo,
+  deleteCategoryFromMongo,
+  getMongoStatus,
+  syncAllToMongo
+} from '../mongodb.ts';
 
 const router = Router();
 
@@ -379,6 +378,8 @@ router.post('/products', async (req: AuthenticatedRequest, res) => {
       `Product "${newProduct.titleBn}" (SKU: ${newProduct.sku}) created.`
     );
 
+    await syncProductToMongo(newProduct);
+
     res.status(201).json({ product: newProduct, message: 'পণ্যটি সফলভাবে যুক্ত হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'পণ্য তৈরি ব্যর্থ হয়েছে' });
@@ -439,6 +440,8 @@ router.put('/products/:id', async (req: AuthenticatedRequest, res) => {
       `Product "${updated.titleBn}" updated.`
     );
 
+    await syncProductToMongo(updated);
+
     res.json({ product: updated, message: 'পণ্য সফলভাবে আপডেট হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'আপডেট ব্যর্থ হয়েছে' });
@@ -457,7 +460,7 @@ router.patch('/products/:id/toggle-publish', async (req: AuthenticatedRequest, r
       return prod;
     });
 
-    await syncProductToSupabase(updated);
+    await syncProductToMongo(updated);
 
     res.json({
       product: updated,
@@ -490,7 +493,7 @@ router.delete('/products/:id', async (req: AuthenticatedRequest, res) => {
     });
 
     if (permanent) {
-      await deleteProductFromSupabase(id);
+      await deleteProductFromMongo(id);
     }
 
     await recordAuditLog(
@@ -542,6 +545,8 @@ router.post('/categories', async (req: AuthenticatedRequest, res) => {
       `Category "${newCat.nameBn}" created.`
     );
 
+    await syncCategoryToMongo(newCat);
+
     res.status(201).json({ category: newCat, message: 'ক্যাটাগরি সফলভাবে যুক্ত হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -575,6 +580,8 @@ router.put('/categories/:id', async (req: AuthenticatedRequest, res) => {
       `Category "${updated.nameBn}" updated.`
     );
 
+    await syncCategoryToMongo(updated);
+
     res.json({ category: updated, message: 'ক্যাটাগরি আপডেট সম্পন্ন হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'ক্যাটাগরি আপডেট ব্যর্থ হয়েছে' });
@@ -592,7 +599,7 @@ router.patch('/categories/:id/toggle-publish', async (req: AuthenticatedRequest,
       return cat;
     });
 
-    await syncCategoryToSupabase(updated);
+    await syncCategoryToMongo(updated);
 
     res.json({
       category: updated,
@@ -625,7 +632,7 @@ router.delete('/categories/:id', async (req: AuthenticatedRequest, res) => {
       db.categories.splice(idx, 1);
     });
 
-    await deleteCategoryFromSupabase(id);
+    await deleteCategoryFromMongo(id);
 
     await recordAuditLog(
       'CATEGORY_DELETED',
@@ -775,42 +782,24 @@ router.get('/products/export-csv', (req: AuthenticatedRequest, res) => {
   res.send('\uFEFF' + csv); // Byte order mark for UTF-8 in Excel
 });
 
-// 9. Supabase Cloud Database Management
-router.get('/supabase/status', (req: AuthenticatedRequest, res) => {
-  const config = getSupabaseConfig();
-  res.json(config);
+// 9. MongoDB Cloud Database Status & Sync
+router.get('/mongodb/status', async (req: AuthenticatedRequest, res) => {
+  const status = await getMongoStatus();
+  res.json(status);
 });
 
-router.post('/supabase/configure', async (req: AuthenticatedRequest, res) => {
+router.post('/mongodb/sync-all', async (req: AuthenticatedRequest, res) => {
   try {
-    const { url, key } = req.body;
-    const result = await configureSupabase(url, key);
+    const db = getDatabase();
+    const result = await syncAllToMongo(db);
     await recordAuditLog(
-      'SUPABASE_CONFIGURED',
+      'MONGODB_SYNCED',
       req.user!,
-      `Supabase cloud database connected (${url}).`
+      `Synchronized ${db.products.length} products and ${db.categories.length} categories to MongoDB Atlas.`
     );
     res.json(result);
   } catch (err: any) {
-    res.status(400).json({ error: err.message || 'Supabase কনফিগারেশন ব্যর্থ হয়েছে' });
-  }
-});
-
-router.post('/supabase/sync-all', async (req: AuthenticatedRequest, res) => {
-  try {
-    const db = getDatabase();
-    const result = await syncAllToSupabase(db);
-    await recordAuditLog(
-      'SUPABASE_SYNCED',
-      req.user!,
-      `Synchronized ${result.categoriesCount} categories and ${result.productsCount} products to Supabase cloud.`
-    );
-    res.json({
-      message: `Supabase-এ ${result.categoriesCount} টি ক্যাটাগরি ও ${result.productsCount} টি পণ্য সফলভাবে সিঙ্ক হয়েছে`,
-      ...result
-    });
-  } catch (err: any) {
-    res.status(400).json({ error: err.message || 'সিঙ্ক ব্যর্থ হয়েছে' });
+    res.status(400).json({ error: err.message || 'MongoDB সিঙ্ক ব্যর্থ হয়েছে' });
   }
 });
 

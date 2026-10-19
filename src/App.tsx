@@ -294,7 +294,7 @@ function StorefrontApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-stone-900 font-sans pb-28 md:pb-0">
+    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-stone-900 font-sans">
       {/* 1. Header with balanced mobile layout and clean marquee */}
       <Header
         onOpenAccount={handleOpenProfilePage}

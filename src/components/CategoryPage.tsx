@@ -68,7 +68,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
     <div className="min-h-screen bg-[#FAF9F6] pb-20">
       {/* 1. Breadcrumbs & Top Navigation Bar */}
       <div className="bg-white border-b border-stone-200 sticky top-0 z-20">
-        <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-3 flex items-center justify-between gap-3">
+        <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs text-stone-600 font-medium">
             <button
               onClick={onBackToHome}
@@ -90,7 +90,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
         </div>
       </div>
 
-      <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 py-6 space-y-6">
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 space-y-6">
         {/* 2. Category Hero Banner */}
         <div className="bg-gradient-to-r from-[#0F4C3A] to-[#165B47] text-white rounded-2xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
           <div className="relative z-10 max-w-2xl space-y-2">

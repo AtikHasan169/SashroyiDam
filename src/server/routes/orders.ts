@@ -10,7 +10,7 @@ import {
   InventoryMovement,
   User
 } from '../../types/index.ts';
-import { syncOrderToSupabase } from '../supabase.ts';
+import { syncOrderToMongo } from '../mongodb.ts';
 
 const router = Router();
 
@@ -314,8 +314,8 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
       return { order, autoUser, isNewAccount };
     });
 
-    // Sync to Supabase PostgreSQL in background
-    syncOrderToSupabase(orderResult.order).catch((err) => console.warn('Supabase order sync error:', err));
+    // Sync to MongoDB in background
+    syncOrderToMongo(orderResult.order).catch((err) => console.warn('MongoDB order sync error:', err));
 
     const autoAuthToken = orderResult.autoUser ? createAuthToken(orderResult.autoUser) : undefined;
 
