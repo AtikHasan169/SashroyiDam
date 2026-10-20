@@ -147,31 +147,7 @@ function getInitialData(): DatabaseSchema {
 
   const initialProducts: Product[] = [];
 
-  const initialCoupons: Coupon[] = [
-    {
-      id: 'coup-welcome50',
-      code: 'WELCOME50',
-      discountType: 'fixed',
-      discountValue: 50,
-      minOrderValue: 500,
-      expiresAt: '2027-12-31T23:59:59.000Z',
-      usageLimit: 1000,
-      usageCount: 42,
-      isActive: true
-    },
-    {
-      id: 'coup-sashroyi10',
-      code: 'SASHROYI10',
-      discountType: 'percentage',
-      discountValue: 10,
-      minOrderValue: 1200,
-      maxDiscount: 400,
-      expiresAt: '2027-12-31T23:59:59.000Z',
-      usageLimit: 500,
-      usageCount: 19,
-      isActive: true
-    }
-  ];
+  const initialCoupons: Coupon[] = [];
 
   const initialShippingRates: ShippingRate[] = [
     {
@@ -418,6 +394,17 @@ export function getDatabase(): DatabaseSchema {
         hasChanges = true;
       }
 
+      // Purge any legacy hardcoded coupons
+      if (memoryDb!.coupons && memoryDb!.coupons.length > 0) {
+        const filteredCoupons = memoryDb!.coupons.filter(
+          (c) => c.code !== 'WELCOME50' && c.code !== 'SASHROYI10' && c.code !== 'OSHESH10'
+        );
+        if (filteredCoupons.length !== memoryDb!.coupons.length) {
+          memoryDb!.coupons = filteredCoupons;
+          hasChanges = true;
+        }
+      }
+
       if (hasChanges) {
         saveDatabaseSync(memoryDb!);
       }
@@ -427,7 +414,13 @@ export function getDatabase(): DatabaseSchema {
         fetchMongoData().then((mongoData) => {
           if (mongoData && memoryDb) {
             if (mongoData.products && mongoData.products.length > 0) {
-              memoryDb.products = mongoData.products as Product[];
+              // Merge products keeping any newly created local ones
+              const localMap = new Map(memoryDb.products.map((p) => [p.id, p]));
+              for (const mp of mongoData.products as Product[]) {
+                if (!localMap.has(mp.id)) {
+                  memoryDb.products.push(mp);
+                }
+              }
             }
             if (mongoData.orders && mongoData.orders.length > 0) {
               memoryDb.orders = mongoData.orders as Order[];

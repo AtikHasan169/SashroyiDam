@@ -96,11 +96,7 @@ router.post('/validate', (req, res) => {
     if (couponCode && couponCode.trim()) {
       const codeClean = couponCode.trim().toUpperCase();
       const coupon = db.coupons.find(
-        (c) =>
-          (c.code === codeClean ||
-            (codeClean === 'OSHESH10' && c.code === 'SASHROYI10') ||
-            (codeClean === 'SASHROYI10' && c.code === 'OSHESH10')) &&
-          c.isActive
+        (c) => c.code === codeClean && c.isActive
       );
 
       if (!coupon) {

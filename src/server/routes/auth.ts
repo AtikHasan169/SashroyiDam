@@ -230,6 +230,24 @@ router.put('/update-profile', authenticateUser, requireAuth, async (req: Authent
   }
 });
 
+router.get('/addresses', authenticateUser, requireAuth, (req: AuthenticatedRequest, res) => {
+  const db = getDatabase();
+  const user = db.users.find((u) => u.id === req.user!.id);
+  res.json({
+    addresses: user?.savedAddresses || [],
+    success: true
+  });
+});
+
+router.get('/address', authenticateUser, requireAuth, (req: AuthenticatedRequest, res) => {
+  const db = getDatabase();
+  const user = db.users.find((u) => u.id === req.user!.id);
+  res.json({
+    addresses: user?.savedAddresses || [],
+    success: true
+  });
+});
+
 router.post('/address', authenticateUser, requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const { title, name, phone, division, district, upazila, fullAddress, isDefault } = req.body;
@@ -252,13 +270,13 @@ router.post('/address', authenticateUser, requireAuth, async (req: Authenticated
 
       const newAddress: Address = {
         id: `addr-${Date.now()}`,
-        title: title || 'Home',
-        name,
-        phone,
+        title: title || 'বাসা',
+        name: name.trim(),
+        phone: phone.trim(),
         division,
         district,
-        upazila: upazila || '',
-        fullAddress,
+        upazila: upazila ? upazila.trim() : '',
+        fullAddress: fullAddress.trim(),
         isDefault: Boolean(isDefault) || user.savedAddresses.length === 0
       };
 
@@ -269,7 +287,11 @@ router.post('/address', authenticateUser, requireAuth, async (req: Authenticated
     const token = createAuthToken(updatedUser);
     setAuthHeaders(res, token);
     const { passwordHash, role, ...safeUser } = updatedUser;
-    res.json({ user: safeUser, message: 'নতুন ডেলিভারি ঠিকানা সংরক্ষিত হয়েছে' });
+    res.json({
+      addresses: updatedUser.savedAddresses || [],
+      user: safeUser,
+      message: 'নতুন ডেলিভারি ঠিকানা সংরক্ষিত হয়েছে'
+    });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'ঠিকানা যোগ করতে ব্যর্থ হয়েছে' });
   }
@@ -290,7 +312,11 @@ router.delete('/address/:id', authenticateUser, requireAuth, async (req: Authent
     const token = createAuthToken(updatedUser);
     setAuthHeaders(res, token);
     const { passwordHash, role, ...safeUser } = updatedUser;
-    res.json({ user: safeUser, message: 'ঠিকানা মুছে ফেলা হয়েছে' });
+    res.json({
+      addresses: updatedUser.savedAddresses || [],
+      user: safeUser,
+      message: 'ঠিকানা মুছে ফেলা হয়েছে'
+    });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'ঠিকানা মুছতে সমস্যা হয়েছে' });
   }

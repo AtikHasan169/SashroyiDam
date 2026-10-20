@@ -53,6 +53,27 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [addrUpazila, setAddrUpazila] = useState('ধানমন্ডি');
   const [addrFull, setAddrFull] = useState('');
 
+  const currentDivData = BANGLADESH_DIVISIONS.find((d) => d.id === addrDivision) || BANGLADESH_DIVISIONS[0];
+  const availableDistricts = currentDivData ? currentDivData.districts : [];
+  const currentDistrictData = availableDistricts.find((d) => d.nameBn === addrDistrict) || availableDistricts[0];
+  const availableUpazilas = currentDistrictData ? currentDistrictData.upazilas : [];
+
+  const handleDivChange = (divId: string) => {
+    setAddrDivision(divId);
+    const divData = BANGLADESH_DIVISIONS.find((d) => d.id === divId);
+    if (divData && divData.districts.length > 0) {
+      const firstDist = divData.districts[0];
+      setAddrDistrict(firstDist.nameBn);
+      setAddrUpazila(firstDist.upazilas[0] || '');
+    }
+  };
+
+  const handleDistChange = (distName: string) => {
+    setAddrDistrict(distName);
+    const distData = availableDistricts.find((d) => d.nameBn === distName);
+    setAddrUpazila(distData?.upazilas[0] || '');
+  };
+
   useEffect(() => {
     if (user) {
       setMode('profile');
@@ -112,14 +133,15 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     try {
       await api.addAddress({
         title: addrTitle,
-        name: addrName || user?.name,
-        phone: addrPhone || user?.phone,
+        name: addrName || user?.name || 'গ্রাহক',
+        phone: addrPhone || user?.phone || '',
         division: addrDivision,
         district: addrDistrict,
         upazila: addrUpazila,
         fullAddress: addrFull,
         isDefault: true
       });
+      await refreshUser();
       setShowAddAddress(false);
       setAddrFull('');
     } catch (err: any) {
@@ -497,39 +519,48 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         onChange={(e) => setAddrTitle(e.target.value)}
                         className="w-full px-2.5 py-1.5 border border-stone-200 rounded text-xs bg-white focus:outline-none"
                       />
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div>
-                          <label className="block text-[11px] font-semibold text-stone-600 mb-0.5">জেলা</label>
+                          <label className="block text-[11px] font-semibold text-stone-600 mb-0.5">বিভাগ *</label>
                           <select
-                            value={addrDistrict}
-                            onChange={(e) => {
-                              const dName = e.target.value;
-                              setAddrDistrict(dName);
-                              const found = BANGLADESH_DISTRICTS.find(d => d.nameBn === dName);
-                              if (found) setAddrDivision(found.division.toLowerCase());
-                            }}
-                            className="w-full px-2.5 py-1.5 border border-stone-200 rounded text-xs bg-white focus:outline-none"
+                            value={addrDivision}
+                            onChange={(e) => handleDivChange(e.target.value)}
+                            className="w-full px-2.5 py-1.5 border border-stone-200 rounded text-xs bg-white focus:outline-none cursor-pointer"
                           >
                             {BANGLADESH_DIVISIONS.map((div) => (
-                              <optgroup key={div.id} label={`${div.nameBn} বিভাগ`}>
-                                {div.districts.map((dist) => (
-                                  <option key={dist.nameBn} value={dist.nameBn}>
-                                    {dist.nameBn} ({dist.nameEn})
-                                  </option>
-                                ))}
-                              </optgroup>
+                              <option key={div.id} value={div.id}>
+                                {div.nameBn} ({div.nameEn})
+                              </option>
                             ))}
                           </select>
                         </div>
                         <div>
-                          <label className="block text-[11px] font-semibold text-stone-600 mb-0.5">উপজেলা / থানা</label>
-                          <input
-                            type="text"
-                            placeholder="যেমন: ধানমন্ডি / উত্তরা"
+                          <label className="block text-[11px] font-semibold text-stone-600 mb-0.5">জেলা *</label>
+                          <select
+                            value={addrDistrict}
+                            onChange={(e) => handleDistChange(e.target.value)}
+                            className="w-full px-2.5 py-1.5 border border-stone-200 rounded text-xs bg-white focus:outline-none cursor-pointer"
+                          >
+                            {availableDistricts.map((dist) => (
+                              <option key={dist.nameBn} value={dist.nameBn}>
+                                {dist.nameBn} ({dist.nameEn})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-stone-600 mb-0.5">উপজেলা / থানা *</label>
+                          <select
                             value={addrUpazila}
                             onChange={(e) => setAddrUpazila(e.target.value)}
-                            className="w-full px-2.5 py-1.5 border border-stone-200 rounded text-xs bg-white focus:outline-none"
-                          />
+                            className="w-full px-2.5 py-1.5 border border-stone-200 rounded text-xs bg-white focus:outline-none cursor-pointer"
+                          >
+                            {availableUpazilas.map((upz) => (
+                              <option key={upz} value={upz}>
+                                {upz}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       </div>
                       <textarea

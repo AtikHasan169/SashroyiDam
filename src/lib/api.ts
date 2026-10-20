@@ -201,8 +201,10 @@ export const api = {
     };
   },
 
+  getAddresses: () => request<{ addresses: Address[]; success: boolean }>('/api/auth/addresses'),
+
   addAddress: async (body: any) => {
-    const res = await request<{ message: string; user?: any }>('/api/auth/address', {
+    const res = await request<{ message: string; addresses?: Address[]; user?: any }>('/api/auth/address', {
       method: 'POST',
       body: JSON.stringify(body)
     });
@@ -210,18 +212,20 @@ export const api = {
     const user = getUserFromToken(token);
     return {
       message: res.message,
+      addresses: res.addresses || [],
       user: user!
     };
   },
 
   deleteAddress: async (id: string) => {
-    const res = await request<{ message: string; user?: any }>(`/api/auth/address/${id}`, {
+    const res = await request<{ message: string; addresses?: Address[]; user?: any }>(`/api/auth/address/${id}`, {
       method: 'DELETE'
     });
     const token = getStoredToken() || '';
     const user = getUserFromToken(token);
     return {
       message: res.message,
+      addresses: res.addresses || [],
       user: user!
     };
   },

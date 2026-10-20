@@ -251,6 +251,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [isUploadingProdImage, setIsUploadingProdImage] = useState(false);
+  const [prodSearchTerm, setProdSearchTerm] = useState('');
+  const [prodCatFilter, setProdCatFilter] = useState('all');
 
   // Coupon modal
   const [showCouponModal, setShowCouponModal] = useState(false);
@@ -495,15 +497,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (!editingProduct) return;
     try {
       if (editingProduct.id) {
-        await api.updateProduct(editingProduct.id, editingProduct);
+        const res = await api.updateProduct(editingProduct.id, editingProduct);
         setFeedbackMsg('পণ্য আপডেট সম্পন্ন হয়েছে');
+        if (res && res.product) {
+          setProducts((prev) => prev.map((p) => (p.id === res.product.id ? res.product : p)));
+        }
       } else {
-        await api.createProduct(editingProduct);
+        const res = await api.createProduct(editingProduct);
         setFeedbackMsg('নতুন পণ্য সফলভাবে তৈরি হয়েছে');
+        if (res && res.product) {
+          setProducts((prev) => [res.product, ...prev.filter((p) => p.id !== res.product.id)]);
+        }
       }
       setShowProductModal(false);
       setEditingProduct(null);
-      loadAllAdminData();
+      await loadAllAdminData();
       onStoreDataChanged();
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {

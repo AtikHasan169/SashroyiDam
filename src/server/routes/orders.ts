@@ -157,11 +157,7 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
       if (couponCode && couponCode.trim()) {
         const cCode = couponCode.trim().toUpperCase();
         const coupon = db.coupons.find(
-          (c) =>
-            (c.code === cCode ||
-              (cCode === 'OSHESH10' && c.code === 'SASHROYI10') ||
-              (cCode === 'SASHROYI10' && c.code === 'OSHESH10')) &&
-            c.isActive
+          (c) => c.code === cCode && c.isActive
         );
         if (
           coupon &&

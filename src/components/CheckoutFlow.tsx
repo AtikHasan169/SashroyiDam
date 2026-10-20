@@ -627,7 +627,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="কুপন কোড (যেমন: WELCOME50 বা SASHROYI10)"
+                        placeholder="কুপন কোড লিখুন"
                         value={couponInput}
                         onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                         className="flex-1 px-3 py-1.5 border border-stone-200 rounded-lg text-xs bg-white focus:outline-none focus:border-[#0F4C3A]"

@@ -457,33 +457,47 @@ router.post('/products', async (req: AuthenticatedRequest, res) => {
       tags
     } = req.body;
 
-    if (!titleBn || !price || stock === undefined || !categoryId) {
-      res.status(400).json({ error: 'আবশ্যকীয় ঘরগুলো পূরণ করুন' });
+    // Normalize Bengali/English numerals
+    const parseNum = (val: any, fallback = 0): number => {
+      if (val === undefined || val === null || val === '') return fallback;
+      const str = String(val).replace(/[০-৯]/g, (d) => String('০১২৩৪৫৬৭৮৯'.indexOf(d)));
+      const parsed = Number(str);
+      return isNaN(parsed) ? fallback : parsed;
+    };
+
+    const cleanTitle = (titleBn || '').trim();
+    const finalPrice = parseNum(price, 0);
+    const finalStock = parseNum(stock, 0);
+
+    if (!cleanTitle || finalPrice <= 0) {
+      res.status(400).json({ error: 'পণ্যের সঠিক নাম ও মূল্য প্রদান করুন' });
       return;
     }
 
-    const slug = (titleEn || titleBn)
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .substring(0, 60) + `-${Date.now().toString(36)}`;
-
     const newProduct = await withTransaction((db) => {
-      const cat = db.categories.find((c) => c.id === categoryId);
+      // Resolve category
+      const targetCatId = categoryId || (db.categories[0]?.id || 'cat-general');
+      const cat = db.categories.find((c) => c.id === targetCatId);
+
+      const slug = ((titleEn || cleanTitle))
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .substring(0, 60) + `-${Date.now().toString(36)}`;
 
       const product: Product = {
         id: `prod-${Date.now()}`,
         slug,
-        titleBn: titleBn.trim(),
-        titleEn: titleEn?.trim() || titleBn.trim(),
+        titleBn: cleanTitle,
+        titleEn: titleEn?.trim() || cleanTitle,
         descriptionBn: descriptionBn?.trim() || '',
         descriptionEn: descriptionEn?.trim() || '',
-        price: Number(price),
-        originalPrice: originalPrice ? Number(originalPrice) : undefined,
-        stock: Number(stock),
-        categoryId,
-        categorySlug: cat?.slug,
-        categoryNameBn: cat?.nameBn,
+        price: finalPrice,
+        originalPrice: originalPrice ? parseNum(originalPrice, undefined) : undefined,
+        stock: finalStock,
+        categoryId: targetCatId,
+        categorySlug: cat?.slug || 'general',
+        categoryNameBn: cat?.nameBn || 'সাধারণ',
         brand: brand?.trim() || '',
         sku: sku?.trim() || `SD-${Math.floor(1000 + Math.random() * 9000)}`,
         images: Array.isArray(images) ? images.filter(Boolean) : [],

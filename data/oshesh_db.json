@@ -7,7 +7,20 @@
       "phone": "01700000001",
       "role": "super_admin",
       "passwordHash": "55bdafe818451e4dd5f47b5548cd3574819c099799aa7ccb910a8caa893d3d8c",
-      "createdAt": "2026-08-01T00:00:00.000Z"
+      "createdAt": "2026-08-01T00:00:00.000Z",
+      "savedAddresses": [
+        {
+          "id": "addr-1792513800859",
+          "title": "Home",
+          "name": "সাশ্রয়ী অ্যাডমিন",
+          "phone": "01700000001",
+          "division": "dhaka",
+          "district": "ঢাকা",
+          "upazila": "",
+          "fullAddress": "হাউজ ১০, রোড ৫, বনানী, ঢাকা",
+          "isDefault": true
+        }
+      ]
     },
     {
       "id": "user-ordermanager",
@@ -138,33 +151,38 @@
       "defaultOptions": []
     }
   ],
-  "products": [],
-  "orders": [],
-  "coupons": [
+  "products": [
     {
-      "id": "coup-welcome50",
-      "code": "WELCOME50",
-      "discountType": "fixed",
-      "discountValue": 50,
-      "minOrderValue": 500,
-      "expiresAt": "2027-12-31T23:59:59.000Z",
-      "usageLimit": 1000,
-      "usageCount": 42,
-      "isActive": true
-    },
-    {
-      "id": "coup-sashroyi10",
-      "code": "SASHROYI10",
-      "discountType": "percentage",
-      "discountValue": 10,
-      "minOrderValue": 1200,
-      "maxDiscount": 400,
-      "expiresAt": "2027-12-31T23:59:59.000Z",
-      "usageLimit": 500,
-      "usageCount": 19,
-      "isActive": true
+      "id": "prod-1792514487837",
+      "slug": "test-shirt-mvgwueql",
+      "titleBn": "টেস্ট শার্ট",
+      "titleEn": "Test Shirt",
+      "descriptionBn": "টেস্ট বিবরণ",
+      "descriptionEn": "",
+      "price": 990,
+      "originalPrice": 1200,
+      "stock": 50,
+      "categoryId": "cat-shirts",
+      "categorySlug": "shirts-polos",
+      "categoryNameBn": "শার্ট ও টি-শার্ট",
+      "brand": "Sashroyi",
+      "sku": "TS-001",
+      "images": [],
+      "variants": [],
+      "attributes": {},
+      "isFeatured": false,
+      "isPublished": true,
+      "isArchived": false,
+      "salesCount": 0,
+      "rating": 5,
+      "reviewCount": 0,
+      "tags": [],
+      "createdAt": "2026-10-20T16:41:27.837Z",
+      "updatedAt": "2026-10-20T16:41:27.837Z"
     }
   ],
+  "orders": [],
+  "coupons": [],
   "reviews": [],
   "shippingRates": [
     {
@@ -228,8 +246,29 @@
     "facebookUsername": "@sashroyidaam",
     "facebookUrl": "https://facebook.com/sashroyidaam"
   },
-  "inventoryMovements": [],
+  "inventoryMovements": [
+    {
+      "id": "inv-1792514487837",
+      "productId": "prod-1792514487837",
+      "productTitleBn": "টেস্ট শার্ট",
+      "changeQuantity": 50,
+      "previousStock": 0,
+      "newStock": 50,
+      "reason": "manual_restock",
+      "createdBy": "সাশ্রয়ী দাম অ্যাডমিন",
+      "createdAt": "2026-10-20T16:41:27.837Z"
+    }
+  ],
   "auditLogs": [
+    {
+      "id": "log-1792514487838-bxi6b",
+      "action": "PRODUCT_CREATED",
+      "userId": "user-superadmin",
+      "userEmail": "admin@sashroyidaam.com",
+      "userRole": "super_admin",
+      "details": "Product \"টেস্ট শার্ট\" (SKU: TS-001) created.",
+      "createdAt": "2026-10-20T16:41:27.838Z"
+    },
     {
       "id": "log-seed",
       "action": "STORE_INITIALIZED",

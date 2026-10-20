@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
+import { BANGLADESH_DIVISIONS } from '../data/bangladeshGeo.ts';
 import { api } from '../lib/api.ts';
 import type { Order, Address } from '../types/index.ts';
 
@@ -67,18 +68,50 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
   // Addresses State
+  const [addresses, setAddresses] = useState<Address[]>(user?.savedAddresses || []);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [newAddrTitle, setNewAddrTitle] = useState('বাসা (Home)');
   const [newAddrName, setNewAddrName] = useState('');
   const [newAddrPhone, setNewAddrPhone] = useState('');
-  const [newAddrDivision, setNewAddrDivision] = useState('ঢাকা');
+  const [newAddrDivision, setNewAddrDivision] = useState('dhaka');
   const [newAddrDistrict, setNewAddrDistrict] = useState('ঢাকা');
-  const [newAddrUpazila, setNewAddrUpazila] = useState('');
+  const [newAddrUpazila, setNewAddrUpazila] = useState('ধানমন্ডি');
   const [newAddrFull, setNewAddrFull] = useState('');
   const [newAddrIsDefault, setNewAddrIsDefault] = useState(false);
   const [addressLoading, setAddressLoading] = useState(false);
   const [addressSuccessMsg, setAddressSuccessMsg] = useState('');
   const [addressErrorMsg, setAddressErrorMsg] = useState('');
+
+  // Cascading geo calculations for address form
+  const currentDivData = BANGLADESH_DIVISIONS.find((d) => d.id === newAddrDivision) || BANGLADESH_DIVISIONS[0];
+  const availableDistricts = currentDivData ? currentDivData.districts : [];
+  const currentDistrictData = availableDistricts.find((d) => d.nameBn === newAddrDistrict) || availableDistricts[0];
+  const availableUpazilas = currentDistrictData ? currentDistrictData.upazilas : [];
+
+  const handleDivisionChange = (divId: string) => {
+    setNewAddrDivision(divId);
+    const divData = BANGLADESH_DIVISIONS.find((d) => d.id === divId);
+    if (divData && divData.districts.length > 0) {
+      const firstDist = divData.districts[0];
+      setNewAddrDistrict(firstDist.nameBn);
+      if (firstDist.upazilas.length > 0) {
+        setNewAddrUpazila(firstDist.upazilas[0]);
+      } else {
+        setNewAddrUpazila('');
+      }
+    }
+  };
+
+  const handleDistrictChange = (distName: string) => {
+    setNewAddrDistrict(distName);
+    const distData = availableDistricts.find((d) => d.nameBn === distName);
+    if (distData && distData.upazilas.length > 0) {
+      setNewAddrUpazila(distData.upazilas[0]);
+    } else {
+      setNewAddrUpazila('');
+    }
+  };
 
   // Security / Password State
   const [currPassword, setCurrPassword] = useState('');
@@ -93,8 +126,33 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     if (user) {
       setEditName(user.name || '');
       setEditPhone(user.phone || '');
+      if (user.savedAddresses && user.savedAddresses.length > 0) {
+        setAddresses(user.savedAddresses);
+      }
     }
   }, [user]);
+
+  // Load addresses from authoritative server endpoint
+  const loadAddresses = async () => {
+    if (!user) return;
+    setIsLoadingAddresses(true);
+    try {
+      const res = await api.getAddresses();
+      if (res && res.addresses) {
+        setAddresses(res.addresses);
+      }
+    } catch (err) {
+      console.warn('Failed to load addresses from server:', err);
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadAddresses();
+    }
+  }, [user, activeTab]);
 
   // Load orders when orders tab active
   useEffect(() => {
@@ -178,7 +236,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
     setAddressLoading(true);
     try {
-      await api.addAddress({
+      const res = await api.addAddress({
         title: newAddrTitle,
         name: newAddrName.trim(),
         phone: newAddrPhone.trim(),
@@ -188,13 +246,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         fullAddress: newAddrFull.trim(),
         isDefault: newAddrIsDefault
       });
+      if (res && res.addresses) {
+        setAddresses(res.addresses);
+      }
+      await loadAddresses();
       await refreshUser();
       setAddressSuccessMsg(language === 'en' ? 'Address added successfully!' : 'নতুন ঠিকানা সফলভাবে সংরক্ষিত হয়েছে!');
       setIsAddingAddress(false);
       setNewAddrName('');
       setNewAddrPhone('');
       setNewAddrFull('');
-      setNewAddrUpazila('');
       setTimeout(() => setAddressSuccessMsg(''), 4000);
     } catch (err: any) {
       setAddressErrorMsg(err.message || (language === 'en' ? 'Failed to add address' : 'ঠিকানা সংরক্ষণ ব্যর্থ হয়েছে'));
@@ -210,7 +271,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     }
 
     try {
-      await api.deleteAddress(id);
+      const res = await api.deleteAddress(id);
+      if (res && res.addresses) {
+        setAddresses(res.addresses);
+      }
+      await loadAddresses();
       await refreshUser();
       setAddressSuccessMsg(language === 'en' ? 'Address deleted' : 'ঠিকানা মুছে ফেলা হয়েছে');
       setTimeout(() => setAddressSuccessMsg(''), 3000);
@@ -911,55 +976,59 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                           <label className="block text-xs font-semibold text-stone-700 mb-1">
-                            {language === 'en' ? 'Division' : 'বিভাগ'}
+                            {language === 'en' ? 'Division' : 'বিভাগ'} *
                           </label>
                           <select
                             value={newAddrDivision}
-                            onChange={(e) => setNewAddrDivision(e.target.value)}
-                            className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-[#0F4C3A]"
+                            onChange={(e) => handleDivisionChange(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-[#0F4C3A] cursor-pointer"
                           >
-                            <option value="ঢাকা">ঢাকা (Dhaka)</option>
-                            <option value="চট্টগ্রাম">চট্টগ্রাম (Chittagong)</option>
-                            <option value="রাজশাহী">রাজশাহী (Rajshahi)</option>
-                            <option value="খুলনা">খুলনা (Khulna)</option>
-                            <option value="বরিশাল">বরিশাল (Barishal)</option>
-                            <option value="সিলেট">সিলেট (Sylhet)</option>
-                            <option value="রংপুর">রংপুর (Rangpur)</option>
-                            <option value="ময়মনসিংহ">ময়মনসিংহ (Mymensingh)</option>
+                            {BANGLADESH_DIVISIONS.map((div) => (
+                              <option key={div.id} value={div.id}>
+                                {div.nameBn} ({div.nameEn})
+                              </option>
+                            ))}
                           </select>
                         </div>
 
                         <div>
                           <label className="block text-xs font-semibold text-stone-700 mb-1">
-                            {language === 'en' ? 'District' : 'জেলা'}
+                            {language === 'en' ? 'District' : 'জেলা'} *
                           </label>
-                          <input
-                            type="text"
-                            required
+                          <select
                             value={newAddrDistrict}
-                            onChange={(e) => setNewAddrDistrict(e.target.value)}
-                            placeholder="যেমন: ঢাকা / গাজীপুর"
-                            className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-[#0F4C3A]"
-                          />
+                            onChange={(e) => handleDistrictChange(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-[#0F4C3A] cursor-pointer"
+                          >
+                            {availableDistricts.map((dist) => (
+                              <option key={dist.nameBn} value={dist.nameBn}>
+                                {dist.nameBn} ({dist.nameEn})
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
                         <div>
                           <label className="block text-xs font-semibold text-stone-700 mb-1">
-                            {language === 'en' ? 'Upazila / Area' : 'থানা / উপজেলা'}
+                            {language === 'en' ? 'Thana / Upazila' : 'থানা / উপজেলা'} *
                           </label>
-                          <input
-                            type="text"
+                          <select
                             value={newAddrUpazila}
                             onChange={(e) => setNewAddrUpazila(e.target.value)}
-                            placeholder="যেমন: মিরপুর / উত্তরা"
-                            className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-[#0F4C3A]"
-                          />
+                            className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-[#0F4C3A] cursor-pointer"
+                          >
+                            {availableUpazilas.map((upz) => (
+                              <option key={upz} value={upz}>
+                                {upz}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       </div>
 
                       <div>
                         <label className="block text-xs font-semibold text-stone-700 mb-1">
-                          {language === 'en' ? 'Full Street Address' : 'বিস্তারিত ঠিকানা (বাড়ি, রোড, এলাকা)'}
+                          {language === 'en' ? 'Full Street Address' : 'বিস্তারিত ঠিকানা (বাড়ি, রোড, এলাকা)'} *
                         </label>
                         <textarea
                           rows={2}
@@ -1005,18 +1074,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 )}
 
                 {/* Addresses List */}
-                {!user.savedAddresses || user.savedAddresses.length === 0 ? (
+                {isLoadingAddresses ? (
+                  <div className="py-10 text-center text-xs text-stone-400">
+                    ঠিকানা লোড হচ্ছে...
+                  </div>
+                ) : !addresses || addresses.length === 0 ? (
                   <div className="text-center py-10 bg-stone-50/70 rounded-2xl border border-dashed border-stone-200 p-6 space-y-2">
                     <MapPin className="w-8 h-8 text-stone-300 mx-auto" />
                     <p className="text-xs text-stone-500">
                       {language === 'en'
                         ? 'No delivery addresses saved yet.'
-                        : 'এখনো কোনো ঠিকানা সংরক্ষণ করা হয়নি।'}
+                        : 'এখনো কোনো ঠিকানা সংরক্ষণ করা হয়নি। সহজে অর্ডার করতে আপনার ঠিকানা যোগ করুন।'}
                     </p>
+                    <button
+                      onClick={() => setIsAddingAddress(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0F4C3A] text-white rounded-xl text-xs font-semibold hover:bg-[#135D48] transition-colors cursor-pointer mt-2"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{language === 'en' ? 'Add Address' : 'নতুন ঠিকানা যোগ করুন'}</span>
+                    </button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {user.savedAddresses.map((addr) => (
+                    {addresses.map((addr) => (
                       <div
                         key={addr.id}
                         className={`p-4 rounded-2xl border transition-all relative ${
@@ -1037,7 +1117,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
                           <button
                             onClick={() => handleDeleteAddress(addr.id)}
-                            className="p-1 text-stone-400 hover:text-rose-600 transition-colors"
+                            className="p-1 text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
                             title={language === 'en' ? 'Delete' : 'মুছে ফেলুন'}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1046,10 +1126,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
                         <div className="text-xs text-stone-600 space-y-1">
                           <p className="font-semibold text-stone-800">{addr.name}</p>
-                          <p>{addr.phone}</p>
-                          <p className="line-clamp-2 text-stone-500">{addr.fullAddress}</p>
-                          <p className="text-[11px] text-stone-400">
-                            {addr.district}, {addr.division}
+                          <p className="font-mono text-stone-600 tabular-nums">{addr.phone}</p>
+                          <p className="text-stone-700 line-clamp-2">{addr.fullAddress}</p>
+                          <p className="text-[11px] text-stone-500 font-medium pt-0.5">
+                            {addr.upazila ? `${addr.upazila}, ` : ''}{addr.district}{addr.division ? ` (${addr.division})` : ''}
                           </p>
                         </div>
                       </div>
