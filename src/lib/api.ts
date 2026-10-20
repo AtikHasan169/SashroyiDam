@@ -34,6 +34,40 @@ const API_BASE = (
   ''
 ).replace(/\/$/, '');
 
+export function parseJwtPayload(token: string): any {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64Url = parts.length === 3 ? parts[1] : parts[0];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
+export function getUserFromToken(token: string | null): User | null {
+  if (!token) return null;
+  const payload = parseJwtPayload(token);
+  if (!payload || !payload.sub) return null;
+  if (payload.exp && Date.now() > payload.exp) return null;
+  return {
+    id: payload.sub,
+    name: payload.name || 'গ্রাহক',
+    email: payload.email || '',
+    phone: payload.phone || '',
+    role: payload.role || 'customer',
+    savedAddresses: payload.savedAddresses || [],
+    createdAt: payload.iat ? new Date(payload.iat).toISOString() : new Date().toISOString()
+  };
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getStoredToken();
   const headers: Record<string, string> = {
@@ -53,6 +87,28 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     ...options,
     headers
   });
+
+  // Extract JWT token strictly from HTTP response headers (Authorization or X-Auth-Token)
+  const authHeader = res.headers.get('Authorization') || res.headers.get('authorization');
+  const xAuthToken = res.headers.get('X-Auth-Token') || res.headers.get('x-auth-token');
+  let headerToken: string | null = null;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    headerToken = authHeader.substring(7).trim();
+  } else if (xAuthToken) {
+    headerToken = xAuthToken.trim();
+  }
+
+  if (headerToken) {
+    setStoredToken(headerToken);
+  }
+
+  // Auto-invalidation on 401 or 403: wipe compromised/tampered credentials
+  if ((res.status === 401 || res.status === 403) && token) {
+    removeStoredToken();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { status: res.status } }));
+    }
+  }
 
   const text = await res.text();
   let data: any = {};
@@ -80,40 +136,98 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export const api = {
-  // Auth
-  register: (body: { name: string; phone: string; email: string; password: string }) =>
-    request<{ user: User; token: string; message: string }>('/api/auth/register', {
+  // Auth: Token is delivered in response headers, body contains only message
+  register: async (body: { name: string; phone: string; email: string; password: string }) => {
+    const res = await request<{ message?: string; success?: boolean }>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(body)
-    }),
+    });
+    const token = getStoredToken() || '';
+    const user = getUserFromToken(token);
+    return {
+      message: res.message || 'রেজিস্ট্রেশন সফল হয়েছে',
+      token,
+      user: user || {
+        id: 'user-' + Date.now(),
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        role: 'customer',
+        createdAt: new Date().toISOString()
+      }
+    };
+  },
 
-  login: (body: { identifier: string; password: string }) =>
-    request<{ user: User; token: string; message: string }>('/api/auth/login', {
+  login: async (body: { identifier: string; password: string }) => {
+    const res = await request<{ message?: string; success?: boolean }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(body)
-    }),
+    });
+    const token = getStoredToken() || '';
+    const user = getUserFromToken(token);
+    if (!user) {
+      throw new Error('সার্ভার থেকে প্রমাণীকরণ টোকেন পাওয়া যায়নি');
+    }
+    return {
+      message: res.message || 'সফলভাবে লগইন হয়েছে',
+      token,
+      user
+    };
+  },
 
-  getMe: () => request<{ user: User }>('/api/auth/me'),
+  getMe: async () => {
+    const res = await request<{ message?: string; success?: boolean }>('/api/auth/me');
+    const token = getStoredToken() || '';
+    const user = getUserFromToken(token);
+    if (!user) {
+      throw new Error('অনুমোদিত নয়');
+    }
+    return {
+      message: res.message || 'সেশন সক্রিয় আছে',
+      user
+    };
+  },
 
-  updateProfile: (body: { name: string; phone?: string }) =>
-    request<{ user: User; message: string }>('/api/auth/update-profile', {
+  updateProfile: async (body: { name: string; phone?: string }) => {
+    const res = await request<{ message: string; user?: any }>('/api/auth/update-profile', {
       method: 'PUT',
       body: JSON.stringify(body)
-    }),
+    });
+    const token = getStoredToken() || '';
+    const user = getUserFromToken(token);
+    return {
+      message: res.message,
+      user: user!
+    };
+  },
 
-  addAddress: (body: any) =>
-    request<{ user: User; message: string }>('/api/auth/address', {
+  addAddress: async (body: any) => {
+    const res = await request<{ message: string; user?: any }>('/api/auth/address', {
       method: 'POST',
       body: JSON.stringify(body)
-    }),
+    });
+    const token = getStoredToken() || '';
+    const user = getUserFromToken(token);
+    return {
+      message: res.message,
+      user: user!
+    };
+  },
 
-  deleteAddress: (id: string) =>
-    request<{ user: User; message: string }>(`/api/auth/address/${id}`, {
+  deleteAddress: async (id: string) => {
+    const res = await request<{ message: string; user?: any }>(`/api/auth/address/${id}`, {
       method: 'DELETE'
-    }),
+    });
+    const token = getStoredToken() || '';
+    const user = getUserFromToken(token);
+    return {
+      message: res.message,
+      user: user!
+    };
+  },
 
   changePassword: (body: { currentPassword?: string; newPassword: string }) =>
-    request<{ user: User; message: string }>('/api/auth/change-password', {
+    request<{ message: string }>('/api/auth/change-password', {
       method: 'PUT',
       body: JSON.stringify(body)
     }),

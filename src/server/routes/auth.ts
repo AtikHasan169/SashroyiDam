@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import crypto from 'node:crypto';
 import { getDatabase, withTransaction, recordAuditLog, verifyPassword, saveDatabaseSync, getSuperAdminEnvCredentials } from '../db.ts';
-import { createAuthToken, authenticateUser, requireAuth, type AuthenticatedRequest } from '../auth.ts';
+import { createAuthToken, setAuthHeaders, authenticateUser, requireAuth, type AuthenticatedRequest } from '../auth.ts';
 import type { User, Address } from '../../types/index.ts';
 import { syncUserToMongo, findMongoUser, isMongoConfigured } from '../mongodb.ts';
 
@@ -76,13 +76,9 @@ router.post('/register', async (req, res) => {
       return createAuthToken(newUser);
     });
 
-    const db = getDatabase();
-    const user = db.users.find((u) => u.email.toLowerCase() === rawEmail);
-    const { passwordHash, ...safeUser } = user!;
-
+    setAuthHeaders(res, token);
     res.status(201).json({
-      user: safeUser,
-      token,
+      success: true,
       message: 'রেজিস্ট্রেশন সফল হয়েছে'
     });
   } catch (err: any) {
@@ -181,11 +177,10 @@ router.post('/login', async (req, res) => {
     }
 
     const token = createAuthToken(user);
-    const { passwordHash, ...safeUser } = user;
+    setAuthHeaders(res, token);
 
     res.json({
-      user: safeUser,
-      token,
+      success: true,
       message: 'সফলভাবে লগইন হয়েছে'
     });
   } catch (err: any) {
@@ -199,8 +194,12 @@ router.get('/me', authenticateUser, (req: AuthenticatedRequest, res) => {
     res.status(401).json({ error: 'নট অথেন্টিকেটেড' });
     return;
   }
-  const { passwordHash, ...safeUser } = req.user;
-  res.json({ user: safeUser });
+  const token = createAuthToken(req.user);
+  setAuthHeaders(res, token);
+  res.json({
+    success: true,
+    message: 'সেশন সক্রিয় আছে'
+  });
 });
 
 router.put('/update-profile', authenticateUser, requireAuth, async (req: AuthenticatedRequest, res) => {
@@ -222,7 +221,9 @@ router.put('/update-profile', authenticateUser, requireAuth, async (req: Authent
       return db.users[idx];
     });
 
-    const { passwordHash, ...safeUser } = updated;
+    const token = createAuthToken(updated);
+    setAuthHeaders(res, token);
+    const { passwordHash, role, ...safeUser } = updated;
     res.json({ user: safeUser, message: 'প্রোফাইল আপডেট সফল হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'আপডেট ব্যর্থ হয়েছে' });
@@ -265,7 +266,9 @@ router.post('/address', authenticateUser, requireAuth, async (req: Authenticated
       return user;
     });
 
-    const { passwordHash, ...safeUser } = updatedUser;
+    const token = createAuthToken(updatedUser);
+    setAuthHeaders(res, token);
+    const { passwordHash, role, ...safeUser } = updatedUser;
     res.json({ user: safeUser, message: 'নতুন ডেলিভারি ঠিকানা সংরক্ষিত হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'ঠিকানা যোগ করতে ব্যর্থ হয়েছে' });
@@ -284,7 +287,9 @@ router.delete('/address/:id', authenticateUser, requireAuth, async (req: Authent
       return user;
     });
 
-    const { passwordHash, ...safeUser } = updatedUser;
+    const token = createAuthToken(updatedUser);
+    setAuthHeaders(res, token);
+    const { passwordHash, role, ...safeUser } = updatedUser;
     res.json({ user: safeUser, message: 'ঠিকানা মুছে ফেলা হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'ঠিকানা মুছতে সমস্যা হয়েছে' });
@@ -314,7 +319,9 @@ router.put('/change-password', authenticateUser, requireAuth, async (req: Authen
       return user;
     });
 
-    const { passwordHash, ...safeUser } = updatedUser;
+    const token = createAuthToken(updatedUser);
+    setAuthHeaders(res, token);
+    const { passwordHash, role, ...safeUser } = updatedUser;
     res.json({ user: safeUser, message: 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'পাসওয়ার্ড পরিবর্তনে সমস্যা হয়েছে' });

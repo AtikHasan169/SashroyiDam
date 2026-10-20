@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '../types/index.ts';
-import { api, getStoredToken, setStoredToken, removeStoredToken } from '../lib/api.ts';
+import { api, getStoredToken, setStoredToken, removeStoredToken, getUserFromToken } from '../lib/api.ts';
 
 interface AuthContextType {
   user: User | null;
@@ -17,9 +17,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(getStoredToken());
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const initialToken = getStoredToken();
+  const [user, setUser] = useState<User | null>(getUserFromToken(initialToken));
+  const [token, setToken] = useState<string | null>(initialToken);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialToken);
 
   const refreshUser = async () => {
     const curToken = getStoredToken();
@@ -31,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const res = await api.getMe();
+      setToken(getStoredToken());
       setUser(res.user);
     } catch {
       removeStoredToken();
@@ -43,6 +45,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     refreshUser();
+
+    const handleUnauthorized = () => {
+      removeStoredToken();
+      setToken(null);
+      setUser(null);
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
 
   const login = async (identifier: string, pass: string) => {

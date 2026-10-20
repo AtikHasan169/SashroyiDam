@@ -1,73 +1,116 @@
-# Implementation Plan: Professional Persistence, Photo Upload, Manual Orders & Coupon Management
+# Header-Delivered JWT & Minimal Message-Only Response Security
 
-This plan addresses all items raised by the user to bring the store to production-grade quality.
+An ultra-clean, hardened security architecture where authentication tokens are delivered exclusively via HTTP Response Headers, and API response bodies contain only status messages, completely removing user data, roles, and token strings from JSON bodies.
 
----
+### User Review & Critical Decisions
 
-## 1. Professional Database Persistence & Anti-Disappearance Architecture
-- **Problem**: On serverless platforms like Vercel, the local filesystem is ephemeral and read-only. In-memory data is wiped when serverless lambdas recycle.
-- **Professional Solution**:
-  - **Cloud Persistence**: MongoDB Atlas serves as the authoritative cloud document store for all products, categories, orders, coupons, and settings.
-  - **Client-Side Optimistic Hydration**: Storefront and Admin maintain an automatic client-side cache (`sashroyi_catalog_cache`). On page load, products render instantly from cache without waiting for cold starts. Any newly added or edited products are immediately committed to both the local cache and the cloud database, guaranteeing that products **never disappear** on reload.
-  - **Automatic Re-sync**: If the backend undergoes a cold start, it automatically re-fetches from MongoDB Atlas or client state.
+> [!IMPORTANT]
+> In direct accordance with your exact specification:
+> 1. **JWT Exclusively in HTTP Response Header**: The server sends the JWT token in standard HTTP response headers (`Authorization: Bearer <token>` and `X-Auth-Token: <token>`) with `Access-Control-Expose-Headers` enabled.
+> 2. **Message-Only JSON Response Body**: The JSON body for `/api/auth/login`, `/api/auth/register`, and `/api/auth/me` will contain only:
+>    ```json
+>    {
+>      "success": true,
+>      "message": "সফলভাবে লগইন হয়েছে"
+>    }
+>    ```
+>    All user objects (`id`, `name`, `email`, `phone`, `role`, `createdAt`) and token strings are completely removed from the JSON body.
+> 3. **Client-Side Header Extraction & Claims Decoding**: The client (`api.ts` & `AuthContext`) reads the token directly from `response.headers.get('Authorization')` (or `X-Auth-Token`), decodes the cryptographic payload in memory to establish user state and role, and passes the Bearer token on all subsequent requests.
+> 4. **Authoritative Server Verification**: All sensitive routes (`/api/admin/*`, `/api/orders/*`) verify the token signature and re-verify the active user record against the database. Any client-side tampering results in instant HTTP 401/403 rejection, session purge, and redirect to login.
 
----
-
-## 2. Clean Photo Upload with Instant Preview & Remove Button
-- **Problem**: Dummy photos were prefilled or stuck in the form, and there was no intuitive way to delete or replace them cleanly.
-- **Solution**:
-  - Remove all hardcoded default photos (`/src/assets/images/...`) from the new product modal (`editingProduct.images = []`).
-  - Implement a clean, modern multi-photo uploader component:
-    - Drag-and-drop zone + file picker (supports multiple image selection).
-    - Optional image URL input for web images.
-    - Automatic client-side canvas compression to WebP/JPEG (<250KB each) to prevent slow uploads or payload limits.
-    - Instant thumbnail grid with a clear, floating **"Remove (Trash icon)"** button on each image.
-    - "Set as Cover Photo" option to easily choose the main thumbnail.
+- **Confirmed Decision 1**: Deliver JWT strictly via HTTP response headers (`Authorization` / `X-Auth-Token`).
+- **Confirmed Decision 2**: Keep JSON response body strictly to `{ success: true, message: "..." }`, with zero user or role data exposed in the body.
+- **Confirmed Decision 3**: The frontend retrieves the token from the response header, safely decodes identity claims in memory, and purges credentials on any tampering or permission rejection.
 
 ---
 
-## 3. Remove "Sashroyi Fashion" & Database Storage Notice
-- **Admin Dashboard**:
-  - Remove the entire "ডেটাবেস স্টোরেজ" (Database Storage: Local File...) info banner from the Store Settings tab.
-  - Clear out default prefilled brands (`brand: ''`, `sku: ''`, `price: 0`, `originalPrice: 0`, `stock: 0`).
-- **Storefront & Navigation**:
-  - Clean out any hardcoded "Sashroyi Fashion" or dummy brand suggestions from `Header.tsx`, `SearchOverlay.tsx`, and `Hero.tsx`.
+### 1. Overview & Core Concept
+
+- **What It Does**: Streamlines the authentication API response to the cleanest possible security posture: credentials travel in HTTP headers, while the body carries only human-readable feedback.
+- **Target Audience / Persona**: Merchants, store administrators, and fulfillment managers who require zero unauthorized role leaks and total protection against browser tampering.
+- **Key Value**: Prevents unauthorized users or eavesdroppers from viewing, editing, or spoofing user objects and roles in body payloads.
 
 ---
 
-## 4. Full Manual Order Creation (+ ম্যানুয়াল অর্ডার)
-- **Backend (`src/server/routes/admin.ts`)**:
-  - Implement `POST /api/admin/orders`:
-    - Validates customer name, phone, address, division.
-    - Supports channel tracking: Facebook Page, Phone Call, WhatsApp, Walk-in.
-    - Handles line items from existing products (with automatic stock deduction) or custom walk-in items.
-    - Generates formal order number (`OSH-2026-XXXX`).
-    - Syncs to database and records timeline & audit log.
-- **Frontend (`src/components/admin/AdminDashboard.tsx`)**:
-  - Build `ManualOrderModal`:
-    - Responsive modal opening when clicking `+ ম্যানুয়াল অর্ডার (Facebook / Phone)`.
-    - Customer details inputs with quick division selector (auto-calculates Dhaka vs Outside Dhaka shipping fee).
-    - Searchable product selector dropdown with quantity and price overrides.
-    - Financial summary: Subtotal, Delivery Fee, Discount, Grand Total.
-    - Payment method & status selection (Cash on Delivery, bKash, Nagad, Paid/Unpaid).
-    - Save action with toast notification and immediate refresh of the orders table.
+### 2. User Experience & Security Workflow
+
+- **Login Workflow**:
+  - User submits credentials on the login form.
+  - Server validates credentials, generates a signed HMAC-SHA256 JWT, sets `res.setHeader('Authorization', 'Bearer ' + token)` and `res.setHeader('X-Auth-Token', token)`.
+  - Server sends minimal body: `{ "success": true, "message": "সফলভাবে লগইন হয়েছে" }`.
+  - Frontend intercepts the response, extracts the token from headers, decodes `{ sub, name, email, role }` in memory, and updates the application state.
+- **Session Validation & Verification**:
+  - On page load, `api.getMe()` sends `Authorization: Bearer <token>`.
+  - Server verifies the token and re-checks the database record. It returns `{ "success": true, "message": "সেশন সক্রিয় আছে" }` with the fresh token in the response header.
+  - If a user tries to alter their role or token in the browser, the server detects the HMAC mismatch, rejects with 401/403, and the client automatically purges all stored credentials and displays a security alert.
 
 ---
 
-## 5. Coupon Edit and Delete Management
-- **Backend (`src/server/routes/admin.ts`)**:
-  - Implement `PUT /api/admin/coupons/:id` to update code, discount value, type, expiry, and minimum order value.
-  - Implement `DELETE /api/admin/coupons/:id` to permanently remove or deactivate coupons.
-- **Frontend (`src/components/admin/AdminDashboard.tsx`)**:
-  - Add **"Edit (Pencil icon)"** button to each coupon row to edit code, discount, and validity dates.
-  - Add **"Delete (Trash icon)"** button with confirmation prompt to safely remove coupons.
-  - In `src/lib/api.ts`, add `api.updateCoupon(id, body)` and `api.deleteCoupon(id)`.
+### 3. Key Product Decisions & Trade-Offs
+
+- **Decision 1: Delivering JWT in Headers vs. Body**:
+  - *Chosen Approach*: Send token in `Authorization` and `X-Auth-Token` response headers with `Access-Control-Expose-Headers`.
+  - *Why*: Exactly what you requested. Keeps HTTP body payload clean, prevents body-level JSON parsing attacks, and aligns with standard REST protocol conventions.
+
+- **Decision 2: Message-Only Response Body**:
+  - *Chosen Approach*: Response body strictly contains `{ success: true, message: "..." }`.
+  - *Why*: Completely removes sensitive account metadata from network body inspections.
+
+- **Decision 3: Zero-Trust Database Checks**:
+  - *Chosen Approach*: Server validates token signature and looks up the authoritative database record on every protected request.
+  - *Why*: Eliminates privilege escalation even if someone tries to create custom tokens.
 
 ---
 
-## Verification Plan
-1. **Compilation & Build**: Run `tsc --noEmit` and `vite build` to guarantee zero errors.
-2. **Product Persistence Test**: Add a product without any dummy images, upload a photo, refresh the browser, and confirm it remains permanently.
-3. **Manual Order Test**: Click `+ ম্যানুয়াল অর্ডার`, fill customer details, submit, and confirm the order is listed in the Orders tab with correct channel and timeline.
-4. **Coupon Management Test**: Create, edit, and delete a coupon; verify instant table update.
-5. **UI Cleanliness**: Check Settings tab and verify the Database notice is completely absent.
+### 4. Technical Architecture & Data Strategy
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                          Client (Browser)                              │
+│                                                                        │
+│  1. POST /api/auth/login { identifier, password }                      │
+│  2. Read response headers: res.headers.get('Authorization')            │
+│  3. Read response body: { success: true, message: "..." }              │
+│  4. Decode token claims in memory: { sub, name, email, role }          │
+│  5. Store token in localStorage ('oshesh_auth_token')                  │
+│  6. Subsequent requests send Header: Authorization: Bearer <token>     │
+│  7. If 401/403 returned -> wipe localStorage and force logout          │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │ HTTP Request / Response
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Server Auth Layer                               │
+│                                                                        │
+│  - Response Middleware:                                                │
+│      res.setHeader('Access-Control-Expose-Headers',                    │
+│                    'Authorization, X-Auth-Token')                      │
+│      res.setHeader('Authorization', `Bearer ${token}`)                 │
+│      res.setHeader('X-Auth-Token', token)                              │
+│      res.json({ success: true, message: "সফলভাবে লগইন হয়েছে" })        │
+│                                                                        │
+│  - Request Middleware (authenticateUser & requireRole):                │
+│      verifyAuthToken(token) -> extracts sub (user ID)                  │
+│      db.users.find(u => u.id === decoded.sub)                          │
+│      Checks active status & role permissions                           │
+└──────────────────────────────────┬─────────────────────────────────────┘
+                                   │ Verified DB Authorization
+                                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Authoritative Database                          │
+│   (Local JSON Database / MongoDB Atlas)                                │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Files to be Updated Upon Approval:
+1. **`src/server/routes/auth.ts`**:
+   - Set `Authorization` and `X-Auth-Token` headers and expose headers on login, register, and me endpoints.
+   - Change response body to `{ success: true, message: "..." }`.
+2. **`src/server/auth.ts`**:
+   - Secure token secret generation, verify HMAC signatures, and enforce database role verification.
+3. **`src/lib/api.ts`**:
+   - In `request()`, inspect response headers to extract new or refreshed tokens.
+   - Add lightweight JWT decoder `parseJwtPayload(token)` to extract claims from the signed token.
+   - Update `login()`, `register()`, and `getMe()` return types.
+4. **`src/context/AuthContext.tsx`**:
+   - Populate `user` and `isAdmin` states from decoded JWT claims.
+   - Auto-logout on 401/403 responses.
