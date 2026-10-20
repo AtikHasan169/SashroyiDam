@@ -1,40 +1,73 @@
-# Implementation Plan: Remove Notices & Fix Manual Order Creation
+# Implementation Plan: Professional Persistence, Photo Upload, Manual Orders & Coupon Management
 
-The user requested to:
-1. Remove demo brand defaults (such as "Sashroyi Fashion" / "সাশ্রয়ী দাম") and placeholder items from forms and UI.
-2. Remove the "ডেটাবেস স্টোরেজ" (Database Storage) notice card from the Admin Dashboard completely.
-3. Fix the Manual Order feature in Admin Dashboard (clicking "+ ম্যানুয়াল অর্ডার" currently does not open a modal or create orders).
+This plan addresses all items raised by the user to bring the store to production-grade quality.
 
 ---
 
-## Proposed Changes
+## 1. Professional Database Persistence & Anti-Disappearance Architecture
+- **Problem**: On serverless platforms like Vercel, the local filesystem is ephemeral and read-only. In-memory data is wiped when serverless lambdas recycle.
+- **Professional Solution**:
+  - **Cloud Persistence**: MongoDB Atlas serves as the authoritative cloud document store for all products, categories, orders, coupons, and settings.
+  - **Client-Side Optimistic Hydration**: Storefront and Admin maintain an automatic client-side cache (`sashroyi_catalog_cache`). On page load, products render instantly from cache without waiting for cold starts. Any newly added or edited products are immediately committed to both the local cache and the cloud database, guaranteeing that products **never disappear** on reload.
+  - **Automatic Re-sync**: If the backend undergoes a cold start, it automatically re-fetches from MongoDB Atlas or client state.
 
-### 1. Remove Database Storage Notice from Admin Dashboard
-- In `src/components/admin/AdminDashboard.tsx`, delete the entire Database Storage status card (`ডেটাবেস স্টোরেজ: লোকাল ফাইল ডেটাবেস...`) from the Store Settings tab.
+---
 
-### 2. Remove Demo Brand Defaults & Hardcoded Placeholders
-- In `src/components/admin/AdminDashboard.tsx`, clear default prefilled values in the Add Product modal (`brand: ''`, `images: []`, `price: 0`, `originalPrice: 0`, `stock: 0`).
-- Ensure no hardcoded dummy brand names ("Sashroyi Fashion", "সাশ্রয়ী হোম", etc.) appear in forms or menus.
+## 2. Clean Photo Upload with Instant Preview & Remove Button
+- **Problem**: Dummy photos were prefilled or stuck in the form, and there was no intuitive way to delete or replace them cleanly.
+- **Solution**:
+  - Remove all hardcoded default photos (`/src/assets/images/...`) from the new product modal (`editingProduct.images = []`).
+  - Implement a clean, modern multi-photo uploader component:
+    - Drag-and-drop zone + file picker (supports multiple image selection).
+    - Optional image URL input for web images.
+    - Automatic client-side canvas compression to WebP/JPEG (<250KB each) to prevent slow uploads or payload limits.
+    - Instant thumbnail grid with a clear, floating **"Remove (Trash icon)"** button on each image.
+    - "Set as Cover Photo" option to easily choose the main thumbnail.
 
-### 3. Implement Full Manual Order Creation (`+ ম্যানুয়াল অর্ডার`)
-- In `src/server/routes/admin.ts`:
-  - Add `POST /api/admin/orders` route to create manual orders with concurrency-safe stock deduction (if selecting an existing product) or custom item entry.
-  - Support channels: Facebook Page, Phone Call, WhatsApp, Direct Walk-in.
-  - Automatically calculate totals, apply delivery fees based on division, and record status in timeline and audit logs.
-  - Sync the manual order to MongoDB Atlas if connected.
-- In `src/lib/api.ts`:
-  - Add `api.createAdminOrder(body)`.
-- In `src/components/admin/AdminDashboard.tsx`:
-  - Build the interactive `ManualOrderModal`:
-    - Customer Info: Name, Phone (with validation), Address, Division.
-    - Channel selector: Facebook, Phone Call, WhatsApp, Walk-in.
-    - Item entry: Pick from catalog products or enter custom line items with price & quantity.
-    - Financials: Subtotal, Delivery charge, Discount, Total, Payment status (Paid/Unpaid), Payment method.
-    - Instant submission with toast confirmation and real-time dashboard refresh.
+---
+
+## 3. Remove "Sashroyi Fashion" & Database Storage Notice
+- **Admin Dashboard**:
+  - Remove the entire "ডেটাবেস স্টোরেজ" (Database Storage: Local File...) info banner from the Store Settings tab.
+  - Clear out default prefilled brands (`brand: ''`, `sku: ''`, `price: 0`, `originalPrice: 0`, `stock: 0`).
+- **Storefront & Navigation**:
+  - Clean out any hardcoded "Sashroyi Fashion" or dummy brand suggestions from `Header.tsx`, `SearchOverlay.tsx`, and `Hero.tsx`.
+
+---
+
+## 4. Full Manual Order Creation (+ ম্যানুয়াল অর্ডার)
+- **Backend (`src/server/routes/admin.ts`)**:
+  - Implement `POST /api/admin/orders`:
+    - Validates customer name, phone, address, division.
+    - Supports channel tracking: Facebook Page, Phone Call, WhatsApp, Walk-in.
+    - Handles line items from existing products (with automatic stock deduction) or custom walk-in items.
+    - Generates formal order number (`OSH-2026-XXXX`).
+    - Syncs to database and records timeline & audit log.
+- **Frontend (`src/components/admin/AdminDashboard.tsx`)**:
+  - Build `ManualOrderModal`:
+    - Responsive modal opening when clicking `+ ম্যানুয়াল অর্ডার (Facebook / Phone)`.
+    - Customer details inputs with quick division selector (auto-calculates Dhaka vs Outside Dhaka shipping fee).
+    - Searchable product selector dropdown with quantity and price overrides.
+    - Financial summary: Subtotal, Delivery Fee, Discount, Grand Total.
+    - Payment method & status selection (Cash on Delivery, bKash, Nagad, Paid/Unpaid).
+    - Save action with toast notification and immediate refresh of the orders table.
+
+---
+
+## 5. Coupon Edit and Delete Management
+- **Backend (`src/server/routes/admin.ts`)**:
+  - Implement `PUT /api/admin/coupons/:id` to update code, discount value, type, expiry, and minimum order value.
+  - Implement `DELETE /api/admin/coupons/:id` to permanently remove or deactivate coupons.
+- **Frontend (`src/components/admin/AdminDashboard.tsx`)**:
+  - Add **"Edit (Pencil icon)"** button to each coupon row to edit code, discount, and validity dates.
+  - Add **"Delete (Trash icon)"** button with confirmation prompt to safely remove coupons.
+  - In `src/lib/api.ts`, add `api.updateCoupon(id, body)` and `api.deleteCoupon(id)`.
 
 ---
 
 ## Verification Plan
-1. **Compilation & Linting**: Run `tsc --noEmit` and `vite build` to guarantee zero errors.
-2. **UI Verification**: Open Admin Dashboard ➔ Store Settings: confirm the database notice is completely gone.
-3. **Manual Order Creation**: Click "+ ম্যানুয়াল অর্ডার (Facebook / Phone)", fill out a manual order, submit, and verify it appears in the Orders table with order number, timeline, and customer contact.
+1. **Compilation & Build**: Run `tsc --noEmit` and `vite build` to guarantee zero errors.
+2. **Product Persistence Test**: Add a product without any dummy images, upload a photo, refresh the browser, and confirm it remains permanently.
+3. **Manual Order Test**: Click `+ ম্যানুয়াল অর্ডার`, fill customer details, submit, and confirm the order is listed in the Orders tab with correct channel and timeline.
+4. **Coupon Management Test**: Create, edit, and delete a coupon; verify instant table update.
+5. **UI Cleanliness**: Check Settings tab and verify the Database notice is completely absent.

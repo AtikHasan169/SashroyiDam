@@ -25,7 +25,9 @@ import {
   syncStoreSettingsToMongo
 } from './mongodb.ts';
 
-const DB_DIR = path.resolve(process.cwd(), 'data');
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT);
+const SEED_DB_FILE = path.resolve(process.cwd(), 'data', 'oshesh_db.json');
+const DB_DIR = isServerless ? '/tmp/sashroyi_data' : path.resolve(process.cwd(), 'data');
 const DB_FILE = path.join(DB_DIR, 'oshesh_db.json');
 
 export interface DatabaseSchema {
@@ -307,6 +309,12 @@ export function getDatabase(): DatabaseSchema {
   try {
     if (!fs.existsSync(DB_DIR)) {
       fs.mkdirSync(DB_DIR, { recursive: true });
+    }
+
+    if (!fs.existsSync(DB_FILE) && isServerless && fs.existsSync(SEED_DB_FILE)) {
+      try {
+        fs.copyFileSync(SEED_DB_FILE, DB_FILE);
+      } catch {}
     }
 
     if (fs.existsSync(DB_FILE)) {

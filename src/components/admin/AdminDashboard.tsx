@@ -88,6 +88,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showInvoicePrint, setShowInvoicePrint] = useState(false);
   const [isManualOrderOpen, setIsManualOrderOpen] = useState(false);
 
+  // Manual Order Form State
+  const [manualCustomerName, setManualCustomerName] = useState('');
+  const [manualCustomerPhone, setManualCustomerPhone] = useState('');
+  const [manualCustomerEmail, setManualCustomerEmail] = useState('');
+  const [manualDivision, setManualDivision] = useState('dhaka');
+  const [manualDistrict, setManualDistrict] = useState('ঢাকা');
+  const [manualAddress, setManualAddress] = useState('');
+  const [manualInstructions, setManualInstructions] = useState('');
+  const [manualSource, setManualSource] = useState<'facebook' | 'phone' | 'whatsapp' | 'walk_in'>('facebook');
+  const [manualPaymentMethod, setManualPaymentMethod] = useState<'cod' | 'bkash' | 'nagad' | 'bank'>('cod');
+  const [manualPaymentStatus, setManualPaymentStatus] = useState<'unpaid' | 'paid'>('unpaid');
+  const [manualDeliveryFee, setManualDeliveryFee] = useState<number>(70);
+  const [manualDiscount, setManualDiscount] = useState<number>(0);
+  const [manualInternalNotes, setManualInternalNotes] = useState('');
+  const [manualOrderError, setManualOrderError] = useState('');
+  const [manualOrderSuccess, setManualOrderSuccess] = useState('');
+  const [isSubmittingManualOrder, setIsSubmittingManualOrder] = useState(false);
+  const [manualItems, setManualItems] = useState<Array<{
+    productId?: string;
+    productTitle: string;
+    variantId?: string;
+    variantName?: string;
+    unitPrice: number;
+    quantity: number;
+  }>>([
+    { productTitle: '', unitPrice: 0, quantity: 1 }
+  ]);
+
+  const resetManualOrderForm = () => {
+    setManualCustomerName('');
+    setManualCustomerPhone('');
+    setManualCustomerEmail('');
+    setManualDivision('dhaka');
+    setManualDistrict('ঢাকা');
+    setManualAddress('');
+    setManualInstructions('');
+    setManualSource('facebook');
+    setManualPaymentMethod('cod');
+    setManualPaymentStatus('unpaid');
+    setManualDeliveryFee(70);
+    setManualDiscount(0);
+    setManualInternalNotes('');
+    setManualOrderError('');
+    setManualOrderSuccess('');
+    setManualItems([{ productTitle: '', unitPrice: 0, quantity: 1 }]);
+  };
+
   // Order Filtering States
   const [orderStatusTab, setOrderStatusTab] = useState<'all' | 'pending' | 'processing' | 'delivered' | 'cancelled'>('all');
   const [orderDateRange, setOrderDateRange] = useState<'all' | 'today' | 'yesterday' | '7days' | '30days' | 'month' | 'custom'>('all');
@@ -205,15 +252,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showProductModal, setShowProductModal] = useState(false);
   const [isUploadingProdImage, setIsUploadingProdImage] = useState(false);
 
-  // New Coupon modal
+  // Coupon modal
   const [showCouponModal, setShowCouponModal] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [newCouponCode, setNewCouponCode] = useState('');
   const [newCouponType, setNewCouponType] = useState<'percentage' | 'fixed'>('fixed');
   const [newCouponVal, setNewCouponVal] = useState(100);
   const [newCouponMin, setNewCouponMin] = useState(1000);
+  const [imageUrlInput, setImageUrlInput] = useState('');
 
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
+
+  const showFeedback = (msg: string) => {
+    setFeedbackMsg(msg);
+    setTimeout(() => setFeedbackMsg(''), 4000);
+  };
 
   // MongoDB Cloud Persistence state (Configured strictly via MONGODB_URI in environment)
   const [mongoStatus, setMongoStatus] = useState<{
@@ -492,26 +546,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.createCoupon({
-        code: newCouponCode,
-        discountType: newCouponType,
-        discountValue: newCouponVal,
-        minOrderValue: newCouponMin
-      });
+      if (editingCoupon) {
+        await api.updateCoupon(editingCoupon.id, {
+          code: newCouponCode.toUpperCase().trim(),
+          discountType: newCouponType,
+          discountValue: Number(newCouponVal),
+          minOrderValue: Number(newCouponMin)
+        });
+        showFeedback('কুপন সফলভাবে আপডেট করা হয়েছে');
+      } else {
+        await api.createCoupon({
+          code: newCouponCode.toUpperCase().trim(),
+          discountType: newCouponType,
+          discountValue: Number(newCouponVal),
+          minOrderValue: Number(newCouponMin)
+        });
+        showFeedback('কুপন সফলভাবে তৈরি হয়েছে');
+      }
       setShowCouponModal(false);
+      setEditingCoupon(null);
       setNewCouponCode('');
+      setNewCouponVal(100);
+      setNewCouponMin(1000);
       loadAllAdminData();
     } catch (err: any) {
-      alert(err.message);
+      showFeedback(err.message || 'কুপন সেভ করতে সমস্যা হয়েছে');
+    }
+  };
+
+  const handleEditCoupon = (c: Coupon) => {
+    setEditingCoupon(c);
+    setNewCouponCode(c.code);
+    setNewCouponType(c.discountType);
+    setNewCouponVal(c.discountValue);
+    setNewCouponMin(c.minOrderValue);
+    setShowCouponModal(true);
+  };
+
+  const handleDeleteCoupon = async (id: string) => {
+    try {
+      await api.deleteCoupon(id);
+      setCoupons((prev) => prev.filter((c) => c.id !== id));
+      showFeedback('কুপন মুছে ফেলা হয়েছে');
+      loadAllAdminData();
+    } catch (err: any) {
+      showFeedback(err.message || 'কুপন মুছতে সমস্যা হয়েছে');
     }
   };
 
   const handleToggleCoupon = async (id: string) => {
     try {
       await api.toggleCoupon(id);
+      showFeedback('কুপন স্ট্যাটাস পরিবর্তন করা হয়েছে');
       loadAllAdminData();
     } catch (err: any) {
-      alert(err.message);
+      showFeedback(err.message || 'কুপন স্ট্যাটাস পরিবর্তন ব্যর্থ');
     }
   };
 
@@ -520,11 +609,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (!storeSettings) return;
     try {
       await api.updateSettings(storeSettings);
-      setFeedbackMsg('স্টোর সেটিংস সফলভাবে আপডেট হয়েছে');
+      showFeedback('স্টোর সেটিংস সফলভাবে আপডেট হয়েছে');
       onStoreDataChanged();
-      setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
-      alert(err.message);
+      showFeedback(err.message || 'সেটিংস সেভ করতে সমস্যা হয়েছে');
     }
   };
 
@@ -1245,13 +1333,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         setEditingProduct({
                           titleBn: '',
                           titleEn: '',
-                          price: 1000,
-                          originalPrice: 1200,
-                          stock: 20,
+                          price: 0,
+                          originalPrice: 0,
+                          stock: 0,
                           categoryId: categories[0]?.id || '',
-                          brand: 'সাশ্রয়ী দাম',
-                          sku: `SD-${Math.floor(1000 + Math.random() * 9000)}`,
-                          images: ['/src/assets/images/category_kitchen_cookware_1792084991823.jpg'],
+                          brand: '',
+                          sku: '',
+                          images: [],
                           descriptionBn: '',
                           isFeatured: false,
                           isPublished: true
@@ -1503,7 +1591,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
 
                   <button
-                    onClick={() => setShowCouponModal(true)}
+                    onClick={() => {
+                      setEditingCoupon(null);
+                      setNewCouponCode('');
+                      setNewCouponVal(100);
+                      setNewCouponMin(1000);
+                      setShowCouponModal(true);
+                    }}
                     className="px-3 py-2 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -1521,6 +1615,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <th className="py-2.5 px-4">নূন্যতম অর্ডার</th>
                         <th className="py-2.5 px-4">ব্যবহারের সংখ্যা</th>
                         <th className="py-2.5 px-4">স্ট্যাটাস</th>
+                        <th className="py-2.5 px-4 text-right">অ্যাকশন</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-100">
@@ -1542,6 +1637,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             >
                               {c.isActive ? 'সক্রিয় (Active)' : 'নিষ্ক্রিয়'}
                             </button>
+                          </td>
+                          <td className="py-2.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleEditCoupon(c)}
+                                className="p-1.5 hover:bg-stone-100 rounded text-stone-600 hover:text-[#0F4C3A] transition-colors cursor-pointer"
+                                title="কুপন এডিট করুন"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCoupon(c.id)}
+                                className="p-1.5 hover:bg-rose-50 rounded text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
+                                title="কুপন ডিলিট করুন"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1648,45 +1761,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   সেটিংস সংরক্ষণ করুন
                 </button>
-
-                {/* Database Persistence Status (Configured strictly via environment variable) */}
-                <div className="mt-8 pt-6 border-t border-stone-200">
-                  <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-stone-900">ডেটাবেস স্টোরেজ:</span>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            mongoStatus?.isConnected
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-stone-200 text-stone-700'
-                          }`}
-                        >
-                          {mongoStatus?.isConnected
-                            ? `MongoDB Atlas সংযুক্ত (${mongoStatus.dbName})`
-                            : 'লোকাল ফাইল ডেটাবেস (Local File)'}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-stone-500">
-                        {mongoStatus?.isConnected
-                          ? `সংরক্ষিত ডেটা: ${mongoStatus.collections.products} পণ্য, ${mongoStatus.collections.categories} ক্যাটাগরি, ${mongoStatus.collections.orders} অর্ডার। পণ্যের ছবি সরাসরি Base64 হিসেবে ক্লাউডে সংরক্ষিত।`
-                          : 'MongoDB ক্লাউড ডেটাবেস সক্রিয় করতে সার্ভার এনভায়রনমেন্টে MONGODB_URI প্রদান করুন। অ্যাডমিন প্যানেলে কোনো কি-ইনপুট দেওয়ার প্রয়োজন নেই।'}
-                      </p>
-                    </div>
-
-                    {mongoStatus?.isConnected && (
-                      <button
-                        type="button"
-                        onClick={handleSyncAllMongo}
-                        disabled={isSyncingMongo}
-                        className="px-3.5 py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isSyncingMongo ? 'animate-spin' : ''}`} />
-                        <span>{isSyncingMongo ? 'সিঙ্ক হচ্ছে...' : 'MongoDB সিঙ্ক'}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
               </form>
             )}
 
@@ -2064,15 +2138,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               })()}
 
               {/* Product Photos Upload Area */}
-              <div className="space-y-2">
-                <label className="block font-semibold text-stone-700">
-                  পণ্যের ছবি আপলোড (ফোন / কম্পিউটার থেকে ছবি নির্বাচন করুন) *
-                </label>
+              <div className="space-y-3 p-3.5 bg-stone-50 rounded-xl border border-stone-200">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-stone-800 text-xs">
+                    পণ্যের ছবি (Product Photos)
+                  </label>
+                  {editingProduct.images && editingProduct.images.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingProduct({ ...editingProduct, images: [] })}
+                      className="text-[11px] text-rose-600 hover:underline font-semibold cursor-pointer"
+                    >
+                      সব ছবি মুছুন
+                    </button>
+                  )}
+                </div>
 
-                {/* Upload Button & Drop Area */}
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <label className="w-full sm:w-auto px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-[#0F4C3A] border border-emerald-300 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-2xs">
-                    <Upload className="w-4 h-4" />
+                {/* Upload Button */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs">
+                    <Upload className="w-3.5 h-3.5" />
                     <span>{isUploadingProdImage ? 'ছবি আপলোড হচ্ছে...' : '📷 ছবি আপলোড করুন'}</span>
                     <input
                       type="file"
@@ -2104,50 +2189,91 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       }}
                     />
                   </label>
-
-                  <span className="text-xs text-stone-400">বা সরাসরি ছবির URL দিতে পারেন</span>
+                  <span className="text-[11px] text-stone-400">মোবাইল বা কম্পিউটার থেকে এক বা একাধিক ছবি নির্বাচন করুন</span>
                 </div>
 
-                {/* Uploaded Photos Thumbnails Preview */}
-                {editingProduct.images && editingProduct.images.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {editingProduct.images.map((imgUrl, idx) => (
-                      <div
-                        key={idx}
-                        className="relative w-16 h-16 rounded-lg overflow-hidden border border-stone-200 group bg-stone-100"
-                      >
-                        <img src={imgUrl} alt="" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const filtered = (editingProduct.images || []).filter((_, i) => i !== idx);
-                            setEditingProduct({ ...editingProduct, images: filtered });
-                          }}
-                          className="absolute inset-0 bg-stone-900/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                          title="ছবি মুছুন"
+                {/* Image Previews Grid with explicit Delete & Cover buttons */}
+                {editingProduct.images && editingProduct.images.length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pt-1">
+                    {editingProduct.images.map((imgUrl, idx) => {
+                      const isCover = idx === 0;
+                      return (
+                        <div
+                          key={idx}
+                          className={`relative aspect-square rounded-lg overflow-hidden border bg-white group shadow-2xs ${
+                            isCover ? 'border-emerald-500 ring-2 ring-emerald-400/40' : 'border-stone-200'
+                          }`}
                         >
-                          <Trash2 className="w-4 h-4 text-rose-300" />
-                        </button>
-                      </div>
-                    ))}
+                          <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+
+                          {/* Cover badge */}
+                          {isCover && (
+                            <span className="absolute top-1 left-1 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow">
+                              মূল ছবি
+                            </span>
+                          )}
+
+                          {/* Delete button (Always visible top-right) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const filtered = (editingProduct.images || []).filter((_, i) => i !== idx);
+                              setEditingProduct({ ...editingProduct, images: filtered });
+                            }}
+                            className="absolute top-1 right-1 w-6 h-6 bg-rose-600 hover:bg-rose-700 text-white rounded-full flex items-center justify-center shadow-md cursor-pointer transition-transform hover:scale-110"
+                            title="ছবি মুছুন"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Make Cover Button */}
+                          {!isCover && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const current = [...(editingProduct.images || [])];
+                                const selected = current.splice(idx, 1)[0];
+                                setEditingProduct({ ...editingProduct, images: [selected, ...current] });
+                              }}
+                              className="absolute bottom-1 inset-x-1 py-1 bg-black/70 hover:bg-black/90 text-white text-[10px] font-semibold rounded text-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            >
+                              কভার বানান
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-4 text-center border border-dashed border-stone-300 rounded-lg text-stone-400 text-xs">
+                    কোনো ছবি যুক্ত করা হয়নি। ওপরে বাটনে ক্লিক করে ছবি আপলোড করুন।
                   </div>
                 )}
 
-                <input
-                  type="text"
-                  placeholder="ছবির লিংক (ঐচ্ছিক): https://... বা /uploads/..."
-                  value={editingProduct.images?.join(', ') || ''}
-                  onChange={(e) =>
-                    setEditingProduct({
-                      ...editingProduct,
-                      images: e.target.value
-                        .split(',')
-                        .map((s) => s.trim())
-                        .filter(Boolean)
-                    })
-                  }
-                  className="w-full px-3 py-1.5 border border-stone-200 rounded-lg font-mono text-[11px]"
-                />
+                {/* Optional Image URL Input */}
+                <div className="flex gap-2 items-center pt-1 border-t border-stone-200/60">
+                  <input
+                    type="url"
+                    placeholder="অথবা সরাসরি ওয়েব ছবির URL দিন (https://...)"
+                    value={imageUrlInput}
+                    onChange={(e) => setImageUrlInput(e.target.value)}
+                    className="flex-1 px-3 py-1.5 border border-stone-200 rounded-lg text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!imageUrlInput.trim()) return;
+                      setEditingProduct({
+                        ...editingProduct,
+                        images: [...(editingProduct.images || []), imageUrlInput.trim()]
+                      });
+                      setImageUrlInput('');
+                    }}
+                    className="px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-lg text-xs font-semibold cursor-pointer shrink-0"
+                  >
+                    + লিংক যোগ
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -2496,8 +2622,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="fixed inset-0 z-60 bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-stone-200 text-left space-y-4">
             <div className="flex items-center justify-between border-b border-stone-200 pb-2">
-              <h3 className="text-sm font-bold text-stone-900">নতুন কুপন কোড তৈরি</h3>
-              <button onClick={() => setShowCouponModal(false)}><X className="w-4 h-4 text-stone-400" /></button>
+              <h3 className="text-sm font-bold text-stone-900">
+                {editingCoupon ? 'কুপন সম্পাদনা (Edit Coupon)' : 'নতুন কুপন কোড তৈরি'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCouponModal(false);
+                  setEditingCoupon(null);
+                }}
+                className="p-1 rounded text-stone-400 hover:text-stone-700 hover:bg-stone-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleCreateCoupon} className="space-y-3 text-xs">
@@ -2549,9 +2686,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-2 bg-[#0F4C3A] text-white font-semibold rounded-lg hover:bg-[#135D48] transition-colors"
+                className="w-full py-2 bg-[#0F4C3A] text-white font-semibold rounded-lg hover:bg-[#135D48] transition-colors cursor-pointer"
               >
-                কুপন তৈরি করুন
+                {editingCoupon ? 'কুপন আপডেট সংরক্ষণ করুন' : 'কুপন তৈরি করুন'}
               </button>
             </form>
           </div>
@@ -2657,6 +2794,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* MANUAL ORDER ENTRY MODAL (Facebook / Phone / WhatsApp) */}
+      <ManualOrderModal
+        isOpen={isManualOrderOpen}
+        onClose={() => setIsManualOrderOpen(false)}
+        products={products}
+        onOrderCreated={(newOrder) => {
+          setOrders((prev) => [newOrder, ...prev]);
+          showFeedback(`ম্যানুয়াল অর্ডার #${newOrder.orderNumber} সফলভাবে তৈরি হয়েছে`);
+          loadAllAdminData();
+          onStoreDataChanged();
+        }}
+      />
     </div>
   );
 };

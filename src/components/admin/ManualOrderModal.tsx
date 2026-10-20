@@ -12,7 +12,8 @@ interface ManualOrderModalProps {
 }
 
 interface SelectedItem {
-  productId: string;
+  productId?: string;
+  productTitle?: string;
   quantity: number;
   unitPrice: number;
 }
@@ -20,32 +21,34 @@ interface SelectedItem {
 export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
   isOpen,
   onClose,
-  products,
+  products = [],
   onOrderCreated
 }) => {
   if (!isOpen) return null;
 
   // Order Details Form State
-  const [orderSource, setOrderSource] = useState<'facebook' | 'phone' | 'whatsapp' | 'in_store'>('facebook');
+  const [orderSource, setOrderSource] = useState<'facebook' | 'phone' | 'whatsapp' | 'walk_in'>('facebook');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [fullAddress, setFullAddress] = useState('');
-  const [district, setDistrict] = useState('ঢাকা (Dhaka)');
+  const [district, setDistrict] = useState('ঢাকা');
   const [upazila, setUpazila] = useState('');
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
-  const [initialStatus, setInitialStatus] = useState<'pending_confirmation' | 'confirmed' | 'processing'>('confirmed');
+  const [initialStatus, setInitialStatus] = useState<'confirmed' | 'processing' | 'pending_confirmation'>('confirmed');
+  const [paymentStatus, setPaymentStatus] = useState<'unpaid' | 'paid'>('unpaid');
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bkash' | 'nagad' | 'bank'>('cod');
 
   // Products Selected
   const [items, setItems] = useState<SelectedItem[]>(() => {
     if (products.length > 0) {
-      return [{ productId: products[0].id, quantity: 1, unitPrice: products[0].price }];
+      return [{ productId: products[0].id, productTitle: products[0].titleBn, quantity: 1, unitPrice: products[0].price }];
     }
-    return [];
+    return [{ productTitle: '', quantity: 1, unitPrice: 0 }];
   });
 
   // Shipping & Discount
-  const [deliveryFee, setDeliveryFee] = useState<number>(60);
+  const [deliveryFee, setDeliveryFee] = useState<number>(70);
   const [discount, setDiscount] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -54,16 +57,22 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
   const handleDistrictChange = (distName: string) => {
     setDistrict(distName);
     const isDhaka = distName.includes('ঢাকা') || distName.toLowerCase().includes('dhaka');
-    setDeliveryFee(isDhaka ? 60 : 120);
+    setDeliveryFee(isDhaka ? 70 : 130);
   };
 
   // Add Item Row
   const handleAddItem = () => {
-    if (products.length === 0) return;
-    setItems((prev) => [
-      ...prev,
-      { productId: products[0].id, quantity: 1, unitPrice: products[0].price }
-    ]);
+    if (products.length > 0) {
+      setItems((prev) => [
+        ...prev,
+        { productId: products[0].id, productTitle: products[0].titleBn, quantity: 1, unitPrice: products[0].price }
+      ]);
+    } else {
+      setItems((prev) => [
+        ...prev,
+        { productTitle: '', quantity: 1, unitPrice: 0 }
+      ]);
+    }
   };
 
   // Update Item
@@ -71,11 +80,16 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
     setItems((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], ...updates };
-      // If productId changed, update unitPrice to that product's current price
       if (updates.productId) {
-        const prod = products.find((p) => p.id === updates.productId);
-        if (prod) {
-          updated[index].unitPrice = prod.price;
+        if (updates.productId === 'custom') {
+          updated[index].productId = undefined;
+          updated[index].productTitle = '';
+        } else {
+          const prod = products.find((p) => p.id === updates.productId);
+          if (prod) {
+            updated[index].productTitle = prod.titleBn || prod.titleEn;
+            updated[index].unitPrice = prod.price;
+          }
         }
       }
       return updated;
@@ -102,39 +116,21 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
       return;
     }
 
-    if (items.length === 0) {
-      setErrorMessage('কমপক্ষে একটি পণ্য নির্বাচন করুন।');
+    const validItems = items.filter((it) => (it.productId || it.productTitle?.trim()) && it.unitPrice >= 0 && it.quantity > 0);
+    if (validItems.length === 0) {
+      setErrorMessage('কমপক্ষে একটি বৈধ পণ্য নির্বাচন বা এন্ট্রি করুন।');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Build order items snapshot
-      const orderItems: OrderItemSnapshot[] = items.map((it) => {
-        const prod = products.find((p) => p.id === it.productId);
-        return {
-          productId: it.productId,
-          productTitleBn: prod?.titleBn || 'ম্যানুয়াল পণ্য',
-          productTitleEn: prod?.titleEn || 'Manual Product',
-          sku: prod?.sku || `MANUAL-${it.productId}`,
-          unitPrice: it.unitPrice,
-          quantity: it.quantity,
-          itemTotal: it.unitPrice * it.quantity,
-          imageUrl: prod?.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'
-        };
-      });
-
       const matchedDist = BANGLADESH_DISTRICTS.find(
         (d) => district.includes(d.nameBn) || district.toLowerCase().includes(d.nameEn.toLowerCase())
       );
       const division = matchedDist ? matchedDist.division.toLowerCase() : 'dhaka';
 
-      const prefix = orderSource === 'facebook' ? 'FB' : orderSource === 'phone' ? 'PH' : orderSource === 'whatsapp' ? 'WA' : 'DIR';
-      const orderNumber = `SD-${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      const orderPayload: Partial<Order> = {
-        orderNumber,
+      const orderPayload = {
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         customerEmail: customerEmail.trim() || undefined,
@@ -142,29 +138,26 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
         district,
         upazila: upazila.trim() || district,
         fullAddress: fullAddress.trim(),
-        deliveryInstructions: `[অর্ডার মাধ্যম: ${orderSource.toUpperCase()}] ${deliveryInstructions.trim()}`,
-        items: orderItems,
-        subtotal,
-        deliveryFee,
-        discount,
-        total,
-        paymentMethod: 'cod',
-        paymentStatus: 'unpaid',
-        fulfilmentStatus: initialStatus,
-        statusTimeline: [
-          {
-            status: initialStatus,
-            timestamp: new Date().toISOString(),
-            note: `অর্ডারটি ম্যানুয়ালি যুক্ত করা হয়েছে (${orderSource.toUpperCase()} চ্যানেল থেকে)`,
-            changedBy: 'Admin'
-          }
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        deliveryInstructions: deliveryInstructions.trim() || undefined,
+        orderSource,
+        paymentMethod,
+        paymentStatus,
+        deliveryFee: Number(deliveryFee) || 0,
+        discount: Number(discount) || 0,
+        items: validItems.map((it) => {
+          const prod = it.productId ? products.find((p) => p.id === it.productId) : null;
+          return {
+            productId: it.productId,
+            productTitleBn: prod?.titleBn || it.productTitle || 'কাস্টম পণ্য',
+            productTitleEn: prod?.titleEn || it.productTitle || 'Custom Product',
+            unitPrice: Number(it.unitPrice),
+            quantity: Number(it.quantity)
+          };
+        })
       };
 
-      const res = await api.createOrder(orderPayload);
-      onOrderCreated(res.order || (orderPayload as Order));
+      const res = await api.createAdminOrder(orderPayload);
+      onOrderCreated(res.order);
       onClose();
     } catch (err: any) {
       console.error('Failed to create manual order:', err);
@@ -178,62 +171,79 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
     <div className="fixed inset-0 z-60 bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-stone-200 overflow-hidden text-stone-900 my-auto animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50">
-          <div>
-            <h3 className="text-base font-bold text-stone-900 font-['Hind_Siliguri',sans-serif]">
-              ম্যানুয়াল / ফেসবুক অর্ডার এন্ট্রি
-            </h3>
-            <p className="text-xs text-stone-500 font-['Hind_Siliguri',sans-serif]">
-              ফেসবুক পেজ, হোয়াটসঅ্যাপ কিংবা ফোন কলের অর্ডার সরাসরি যুক্ত করুন
-            </p>
+        <div className="flex items-center justify-between p-4 bg-stone-50 border-b border-stone-200">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-[#0F4C3A] text-white flex items-center justify-center font-bold">
+              <Plus className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-stone-900">
+                ম্যানুয়াল অর্ডার তৈরি (Manual Order Entry)
+              </h3>
+              <p className="text-[11px] text-stone-500">
+                Facebook, WhatsApp বা ফোন কলের মাধ্যমে আসা অর্ডারের তথ্য এন্ট্রি করুন
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors cursor-pointer"
+            className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
-          {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
+        {/* Error Alert */}
+        {errorMessage && (
+          <div className="m-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
-          {/* 1. Order Source & Initial Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-stone-50 rounded-xl border border-stone-200/70">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 text-xs max-h-[75vh] overflow-y-auto">
+          {/* 1. Channel & Initial Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-stone-50 rounded-xl border border-stone-200/80">
             <div>
-              <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                অর্ডার মাধ্যম (Sales Channel) *
+              <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+                অর্ডারের মাধ্যম (Order Channel) *
               </label>
-              <select
-                value={orderSource}
-                onChange={(e: any) => setOrderSource(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
-              >
-                <option value="facebook">📘 Facebook Page (ফেসবুক পেজ)</option>
-                <option value="whatsapp">💬 WhatsApp (হোয়াটসঅ্যাপ চ্যাট)</option>
-                <option value="phone">📞 Phone Call (সরাসরি ফোন কল)</option>
-                <option value="in_store">🏬 In-Store / Direct (সরাসরি বিক্রয়)</option>
-              </select>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { id: 'facebook', label: 'Facebook' },
+                  { id: 'phone', label: 'Phone Call' },
+                  { id: 'whatsapp', label: 'WhatsApp' },
+                  { id: 'walk_in', label: 'Direct / Store' }
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setOrderSource(s.id as any)}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      orderSource === s.id
+                        ? 'bg-[#0F4C3A] text-white border-[#0F4C3A]'
+                        : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                প্রাথমিক স্ট্যাটাস (Initial Status) *
+              <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+                প্রাথমিক স্ট্যাটাস (Status)
               </label>
               <select
                 value={initialStatus}
-                onChange={(e: any) => setInitialStatus(e.target.value)}
+                onChange={(e) => setInitialStatus(e.target.value as any)}
                 className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
               >
-                <option value="confirmed">✅ Confirmed (নিশ্চিত অর্ডার)</option>
-                <option value="processing">⚙️ Processing (প্রক্রিয়াধীন)</option>
-                <option value="pending_confirmation">⏳ Pending (যাচাই বাকি)</option>
+                <option value="confirmed">অর্ডার কনফার্মড (Confirmed)</option>
+                <option value="processing">প্রসেসিং (Processing)</option>
+                <option value="pending_confirmation">পেন্ডিং কনফার্মেশন (Pending)</option>
               </select>
             </div>
           </div>
@@ -261,12 +271,12 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
 
               <div>
                 <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                  মোবাইল নম্বর *
+                  মোবাইল নম্বর * (১১ ডিজিট)
                 </label>
                 <input
                   type="tel"
                   required
-                  placeholder="০১XXXXXXXXX"
+                  placeholder="017XXXXXXXX"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
@@ -274,7 +284,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-stone-600 mb-1">
                   জেলা (District) *
@@ -282,11 +292,19 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                 <select
                   value={district}
                   onChange={(e) => handleDistrictChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
+                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
                 >
+                  <option value="ঢাকা">ঢাকা (Dhaka)</option>
+                  <option value="চট্টগ্রাম">চট্টগ্রাম (Chattogram)</option>
+                  <option value="সিলেট">সিলেট (Sylhet)</option>
+                  <option value="রাজশাহী">রাজশাহী (Rajshahi)</option>
+                  <option value="খুলনা">খুলনা (Khulna)</option>
+                  <option value="বরিশাল">বরিশাল (Barishal)</option>
+                  <option value="রংপুর">রংপুর (Rangpur)</option>
+                  <option value="ময়মনসিংহ">ময়মনসিংহ (Mymensingh)</option>
                   {BANGLADESH_DISTRICTS.map((d) => (
-                    <option key={d.id} value={`${d.nameBn} (${d.nameEn})`}>
-                      {d.nameBn} ({d.nameEn}) {d.isDhakaCity ? '• ঢাকা মেট্রো' : ''}
+                    <option key={d.id} value={d.nameBn}>
+                      {d.nameBn} ({d.nameEn})
                     </option>
                   ))}
                 </select>
@@ -294,26 +312,13 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
 
               <div>
                 <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                  থানা / উপজেলা (Upazila/Area)
+                  থানা / উপজেলা (ঐচ্ছিক)
                 </label>
                 <input
                   type="text"
-                  placeholder="যেমন: মিরপুর, ধানমন্ডি"
+                  placeholder="যেমন: ধানমন্ডি / মিরপুর"
                   value={upazila}
                   onChange={(e) => setUpazila(e.target.value)}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                  ইমেইল (ঐচ্ছিক)
-                </label>
-                <input
-                  type="email"
-                  placeholder="customer@email.com"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
                   className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
                 />
               </div>
@@ -321,12 +326,12 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
 
             <div>
               <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                সম্পূর্ণ ঠিকানা (বাসা, রোড, এলাকা) *
+                সম্পূর্ণ ঠিকানা (রোড, বাড়ি, ফ্ল্যাট নং ইত্যাদি) *
               </label>
               <textarea
                 required
                 rows={2}
-                placeholder="বাসা নং, রোড নং, এলাকা এবং কোনো ল্যান্ডমার্ক..."
+                placeholder="বাড়ি নং, রোড নং, এলাকা এবং ডেলিভারির বিস্তারিত ঠিকানা..."
                 value={fullAddress}
                 onChange={(e) => setFullAddress(e.target.value)}
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
@@ -346,7 +351,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                 className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-[#0F4C3A] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>পণ্য যোগ করুন</span>
+                <span>+ পণ্য যোগ করুন</span>
               </button>
             </div>
 
@@ -356,21 +361,45 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                   key={idx}
                   className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 flex flex-wrap sm:flex-nowrap items-center gap-2"
                 >
-                  <div className="flex-1 min-w-[180px]">
-                    <select
-                      value={it.productId}
-                      onChange={(e) => handleUpdateItem(idx, { productId: e.target.value })}
-                      className="w-full px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
-                    >
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.titleBn} (৳{p.price})
-                        </option>
-                      ))}
-                    </select>
+                  <div className="flex-1 min-w-[200px]">
+                    {products.length > 0 ? (
+                      <div className="space-y-1">
+                        <select
+                          value={it.productId || 'custom'}
+                          onChange={(e) => handleUpdateItem(idx, { productId: e.target.value })}
+                          className="w-full px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
+                        >
+                          <option value="custom">-- কাস্টম পণ্য (Custom Item) --</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.titleBn} (৳{p.price})
+                            </option>
+                          ))}
+                        </select>
+                        {!it.productId && (
+                          <input
+                            type="text"
+                            placeholder="পণ্যের নাম লিখুন..."
+                            value={it.productTitle || ''}
+                            onChange={(e) => handleUpdateItem(idx, { productTitle: e.target.value })}
+                            className="w-full px-2.5 py-1 bg-white border border-stone-300 rounded text-xs"
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        placeholder="পণ্যের নাম লিখুন..."
+                        required
+                        value={it.productTitle || ''}
+                        onChange={(e) => handleUpdateItem(idx, { productTitle: e.target.value })}
+                        className="w-full px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
+                      />
+                    )}
                   </div>
 
                   <div className="w-20">
+                    <label className="block text-[10px] text-stone-400 sm:hidden">পরিমাণ</label>
                     <input
                       type="number"
                       min={1}
@@ -382,6 +411,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                   </div>
 
                   <div className="w-24">
+                    <label className="block text-[10px] text-stone-400 sm:hidden">একক মূল্য</label>
                     <input
                       type="number"
                       min={0}
@@ -392,7 +422,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                     />
                   </div>
 
-                  <div className="w-24 text-right font-bold text-stone-900 tabular-nums">
+                  <div className="w-20 text-right font-bold text-stone-900 tabular-nums">
                     ৳{it.unitPrice * it.quantity}
                   </div>
 
@@ -423,63 +453,106 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                   min={0}
                   value={deliveryFee}
                   onChange={(e) => setDeliveryFee(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-bold"
+                  className="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-bold tabular-nums"
                 />
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                  ডিসকাউন্ট / ছাড় (৳)
+                  স্পেশাল ডিসকাউন্ট / ছাড় (৳)
                 </label>
                 <input
                   type="number"
                   min={0}
                   value={discount}
                   onChange={(e) => setDiscount(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-bold"
+                  className="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-xs font-bold tabular-nums"
                 />
               </div>
             </div>
 
-            <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-xs font-semibold">
-              <span className="text-stone-600">পণ্যের উপমোট: ৳{subtotal} | ডেলিভারি: ৳{deliveryFee} | ছাড়: ৳{discount}</span>
-              <div className="text-right">
-                <span className="text-[11px] text-stone-500 mr-2">সর্বমোট প্রদেয়:</span>
-                <span className="text-base font-extrabold text-[#0F4C3A] tabular-nums">৳{total}</span>
+            {/* Calculations Breakdown */}
+            <div className="pt-2 border-t border-stone-200 space-y-1 text-right">
+              <div className="flex justify-between text-stone-600">
+                <span>পণ্যের উপমোট:</span>
+                <span className="font-semibold tabular-nums">৳{subtotal}</span>
+              </div>
+              <div className="flex justify-between text-stone-600">
+                <span>ডেলিভারি চার্জ:</span>
+                <span className="font-semibold tabular-nums">+৳{deliveryFee}</span>
+              </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-emerald-700 font-semibold">
+                  <span>ছাড়:</span>
+                  <span className="tabular-nums">-৳{discount}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm font-bold text-[#0F4C3A] pt-1 border-t border-stone-200">
+                <span>সর্বমোট প্রদেয়:</span>
+                <span className="text-base tabular-nums">৳{total}</span>
               </div>
             </div>
           </div>
 
-          {/* 5. Special Notes */}
-          <div>
-            <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-              ডেলিভারি বা বিশেষ নোট (ঐচ্ছিক)
-            </label>
-            <input
-              type="text"
-              placeholder="যেমন: বিকেলে ডেলিভারি দিতে হবে, পার্সেল চেক করে নিবেন..."
-              value={deliveryInstructions}
-              onChange={(e) => setDeliveryInstructions(e.target.value)}
-              className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
-            />
+          {/* 5. Payment Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+                পেমেন্ট মেথড
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value as any)}
+                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
+              >
+                <option value="cod">ক্যাশ অন ডেলিভারি (COD)</option>
+                <option value="bkash">বিকাশ (bKash)</option>
+                <option value="nagad">নগদ (Nagad)</option>
+                <option value="bank">ব্যাংক ট্রান্সফার (Bank)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+                পেমেন্ট স্ট্যাটাস
+              </label>
+              <select
+                value={paymentStatus}
+                onChange={(e) => setPaymentStatus(e.target.value as any)}
+                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
+              >
+                <option value="unpaid">বকেয়া (Unpaid / COD)</option>
+                <option value="paid">পরিশোধিত (Paid)</option>
+              </select>
+            </div>
           </div>
 
-          {/* Submit Action */}
-          <div className="pt-3 border-t border-stone-200 flex items-center justify-end gap-2.5">
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+              disabled={isSubmitting}
+              className="px-4 py-2 border border-stone-300 rounded-xl font-semibold text-stone-700 hover:bg-stone-50 transition-colors cursor-pointer"
             >
               বাতিল
             </button>
-
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 bg-[#0F4C3A] hover:bg-[#145C47] text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              className="px-6 py-2 bg-[#0F4C3A] hover:bg-[#135D48] text-white font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {isSubmitting ? 'অর্ডার সংরক্ষিত হচ্ছে...' : 'অর্ডার সংরক্ষণ করুন'}
+              {isSubmitting ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>অর্ডার তৈরি হচ্ছে...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>অর্ডার তৈরি ও নিশ্চিত করুন</span>
+                </>
+              )}
             </button>
           </div>
         </form>

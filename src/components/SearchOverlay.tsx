@@ -67,12 +67,20 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
       })
     : [];
 
-  const quickPicks = [
-    { labelBn: 'শার্ট ও পোলো', labelEn: 'Shirts & Polos', catId: 'cat-shirts' },
-    { labelBn: 'রান্নাঘর ও কুকার', labelEn: 'Kitchen & Cookware', catId: 'cat-kitchen' },
-    { labelBn: 'স্মার্ট গ্যাজেট', labelEn: 'Gadgets', catId: 'cat-gadgets' },
-    { labelBn: 'দেশীয় ফ্যাশন', labelEn: 'Fashion & Handloom', catId: 'cat-fashion' }
-  ];
+  const dynamicCategories = Array.from(
+    new Map(
+      products
+        .filter((p) => p.categoryId && p.categoryNameBn)
+        .map((p) => [p.categoryId, { id: p.categoryId, nameBn: p.categoryNameBn!, nameEn: p.categorySlug || '' }])
+    ).values()
+  ).slice(0, 4);
+
+  const quickPicks = dynamicCategories.length > 0
+    ? dynamicCategories.map((c) => ({ labelBn: c.nameBn, labelEn: c.nameEn, catId: c.id }))
+    : [
+        { labelBn: 'সকল পণ্য', labelEn: 'All Products', catId: 'all' },
+        { labelBn: 'নতুন অফার', labelEn: 'Special Offers', catId: 'all' }
+      ];
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex flex-col justify-start">

@@ -6,6 +6,7 @@ import type {
   Product,
   Category,
   Order,
+  OrderItemSnapshot,
   OrderFulfilmentStatus,
   Coupon,
   ShippingRate,
@@ -19,7 +20,8 @@ import {
   syncCategoryToMongo,
   deleteCategoryFromMongo,
   getMongoStatus,
-  syncAllToMongo
+  syncAllToMongo,
+  syncOrderToMongo
 } from '../mongodb.ts';
 
 const router = Router();
@@ -252,6 +254,149 @@ router.post('/orders/:id/notes', async (req: AuthenticatedRequest, res) => {
   }
 });
 
+// POST /api/admin/orders - Manual Order Creation (Facebook, Phone, WhatsApp, Walk-in)
+router.post('/orders', async (req: AuthenticatedRequest, res) => {
+  try {
+    const {
+      customerName,
+      customerPhone,
+      customerEmail,
+      division,
+      district,
+      upazila,
+      fullAddress,
+      deliveryInstructions,
+      orderSource,
+      paymentMethod = 'cod',
+      paymentStatus = 'unpaid',
+      deliveryFee = 70,
+      discount = 0,
+      internalNotes,
+      items
+    } = req.body;
+
+    if (!customerName || !customerPhone || !fullAddress || !division) {
+      res.status(400).json({ error: 'গ্রাহকের নাম, মোবাইল নম্বর, ঠিকানা ও বিভাগ আবশ্যক' });
+      return;
+    }
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ error: 'অন্তত একটি পণ্য যোগ করুন' });
+      return;
+    }
+
+    const cleanPhone = String(customerPhone).replace(/^(\+88|88)/, '').trim();
+
+    const orderResult = await withTransaction(async (db) => {
+      const itemSnapshots: OrderItemSnapshot[] = [];
+      let calculatedSubtotal = 0;
+
+      for (const it of items) {
+        const qty = Math.max(1, Number(it.quantity) || 1);
+        const price = Math.max(0, Number(it.unitPrice) || 0);
+        const itemTotal = price * qty;
+        calculatedSubtotal += itemTotal;
+
+        // If it links to an existing product in store, deduct stock if available
+        if (it.productId) {
+          const product = db.products.find((p) => p.id === it.productId);
+          if (product) {
+            if (it.variantId && product.variants) {
+              const variant = product.variants.find((v) => v.id === it.variantId);
+              if (variant && variant.stock >= qty) {
+                variant.stock -= qty;
+              }
+            } else if (product.stock >= qty) {
+              product.stock -= qty;
+            }
+          }
+        }
+
+        itemSnapshots.push({
+          productId: it.productId || `custom-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          variantId: it.variantId,
+          productTitleBn: it.productTitleBn || it.productTitle || 'কাস্টম পণ্য',
+          productTitleEn: it.productTitleEn || it.productTitle || 'Custom Product',
+          variantNameBn: it.variantNameBn,
+          sku: it.sku || `MANUAL-${Math.floor(100 + Math.random() * 900)}`,
+          unitPrice: price,
+          quantity: qty,
+          itemTotal,
+          imageUrl: it.imageUrl || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'
+        });
+      }
+
+      const numDeliveryFee = Number(deliveryFee) || 0;
+      const numDiscount = Number(discount) || 0;
+      const total = Math.max(0, calculatedSubtotal + numDeliveryFee - numDiscount);
+
+      const orderNumber = `SD-${new Date().getFullYear().toString().slice(-2)}${Math.floor(1000 + Math.random() * 9000)}`;
+      const sourceLabel = orderSource === 'facebook' ? 'Facebook' : orderSource === 'whatsapp' ? 'WhatsApp' : orderSource === 'phone' ? 'Phone Call' : 'Manual Entry';
+
+      const notesArr: string[] = [];
+      if (internalNotes) notesArr.push(internalNotes);
+      notesArr.push(`[${new Date().toLocaleDateString('bn-BD')}] অ্যাডমিন (${req.user?.name || 'Admin'}) কর্তৃক ম্যানুয়াল অর্ডার (${sourceLabel}) তৈরি করা হয়েছে`);
+
+      const newOrder: Order = {
+        id: `ord-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        orderNumber,
+        customerName: customerName.trim(),
+        customerPhone: cleanPhone,
+        customerEmail: customerEmail?.trim() || undefined,
+        division,
+        district: district || (division === 'dhaka' ? 'ঢাকা' : 'সংশ্লিষ্ট জেলা'),
+        upazila: upazila || '',
+        fullAddress: fullAddress.trim(),
+        deliveryInstructions: deliveryInstructions?.trim() || undefined,
+        paymentMethod,
+        paymentStatus: paymentStatus as any,
+        fulfilmentStatus: 'confirmed',
+        items: itemSnapshots,
+        subtotal: calculatedSubtotal,
+        discount: numDiscount,
+        deliveryFee: numDeliveryFee,
+        total,
+        statusTimeline: [
+          {
+            status: 'confirmed',
+            timestamp: new Date().toISOString(),
+            note: `ম্যানুয়াল অর্ডার তৈরি ও নিশ্চিত করা হয়েছে (${sourceLabel})`,
+            changedBy: req.user?.name || 'Admin'
+          }
+        ],
+        internalNotes: notesArr,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      db.orders.unshift(newOrder);
+
+      db.auditLogs.unshift({
+        id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        action: 'MANUAL_ORDER_CREATED',
+        userId: req.user?.id || 'admin',
+        userEmail: req.user?.email || 'admin@sashroyidaam.com',
+        userRole: req.user?.role || 'super_admin',
+        details: `ম্যানুয়াল অর্ডার #${newOrder.orderNumber} তৈরি করা হয়েছে (${newOrder.customerName}, ৳${newOrder.total})`,
+        createdAt: new Date().toISOString()
+      });
+
+      // Background MongoDB sync
+      syncOrderToMongo(newOrder);
+
+      return newOrder;
+    });
+
+    res.status(201).json({
+      order: orderResult,
+      message: `ম্যানুয়াল অর্ডার সফলভাবে তৈরি হয়েছে (#${orderResult.orderNumber})`
+    });
+  } catch (err: any) {
+    console.error('Failed to create manual order:', err);
+    res.status(400).json({ error: err.message || 'ম্যানুয়াল অর্ডার তৈরি করতে ব্যর্থ হয়েছে' });
+  }
+});
+
 // 3. Product Management (CRUD + Stock Adjust)
 router.get('/products', (req: AuthenticatedRequest, res) => {
   const db = getDatabase();
@@ -339,9 +484,9 @@ router.post('/products', async (req: AuthenticatedRequest, res) => {
         categoryId,
         categorySlug: cat?.slug,
         categoryNameBn: cat?.nameBn,
-        brand: brand?.trim() || 'সাশ্রয়ী দাম',
+        brand: brand?.trim() || '',
         sku: sku?.trim() || `SD-${Math.floor(1000 + Math.random() * 9000)}`,
-        images: Array.isArray(images) && images.length > 0 ? images : ['/src/assets/images/category_kitchen_cookware_1792084991823.jpg'],
+        images: Array.isArray(images) ? images.filter(Boolean) : [],
         variants: variants || [],
         attributes: attributes || {},
         isFeatured: Boolean(isFeatured),
@@ -693,6 +838,45 @@ router.put('/coupons/:id/toggle', async (req: AuthenticatedRequest, res) => {
       return c;
     });
     res.json({ coupon: updated, message: `কুপন স্ট্যাটাস পরিবর্তিত হয়েছে` });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Update coupon
+router.put('/coupons/:id', async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { code, discountType, discountValue, minOrderValue, maxDiscount, expiresAt, usageLimit, isActive } = req.body;
+    const updated = await withTransaction((db) => {
+      const c = db.coupons.find((item) => item.id === id);
+      if (!c) throw new Error('কুপন পাওয়া যায়নি');
+      if (code) c.code = code.toUpperCase().trim();
+      if (discountType) c.discountType = discountType;
+      if (discountValue !== undefined) c.discountValue = Number(discountValue);
+      if (minOrderValue !== undefined) c.minOrderValue = Number(minOrderValue);
+      if (maxDiscount !== undefined) c.maxDiscount = Number(maxDiscount);
+      if (expiresAt) c.expiresAt = expiresAt;
+      if (usageLimit !== undefined) c.usageLimit = Number(usageLimit);
+      if (isActive !== undefined) c.isActive = Boolean(isActive);
+      return c;
+    });
+    res.json({ coupon: updated, message: 'কুপন সফলভাবে আপডেট করা হয়েছে' });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Delete coupon
+router.delete('/coupons/:id', async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    await withTransaction((db) => {
+      const idx = db.coupons.findIndex((item) => item.id === id);
+      if (idx === -1) throw new Error('কুপন পাওয়া যায়নি');
+      db.coupons.splice(idx, 1);
+    });
+    res.json({ message: 'কুপন সফলভাবে মুছে ফেলা হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }

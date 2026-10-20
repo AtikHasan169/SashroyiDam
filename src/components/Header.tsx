@@ -206,24 +206,15 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   {t('allProducts')}
                 </button>
-                <button
-                  onClick={() => onSelectCategory('cat-kitchen')}
-                  className="hover:text-[#0F4C3A] transition-colors whitespace-nowrap cursor-pointer"
-                >
-                  {language === 'bn' ? 'গৃহস্থালি' : 'Kitchen'}
-                </button>
-                <button
-                  onClick={() => onSelectCategory('cat-fashion')}
-                  className="hover:text-[#0F4C3A] transition-colors whitespace-nowrap cursor-pointer"
-                >
-                  {language === 'bn' ? 'ফ্যাশন' : 'Fashion'}
-                </button>
-                <button
-                  onClick={() => onSelectCategory('cat-gadgets')}
-                  className="hover:text-[#0F4C3A] transition-colors whitespace-nowrap cursor-pointer"
-                >
-                  {language === 'bn' ? 'গ্যাজেট' : 'Gadgets'}
-                </button>
+                {categories.slice(0, 4).map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => onSelectCategory(cat.id)}
+                    className="hover:text-[#0F4C3A] transition-colors whitespace-nowrap cursor-pointer"
+                  >
+                    {language === 'bn' ? cat.nameBn : cat.nameEn || cat.nameBn}
+                  </button>
+                ))}
               </nav>
             </div>
 

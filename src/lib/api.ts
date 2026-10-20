@@ -121,29 +121,92 @@ export const api = {
   // Products & Store
   getCategories: () => request<{ categories: Category[] }>('/api/categories'),
 
-  getProducts: (params: Record<string, string | number | boolean> = {}) => {
+  getProducts: async (params: Record<string, string | number | boolean> = {}) => {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, val]) => {
       if (val !== undefined && val !== null && val !== '') {
         searchParams.append(key, String(val));
       }
     });
-    return request<{
-      items: Product[];
-      pagination: {
-        totalItems: number;
-        totalPages: number;
-        currentPage: number;
-        limit: number;
-        hasNext: boolean;
-        hasPrev: boolean;
-      };
-      facets: {
-        brands: string[];
-        minPrice: number;
-        maxPrice: number;
-      };
-    }>(`/api/products?${searchParams.toString()}`);
+
+    try {
+      const res = await request<{
+        items: Product[];
+        pagination: {
+          totalItems: number;
+          totalPages: number;
+          currentPage: number;
+          limit: number;
+          hasNext: boolean;
+          hasPrev: boolean;
+        };
+        facets: {
+          brands: string[];
+          minPrice: number;
+          maxPrice: number;
+        };
+      }>(`/api/products?${searchParams.toString()}`);
+
+      if (res.items && res.items.length > 0) {
+        // Cache for offline / serverless cold-start resilience
+        try {
+          localStorage.setItem('sashroyi_catalog_cache', JSON.stringify(res.items));
+        } catch {}
+      } else if (!params.search && (!params.category || params.category === 'all')) {
+        // If server returns empty on base query, check if client has cached products
+        try {
+          const raw = localStorage.getItem('sashroyi_catalog_cache');
+          if (raw) {
+            const cached: Product[] = JSON.parse(raw);
+            if (cached && cached.length > 0) {
+              return {
+                items: cached,
+                pagination: {
+                  totalItems: cached.length,
+                  totalPages: 1,
+                  currentPage: 1,
+                  limit: cached.length,
+                  hasNext: false,
+                  hasPrev: false
+                },
+                facets: {
+                  brands: Array.from(new Set(cached.map((p) => p.brand).filter(Boolean))),
+                  minPrice: Math.min(...cached.map((p) => p.price)),
+                  maxPrice: Math.max(...cached.map((p) => p.price))
+                }
+              };
+            }
+          }
+        } catch {}
+      }
+
+      return res;
+    } catch (err) {
+      // Network/404 fallback: Return cached products
+      try {
+        const raw = localStorage.getItem('sashroyi_catalog_cache');
+        if (raw) {
+          const cached: Product[] = JSON.parse(raw);
+          return {
+            items: cached,
+            pagination: {
+              totalItems: cached.length,
+              totalPages: 1,
+              currentPage: 1,
+              limit: cached.length,
+              hasNext: false,
+              hasPrev: false
+            },
+            facets: {
+              brands: Array.from(new Set(cached.map((p) => p.brand).filter(Boolean))),
+              minPrice: cached.length ? Math.min(...cached.map((p) => p.price)) : 0,
+              maxPrice: cached.length ? Math.max(...cached.map((p) => p.price)) : 0
+            }
+          };
+        }
+      } catch {}
+      throw err;
+    }
   },
 
   getProduct: (slugOrId: string) =>
@@ -262,6 +325,12 @@ export const api = {
     }>(`/api/admin/orders?${sp.toString()}`);
   },
 
+  createAdminOrder: (body: any) =>
+    request<{ order: Order; message: string }>('/api/admin/orders', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    }),
+
   updateOrderStatus: (id: string, body: { status: string; note?: string; paymentStatus?: string }) =>
     request<{ order: Order; message: string }>(`/api/admin/orders/${id}/status`, {
       method: 'PUT',
@@ -279,27 +348,55 @@ export const api = {
     return request<{ products: Product[] }>(`/api/admin/products?${sp.toString()}`);
   },
 
-  createProduct: (body: any) =>
-    request<{ product: Product; message: string }>('/api/admin/products', {
+  createProduct: async (body: any) => {
+    const res = await request<{ product: Product; message: string }>('/api/admin/products', {
       method: 'POST',
       body: JSON.stringify(body)
-    }),
+    });
+    try {
+      const raw = localStorage.getItem('sashroyi_catalog_cache');
+      const list: Product[] = raw ? JSON.parse(raw) : [];
+      const updated = [res.product, ...list.filter((p) => p.id !== res.product.id)];
+      localStorage.setItem('sashroyi_catalog_cache', JSON.stringify(updated));
+    } catch {}
+    return res;
+  },
 
-  updateProduct: (id: string, body: any) =>
-    request<{ product: Product; message: string }>(`/api/admin/products/${id}`, {
+  updateProduct: async (id: string, body: any) => {
+    const res = await request<{ product: Product; message: string }>(`/api/admin/products/${id}`, {
       method: 'PUT',
       body: JSON.stringify(body)
-    }),
+    });
+    try {
+      const raw = localStorage.getItem('sashroyi_catalog_cache');
+      if (raw) {
+        const list: Product[] = JSON.parse(raw);
+        const updated = list.map((p) => (p.id === id ? res.product : p));
+        localStorage.setItem('sashroyi_catalog_cache', JSON.stringify(updated));
+      }
+    } catch {}
+    return res;
+  },
 
   archiveProduct: (id: string) =>
     request<{ message: string }>(`/api/admin/products/${id}`, {
       method: 'DELETE'
     }),
 
-  deleteProduct: (id: string, permanent: boolean = false) =>
-    request<{ message: string }>(`/api/admin/products/${id}?permanent=${permanent}`, {
+  deleteProduct: async (id: string, permanent: boolean = false) => {
+    const res = await request<{ message: string }>(`/api/admin/products/${id}?permanent=${permanent}`, {
       method: 'DELETE'
-    }),
+    });
+    try {
+      const raw = localStorage.getItem('sashroyi_catalog_cache');
+      if (raw) {
+        const list: Product[] = JSON.parse(raw);
+        const updated = list.filter((p) => p.id !== id);
+        localStorage.setItem('sashroyi_catalog_cache', JSON.stringify(updated));
+      }
+    } catch {}
+    return res;
+  },
 
   uploadImage: (base64Data: string) =>
     request<{ url: string; message: string }>('/api/upload', {
@@ -335,6 +432,17 @@ export const api = {
   toggleCoupon: (id: string) =>
     request<{ coupon: Coupon; message: string }>(`/api/admin/coupons/${id}/toggle`, {
       method: 'PUT'
+    }),
+
+  updateCoupon: (id: string, body: any) =>
+    request<{ coupon: Coupon; message: string }>(`/api/admin/coupons/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    }),
+
+  deleteCoupon: (id: string) =>
+    request<{ message: string }>(`/api/admin/coupons/${id}`, {
+      method: 'DELETE'
     }),
 
   getAdminSettings: () =>
