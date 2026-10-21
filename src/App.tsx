@@ -113,12 +113,6 @@ function StorefrontApp() {
     if (viewParam === 'profile') {
       setIsProfilePageOpen(true);
     }
-    if (prodParam && products.length > 0) {
-      const found = products.find((p) => p.slug === prodParam || p.id === prodParam);
-      if (found) {
-        setViewingProductPage(found);
-      }
-    }
     if (catParam && categories.length > 0) {
       const foundCat = categories.find((c) => c.slug === catParam || c.id === catParam);
       if (foundCat) {
@@ -126,7 +120,26 @@ function StorefrontApp() {
         setSelectedCategory(foundCat.id);
       }
     }
-  }, [products, categories]);
+    if (prodParam) {
+      if (viewingProductPage && (viewingProductPage.slug === prodParam || viewingProductPage.id === prodParam)) {
+        return;
+      }
+      const found = products.find((p) => p.slug === prodParam || p.id === prodParam);
+      if (found) {
+        setViewingProductPage(found);
+      } else {
+        api.getProduct(prodParam)
+          .then((res) => {
+            if (res?.product) {
+              setViewingProductPage(res.product);
+            }
+          })
+          .catch((err) => {
+            console.warn('Could not load product from URL param:', prodParam, err);
+          });
+      }
+    }
+  }, [products, categories, viewingProductPage]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -148,13 +161,24 @@ function StorefrontApp() {
 
       setIsProfilePageOpen(viewParam === 'profile');
 
-      if (prodParam && products.length > 0) {
+      if (prodParam) {
         const found = products.find((p) => p.slug === prodParam || p.id === prodParam);
         if (found) {
           setViewingProductPage(found);
           setSelectedProduct(null);
         } else {
-          setViewingProductPage(null);
+          api.getProduct(prodParam)
+            .then((res) => {
+              if (res?.product) {
+                setViewingProductPage(res.product);
+                setSelectedProduct(null);
+              } else {
+                setViewingProductPage(null);
+              }
+            })
+            .catch(() => {
+              setViewingProductPage(null);
+            });
         }
       } else {
         setViewingProductPage(null);
@@ -670,6 +694,11 @@ function StorefrontApp() {
         onStoreDataChanged={() => {
           loadStoreMeta();
           loadProducts();
+        }}
+        onViewProduct={(prod) => {
+          setIsAdminOpen(false);
+          setAdminEditingProduct(null);
+          handleOpenProductPage(prod);
         }}
       />
 

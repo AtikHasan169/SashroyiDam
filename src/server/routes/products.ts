@@ -37,7 +37,7 @@ router.get('/products', (req, res) => {
     featured
   } = req.query as Record<string, string>;
 
-  let filtered = db.products.filter((p) => p.isPublished && !p.isArchived);
+  let filtered = db.products.filter((p) => p.isPublished !== false && !p.isArchived);
 
   // Category filter by ID or slug
   if (category && category !== 'all') {
@@ -145,10 +145,7 @@ router.get('/products/:slugOrId', (req, res) => {
   const db = getDatabase();
 
   const product = db.products.find(
-    (p) =>
-      (p.slug === slugOrId || p.id === slugOrId) &&
-      p.isPublished &&
-      !p.isArchived
+    (p) => (p.slug === slugOrId || p.id === slugOrId) && !p.isArchived
   );
 
   if (!product) {
@@ -167,7 +164,7 @@ router.get('/products/:slugOrId', (req, res) => {
       (p) =>
         p.id !== product.id &&
         p.categoryId === product.categoryId &&
-        p.isPublished &&
+        p.isPublished !== false &&
         !p.isArchived
     )
     .slice(0, 4);

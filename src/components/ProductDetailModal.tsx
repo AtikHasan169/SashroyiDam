@@ -365,8 +365,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {/* Category & SKU */}
               <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
                 <div className="flex items-center gap-2">
-                  <span className="text-[#0F4C3A] font-semibold">{product.brand}</span>
-                  <span aria-hidden="true">·</span>
+                  {product.brand ? (
+                    <>
+                      <span className="text-[#0F4C3A] font-semibold">{product.brand}</span>
+                      <span aria-hidden="true">·</span>
+                    </>
+                  ) : null}
                   <span>{product.categoryNameBn || 'সাধারণ'}</span>
                 </div>
                 <span>SKU: {selectedVariant?.sku || product.sku}</span>

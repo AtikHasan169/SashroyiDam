@@ -308,6 +308,33 @@ export const ProductPage: React.FC<ProductPageProps> = ({
         </div>
       </div>
 
+      {/* Draft / Unpublished Warning Notice for Admins & Direct Link Viewers */}
+      {product.isPublished === false && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 md:px-8 lg:px-10 py-2.5 text-amber-900 text-xs sm:text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-base sm:text-lg shrink-0">⚠️</span>
+              <p>
+                <strong className="font-bold">
+                  {language === 'en' ? 'Unpublished Product (Draft):' : 'অপ্রকাশিত পণ্য (ড্রাফট মোড):'}
+                </strong>{' '}
+                {language === 'en'
+                  ? 'This item is currently hidden from the public store catalog. It is only accessible via direct link or to admins.'
+                  : 'এই পণ্যটি সাধারণ গ্রাহকদের শপ ক্যাটালগে প্রদর্শিত হচ্ছে না। এটি শুধুমাত্র ডিরেক্ট লিংক অথবা অ্যাডমিন প্যানেলের মাধ্যমে দৃশ্যমান।'}
+              </p>
+            </div>
+            {isAdmin && onEditProduct && (
+              <button
+                onClick={() => onEditProduct(product)}
+                className="shrink-0 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs cursor-pointer shadow-2xs transition-colors self-start sm:self-auto"
+              >
+                {language === 'en' ? 'Edit & Publish' : 'সম্পাদনা ও প্রকাশ করুন'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Product Stage Container */}
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8">
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200/90 shadow-sm overflow-hidden p-4 sm:p-8 lg:p-10">
@@ -416,13 +443,21 @@ export const ProductPage: React.FC<ProductPageProps> = ({
               <div className="space-y-4">
                 {/* Brand & Category meta */}
                 <div className="flex items-center gap-2 text-xs font-semibold text-stone-500">
-                  <span className="text-[#0F4C3A] uppercase tracking-wider">{product.brand}</span>
-                  <span>·</span>
+                  {product.brand ? (
+                    <>
+                      <span className="text-[#0F4C3A] uppercase tracking-wider">{product.brand}</span>
+                      <span>·</span>
+                    </>
+                  ) : null}
                   <span className="bg-stone-100 px-2 py-0.5 rounded text-stone-700">
                     {matchedCategory?.nameBn || product.categoryNameBn || 'সাধারণ'}
                   </span>
-                  <span>·</span>
-                  <span className="font-mono text-stone-400">SKU: {product.sku}</span>
+                  {product.sku && (
+                    <>
+                      <span>·</span>
+                      <span className="font-mono text-stone-400">SKU: {product.sku}</span>
+                    </>
+                  )}
                 </div>
 
                 {/* Title */}

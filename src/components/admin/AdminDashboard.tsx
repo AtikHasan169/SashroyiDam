@@ -26,7 +26,10 @@ import {
   Calendar,
   Filter,
   Phone,
-  MessageSquare
+  MessageSquare,
+  Search,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { api } from '../../lib/api.ts';
@@ -49,13 +52,15 @@ interface AdminDashboardProps {
   onClose: () => void;
   onStoreDataChanged: () => void;
   initialEditingProduct?: Partial<Product> | null;
+  onViewProduct?: (p: Product) => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   isOpen,
   onClose,
   onStoreDataChanged,
-  initialEditingProduct
+  initialEditingProduct,
+  onViewProduct
 }) => {
   const { user, isAdmin, login, logout } = useAuth();
 
@@ -253,6 +258,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isUploadingProdImage, setIsUploadingProdImage] = useState(false);
   const [prodSearchTerm, setProdSearchTerm] = useState('');
   const [prodCatFilter, setProdCatFilter] = useState('all');
+  const [prodStatusFilter, setProdStatusFilter] = useState<'all' | 'published' | 'hidden'>('all');
 
   // Coupon modal
   const [showCouponModal, setShowCouponModal] = useState(false);
@@ -265,10 +271,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [errorFeedback, setErrorFeedback] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
 
   const showFeedback = (msg: string) => {
     setFeedbackMsg(msg);
     setTimeout(() => setFeedbackMsg(''), 4000);
+  };
+
+  const showErrorFeedback = (msg: string) => {
+    setErrorFeedback(msg);
+    setTimeout(() => setErrorFeedback(''), 4000);
   };
 
   // MongoDB Cloud Persistence state (Configured strictly via MONGODB_URI in environment)
@@ -356,7 +370,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       onStoreDataChanged();
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
-      alert(err.message || 'স্ট্যাটাস আপডেট ব্যর্থ হয়েছে');
+      showErrorFeedback(err.message || 'স্ট্যাটাস আপডেট ব্যর্থ হয়েছে');
     }
   };
 
@@ -368,7 +382,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setStaffNoteInput('');
       loadAllAdminData();
     } catch (err: any) {
-      alert(err.message);
+      showErrorFeedback(err.message || 'নোট যোগ করতে সমস্যা হয়েছে');
     }
   };
 
@@ -420,7 +434,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCategory || !editingCategory.nameBn?.trim()) {
-      alert('ক্যাটাগরির নাম দিন');
+      showErrorFeedback('ক্যাটাগরির নাম দিন');
       return;
     }
     try {
@@ -437,7 +451,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       onStoreDataChanged();
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
-      alert(err.message || 'ক্যাটাগরি সংরক্ষণ ব্যর্থ হয়েছে');
+      showErrorFeedback(err.message || 'ক্যাটাগরি সংরক্ষণ ব্যর্থ হয়েছে');
     }
   };
 
@@ -495,27 +509,71 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
+    setModalError('');
+
+    const cleanTitle = (editingProduct.titleBn || '').trim();
+    const cleanPrice = String(editingProduct.price !== undefined && editingProduct.price !== null ? editingProduct.price : '')
+      .replace(/[০-৯]/g, (d) => String('০১২৩৪৫৬৭৮৯'.indexOf(d)))
+      .trim();
+    const numPrice = Number(cleanPrice);
+
+    if (!cleanTitle) {
+      setModalError('পণ্যের নাম (বাংলা) আবশ্যক');
+      return;
+    }
+    if (cleanPrice === '' || isNaN(numPrice) || numPrice <= 0) {
+      setModalError('পণ্যের সঠিক বিক্রয় মূল্য (৳) প্রদান করুন (০ এর চেয়ে বেশি হতে হবে)');
+      return;
+    }
+
+    const cleanStock = String(editingProduct.stock !== undefined && editingProduct.stock !== null ? editingProduct.stock : '10')
+      .replace(/[০-৯]/g, (d) => String('০১২৩৪৫৬৭৮৯'.indexOf(d)))
+      .trim();
+    const numStock = isNaN(Number(cleanStock)) ? 10 : Number(cleanStock);
+
+    const cleanOrigPrice = editingProduct.originalPrice
+      ? Number(String(editingProduct.originalPrice).replace(/[০-৯]/g, (d) => String('০১২৩৪৫৬৭৮৯'.indexOf(d))))
+      : undefined;
+
+    setIsSavingProduct(true);
     try {
+      const payload = {
+        ...editingProduct,
+        titleBn: cleanTitle,
+        price: numPrice,
+        stock: numStock,
+        originalPrice: cleanOrigPrice && cleanOrigPrice > 0 ? cleanOrigPrice : undefined,
+        categoryId: editingProduct.categoryId || (categories[0]?.id || 'cat-general'),
+        images: Array.isArray(editingProduct.images) ? editingProduct.images.filter(Boolean) : []
+      };
+
       if (editingProduct.id) {
-        const res = await api.updateProduct(editingProduct.id, editingProduct);
-        setFeedbackMsg('পণ্য আপডেট সম্পন্ন হয়েছে');
-        if (res && res.product) {
-          setProducts((prev) => prev.map((p) => (p.id === res.product.id ? res.product : p)));
-        }
+        const res = await api.updateProduct(editingProduct.id, payload);
+        const updatedProd = res.product || (payload as Product);
+        setProducts((prev) => prev.map((p) => (p.id === updatedProd.id ? updatedProd : p)));
+        setFeedbackMsg(`"${cleanTitle}" পণ্যটি সফলভাবে আপডেট করা হয়েছে`);
       } else {
-        const res = await api.createProduct(editingProduct);
-        setFeedbackMsg('নতুন পণ্য সফলভাবে তৈরি হয়েছে');
-        if (res && res.product) {
-          setProducts((prev) => [res.product, ...prev.filter((p) => p.id !== res.product.id)]);
+        const res = await api.createProduct(payload);
+        const createdProd = res.product;
+        if (createdProd) {
+          setProducts((prev) => [createdProd, ...prev.filter((p) => p.id !== createdProd.id)]);
         }
+        setFeedbackMsg(`"${cleanTitle}" পণ্যটি সফলভাবে তৈরি হয়েছে এবং তালিকায় যোগ হয়েছে`);
       }
+
+      // Reset filters so the newly created/updated product is immediately visible
+      setProdCatFilter('all');
+      setProdSearchTerm('');
+
       setShowProductModal(false);
       setEditingProduct(null);
       await loadAllAdminData();
       onStoreDataChanged();
-      setTimeout(() => setFeedbackMsg(''), 3000);
+      setTimeout(() => setFeedbackMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message || 'পণ্য সংরক্ষণ ব্যর্থ হয়েছে');
+      setModalError(err.message || 'পণ্য সংরক্ষণ ব্যর্থ হয়েছে');
+    } finally {
+      setIsSavingProduct(false);
     }
   };
 
@@ -527,8 +585,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       await api.archiveProduct(id);
       loadAllAdminData();
       onStoreDataChanged();
+      setFeedbackMsg('পণ্যটি সফলভাবে আর্কাইভ করা হয়েছে');
+      setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
-      alert(err.message);
+      showErrorFeedback(err.message || 'পণ্য আর্কাইভ করতে সমস্যা হয়েছে');
     }
   };
 
@@ -547,7 +607,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setFeedbackMsg('পণ্যটি সফলভাবে মুছে ফেলা হয়েছে');
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
-      alert(err.message || 'পণ্য মুছতে সমস্যা হয়েছে');
+      showErrorFeedback(err.message || 'পণ্য মুছতে সমস্যা হয়েছে');
     }
   };
 
@@ -730,6 +790,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="bg-emerald-50 text-emerald-900 px-6 py-2 text-xs font-semibold flex items-center gap-2 border-b border-emerald-200">
             <CheckCircle className="w-4 h-4 text-emerald-600" />
             <span>{feedbackMsg}</span>
+          </div>
+        )}
+        {errorFeedback && (
+          <div className="bg-rose-50 text-rose-900 px-6 py-2 text-xs font-semibold flex items-center gap-2 border-b border-rose-200">
+            <AlertCircle className="w-4 h-4 text-rose-600" />
+            <span>{errorFeedback}</span>
           </div>
         )}
 
@@ -1321,16 +1387,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* 3. PRODUCTS MANAGEMENT TAB */}
             {activeTab === 'products' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold text-stone-900">পণ্য ও ইনভেন্টরি তালিকা</h3>
-                    <p className="text-xs text-stone-500">পণ্য সংযোজন, মূল্য, স্টক এবং ভেরিয়েন্ট নিয়ন্ত্রণ</p>
+                    <p className="text-xs text-stone-500">পণ্য সংযোজন, মূল্য, স্টক এবং ভেরিয়েন্ট নিয়ন্ত্রণ ({products.length} টি পণ্য)</p>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleExportCSV}
-                      className="px-3 py-2 bg-white border border-stone-200 hover:bg-stone-50 rounded-lg text-xs font-semibold flex items-center gap-1.5 text-stone-700 transition-colors"
+                      className="px-3 py-2 bg-white border border-stone-200 hover:bg-stone-50 rounded-lg text-xs font-semibold flex items-center gap-1.5 text-stone-700 transition-colors cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>CSV এক্সপোর্ট</span>
@@ -1343,7 +1409,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           titleEn: '',
                           price: 0,
                           originalPrice: 0,
-                          stock: 0,
+                          stock: 10,
                           categoryId: categories[0]?.id || '',
                           brand: '',
                           sku: '',
@@ -1354,7 +1420,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         });
                         setShowProductModal(true);
                       }}
-                      className="px-3 py-2 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="px-3.5 py-2 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>নতুন পণ্য যোগ করুন</span>
@@ -1362,76 +1428,227 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+                {/* Search & Category Filter Toolbar */}
+                <div className="flex flex-col sm:flex-row items-center gap-3 bg-stone-50/80 p-3 rounded-xl border border-stone-200 text-xs">
+                  <div className="relative flex-1 w-full">
+                    <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="পণ্যের নাম, SKU বা ব্র্যান্ড দিয়ে খুঁজুন..."
+                      value={prodSearchTerm}
+                      onChange={(e) => setProdSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-stone-200 rounded-lg text-xs focus:outline-none focus:border-[#0F4C3A]"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-stone-500 font-medium whitespace-nowrap">ক্যাটাগরি:</label>
+                      <select
+                        value={prodCatFilter}
+                        onChange={(e) => setProdCatFilter(e.target.value)}
+                        className="px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:outline-none focus:border-[#0F4C3A] cursor-pointer"
+                      >
+                        <option value="all">সকল ক্যাটাগরি ({products.length})</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.nameBn}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-stone-500 font-medium whitespace-nowrap">স্ট্যাটাস:</label>
+                      <select
+                        value={prodStatusFilter}
+                        onChange={(e) => setProdStatusFilter(e.target.value as any)}
+                        className="px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:outline-none focus:border-[#0F4C3A] cursor-pointer font-medium"
+                      >
+                        <option value="all">সব পণ্য ({products.length})</option>
+                        <option value="published">
+                          শুধু প্রকাশিত ({products.filter((p) => p.isPublished !== false).length})
+                        </option>
+                        <option value="hidden">
+                          শুধু লুকানো / ড্রাফট ({products.filter((p) => p.isPublished === false).length})
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Table Container */}
+                <div className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-2xs">
                   <div className="overflow-x-auto max-h-[65vh]">
                     <table className="w-full text-left text-xs">
-                      <thead className="sticky top-0 bg-stone-50 text-stone-600 border-b border-stone-200 font-semibold">
+                      <thead className="sticky top-0 bg-stone-50 text-stone-600 border-b border-stone-200 font-semibold z-10">
                         <tr>
                           <th className="py-2.5 px-3">ছবি ও নাম</th>
                           <th className="py-2.5 px-3">SKU</th>
                           <th className="py-2.5 px-3">মূল্য</th>
                           <th className="py-2.5 px-3">মওজুদ (স্টক)</th>
                           <th className="py-2.5 px-3">ক্যাটাগরি</th>
-                          <th className="py-2.5 px-3">অ্যাকশন</th>
+                          <th className="py-2.5 px-3 text-center">স্ট্যাটাস</th>
+                          <th className="py-2.5 px-3 text-right">অ্যাকশন</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-stone-100">
-                        {products.map((p) => (
-                          <tr key={p.id} className="hover:bg-stone-50/70">
-                            <td className="py-2.5 px-3 flex items-center gap-3">
-                              <img
-                                src={p.images[0]}
-                                alt=""
-                                className="w-10 h-10 object-cover rounded-lg border border-stone-200 shrink-0"
-                              />
-                              <div>
-                                <div className="font-semibold text-stone-900">{p.titleBn}</div>
-                                <div className="text-[11px] text-stone-400">{p.titleEn}</div>
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-3 font-mono font-semibold">{p.sku}</td>
-                            <td className="py-2.5 px-3 font-bold tabular-nums">৳{p.price}</td>
-                            <td className="py-2.5 px-3">
-                              <span className={`font-semibold tabular-nums ${p.stock <= 5 ? 'text-rose-600' : 'text-stone-900'}`}>
-                                {p.stock} টি
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3">{p.categoryNameBn || 'সাধারণ'}</td>
-                            <td className="py-2.5 px-3">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <button
-                                  type="button"
-                                  onClick={() => handleTogglePublishProduct(p.id)}
-                                  className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
-                                    p.isPublished !== false
-                                      ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
-                                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border border-stone-200'
-                                  }`}
-                                  title="ক্লিক করে হাইড বা আনহাইড করুন"
-                                >
-                                  {p.isPublished !== false ? 'প্রকাশিত (Hide)' : 'লুকানো (Show)'}
-                                </button>
-                                <span className="text-stone-300">|</span>
-                                <button
-                                  onClick={() => {
-                                    setEditingProduct(p);
-                                    setShowProductModal(true);
-                                  }}
-                                  className="text-[#0F4C3A] hover:underline font-semibold cursor-pointer text-xs"
-                                >
-                                  সম্পাদনা
-                                </button>
-                                <span className="text-stone-300">|</span>
-                                <button
-                                  onClick={() => handleDeleteProduct(p.id)}
-                                  className="text-rose-600 hover:underline font-semibold cursor-pointer text-xs"
-                                >
-                                  মুছুন
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {(() => {
+                          const filtered = products.filter((p) => {
+                            if (prodCatFilter !== 'all' && p.categoryId !== prodCatFilter) return false;
+                            if (prodStatusFilter === 'published' && p.isPublished === false) return false;
+                            if (prodStatusFilter === 'hidden' && p.isPublished !== false) return false;
+                            if (prodSearchTerm.trim()) {
+                              const q = prodSearchTerm.trim().toLowerCase();
+                              return (
+                                (p.titleBn || '').toLowerCase().includes(q) ||
+                                (p.titleEn && p.titleEn.toLowerCase().includes(q)) ||
+                                (p.sku || '').toLowerCase().includes(q) ||
+                                (p.brand && p.brand.toLowerCase().includes(q))
+                              );
+                            }
+                            return true;
+                          });
+
+                          if (filtered.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={7} className="py-12 text-center text-stone-500">
+                                  <ShoppingBag className="w-9 h-9 text-stone-300 mx-auto mb-2" />
+                                  <p className="font-semibold text-xs text-stone-700">কোনো পণ্য পাওয়া যায়নি</p>
+                                  <p className="text-[11px] text-stone-400 mt-0.5">
+                                    {prodSearchTerm || prodCatFilter !== 'all' || prodStatusFilter !== 'all'
+                                      ? 'ফিল্টার পরিবর্তন করে পুনরায় চেষ্টা করুন।'
+                                      : 'এখনো কোনো পণ্য তৈরি করা হয়নি। নতুন পণ্য যোগ করতে নিচের বাটনে চাপ দিন।'}
+                                  </p>
+                                  <button
+                                    onClick={() => {
+                                      setEditingProduct({
+                                        titleBn: '',
+                                        titleEn: '',
+                                        price: 0,
+                                        originalPrice: 0,
+                                        stock: 10,
+                                        categoryId: categories[0]?.id || '',
+                                        brand: '',
+                                        sku: '',
+                                        images: [],
+                                        descriptionBn: '',
+                                        isFeatured: false,
+                                        isPublished: true
+                                      });
+                                      setShowProductModal(true);
+                                    }}
+                                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0F4C3A] text-white rounded-lg text-xs font-semibold hover:bg-[#135D48] transition-colors cursor-pointer"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>নতুন পণ্য যোগ করুন</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return filtered.map((p) => (
+                            <tr key={p.id} className="hover:bg-stone-50/70 transition-colors">
+                              <td className="py-2.5 px-3 flex items-center gap-3">
+                                {p.images && p.images[0] ? (
+                                  <img
+                                    src={p.images[0]}
+                                    alt=""
+                                    className="w-10 h-10 object-cover rounded-lg border border-stone-200 shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 bg-emerald-50 border border-emerald-200 text-[#0F4C3A] rounded-lg flex items-center justify-center shrink-0">
+                                    <ShoppingBag className="w-5 h-5 text-emerald-700" />
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="font-semibold text-stone-900">{p.titleBn}</div>
+                                  <div className="text-[11px] text-stone-400">{p.titleEn}</div>
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-3 font-mono font-semibold text-stone-600">{p.sku}</td>
+                              <td className="py-2.5 px-3 font-bold tabular-nums text-stone-900">৳{p.price}</td>
+                              <td className="py-2.5 px-3">
+                                <span className={`font-semibold tabular-nums ${p.stock <= 5 ? 'text-rose-600' : 'text-stone-900'}`}>
+                                  {p.stock} টি
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-stone-600">{p.categoryNameBn || 'সাধারণ'}</td>
+                              <td className="py-2.5 px-3 text-center">
+                                {p.isPublished !== false ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                                    প্রকাশিত
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                                    লুকানো
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                  {/* Storefront View Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (onViewProduct) {
+                                        onViewProduct(p);
+                                      } else {
+                                        window.location.search = `?product=${encodeURIComponent(p.slug || p.id)}`;
+                                      }
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded bg-stone-100 hover:bg-[#0F4C3A] text-stone-700 hover:text-white text-[11px] font-semibold transition-colors cursor-pointer"
+                                    title="গ্রাহকদের কাছে পণ্যটি কেমন দেখাচ্ছে দেখুন"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>ভিউ</span>
+                                  </button>
+
+                                  {/* Unambiguous Visibility Action Button */}
+                                  {p.isPublished !== false ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTogglePublishProduct(p.id)}
+                                      className="px-2 py-1 rounded bg-stone-100 hover:bg-stone-200 text-stone-600 text-[11px] font-medium border border-stone-200 transition-colors cursor-pointer"
+                                      title="স্টোর থেকে সাময়িকভাবে লুকান"
+                                    >
+                                      লুকান
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTogglePublishProduct(p.id)}
+                                      className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-colors cursor-pointer shadow-2xs"
+                                      title="স্টোরে এখনই প্রকাশ করুন"
+                                    >
+                                      পাবলিশ
+                                    </button>
+                                  )}
+
+                                  <button
+                                    onClick={() => {
+                                      setEditingProduct(p);
+                                      setShowProductModal(true);
+                                    }}
+                                    className="px-2 py-1 text-[#0F4C3A] hover:bg-emerald-50 rounded font-semibold cursor-pointer text-xs"
+                                  >
+                                    সম্পাদনা
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteProduct(p.id)}
+                                    className="px-2 py-1 text-rose-600 hover:bg-rose-50 rounded font-semibold cursor-pointer text-xs"
+                                  >
+                                    মুছুন
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ));
+                        })()}
                       </tbody>
                     </table>
                   </div>
@@ -1822,12 +2039,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             </div>
 
+            {modalError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{modalError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleSaveProduct} className="space-y-3.5 text-xs">
               <div>
                 <label className="block font-semibold text-stone-700 mb-1">পণ্যের নাম (বাংলা) *</label>
                 <input
                   type="text"
                   required
+                  placeholder="যেমন: প্রিমিয়াম সুতি পাঞ্জাবি"
                   value={editingProduct.titleBn || ''}
                   onChange={(e) => setEditingProduct({ ...editingProduct, titleBn: e.target.value })}
                   className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm"
@@ -1838,6 +2063,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <label className="block font-semibold text-stone-700 mb-1">পণ্যের নাম (ইংরেজি)</label>
                 <input
                   type="text"
+                  placeholder="e.g. Premium Cotton Panjabi"
                   value={editingProduct.titleEn || ''}
                   onChange={(e) => setEditingProduct({ ...editingProduct, titleEn: e.target.value })}
                   className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm"
@@ -1848,30 +2074,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div>
                   <label className="block font-semibold text-stone-700 mb-1">মূল্য (৳) *</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     required
-                    value={editingProduct.price || 0}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-stone-200 rounded-lg"
+                    placeholder="যেমন: ৯৯০"
+                    value={editingProduct.price !== undefined && editingProduct.price !== null ? editingProduct.price : ''}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[০-৯]/g, (d) => String('০১২৩৪৫৬৭৮৯'.indexOf(d)));
+                      setEditingProduct({ ...editingProduct, price: val as any });
+                    }}
+                    className="w-full px-3 py-2 border border-stone-200 rounded-lg font-mono text-sm"
                   />
                 </div>
                 <div>
                   <label className="block font-semibold text-stone-700 mb-1">আসল মূল্য (৳)</label>
                   <input
-                    type="number"
-                    value={editingProduct.originalPrice || ''}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, originalPrice: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-stone-200 rounded-lg"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="যেমন: ১২০০"
+                    value={editingProduct.originalPrice !== undefined && editingProduct.originalPrice !== null ? editingProduct.originalPrice : ''}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[০-৯]/g, (d) => String('০১২৩৪৫৬৭৮৯'.indexOf(d)));
+                      setEditingProduct({ ...editingProduct, originalPrice: val as any });
+                    }}
+                    className="w-full px-3 py-2 border border-stone-200 rounded-lg font-mono text-sm"
                   />
                 </div>
                 <div>
                   <label className="block font-semibold text-stone-700 mb-1">স্টক পরিমাণ *</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     required
-                    value={editingProduct.stock || 0}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, stock: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-stone-200 rounded-lg"
+                    placeholder="যেমন: ২৫"
+                    value={editingProduct.stock !== undefined && editingProduct.stock !== null ? editingProduct.stock : ''}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[০-৯]/g, (d) => String('০১২৩৪৫৬৭৮৯'.indexOf(d)));
+                      setEditingProduct({ ...editingProduct, stock: val as any });
+                    }}
+                    className="w-full px-3 py-2 border border-stone-200 rounded-lg font-mono text-sm"
                   />
                 </div>
               </div>
@@ -2189,7 +2430,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             images: [...existingImages, ...uploadedUrls]
                           });
                         } catch (err: any) {
-                          alert(err.message || 'ছবি আপলোড ব্যর্থ হয়েছে');
+                          setModalError(err.message || 'ছবি আপলোড ব্যর্থ হয়েছে');
                         } finally {
                           setIsUploadingProdImage(false);
                           e.target.value = '';
@@ -2338,9 +2579,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-[#0F4C3A] text-white font-semibold rounded-lg hover:bg-[#135D48] cursor-pointer"
+                    disabled={isSavingProduct}
+                    className="px-5 py-2 bg-[#0F4C3A] text-white font-semibold rounded-lg hover:bg-[#135D48] cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
                   >
-                    সংরক্ষণ করুন
+                    {isSavingProduct && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>{isSavingProduct ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}</span>
                   </button>
                 </div>
               </div>
@@ -2440,7 +2683,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             const url = await compressAndUploadImage(file);
                             setEditingCategory({ ...editingCategory, image: url });
                           } catch (err: any) {
-                            alert(err.message || 'ছবি আপলোড করতে ব্যর্থ হয়েছে');
+                            showErrorFeedback(err.message || 'ছবি আপলোড করতে ব্যর্থ হয়েছে');
                           } finally {
                             setIsUploadingCatImage(false);
                             e.target.value = '';

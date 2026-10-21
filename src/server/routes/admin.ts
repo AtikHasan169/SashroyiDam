@@ -479,11 +479,13 @@ router.post('/products', async (req: AuthenticatedRequest, res) => {
       const targetCatId = categoryId || (db.categories[0]?.id || 'cat-general');
       const cat = db.categories.find((c) => c.id === targetCatId);
 
-      const slug = ((titleEn || cleanTitle))
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .substring(0, 60) + `-${Date.now().toString(36)}`;
+      let slugBase = (titleEn || '').trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+      if (!slugBase || slugBase.length < 2) {
+        slugBase = `product-${Date.now().toString(36)}`;
+      } else {
+        slugBase = slugBase.substring(0, 50) + `-${Date.now().toString(36)}`;
+      }
+      const slug = slugBase;
 
       const product: Product = {
         id: `prod-${Date.now()}`,

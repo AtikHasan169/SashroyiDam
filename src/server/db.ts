@@ -405,6 +405,22 @@ export function getDatabase(): DatabaseSchema {
         }
       }
 
+      // Purge any legacy sample products or mock brand test entries
+      if (memoryDb!.products && memoryDb!.products.length > 0) {
+        const cleanedProducts = memoryDb!.products.filter(
+          (p) =>
+            p.brand !== 'সাশ্রয়ী খাটি পণ্য' &&
+            p.brand !== 'সাশ্রয়ী ফ্যাশন' &&
+            p.slug !== 'test-shirt-mvgwueql' &&
+            !p.id.startsWith('prod-sample') &&
+            p.titleBn !== 'টেস্ট শার্ট'
+        );
+        if (cleanedProducts.length !== memoryDb!.products.length) {
+          memoryDb!.products = cleanedProducts;
+          hasChanges = true;
+        }
+      }
+
       if (hasChanges) {
         saveDatabaseSync(memoryDb!);
       }

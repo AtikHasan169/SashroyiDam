@@ -11,7 +11,8 @@ import type {
   Banner,
   StoreSettings,
   InventoryMovement,
-  AuditLog
+  AuditLog,
+  Address
 } from '../types/index.ts';
 
 const TOKEN_KEY = 'oshesh_auth_token';

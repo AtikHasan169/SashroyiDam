@@ -231,7 +231,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                           />
                           <div className="min-w-0 flex-1">
                             <div className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">
-                              {p.brand} · {language === 'en' && p.categorySlug ? p.categorySlug : (p.categoryNameBn || 'সাধারণ')}
+                              {p.brand ? `${p.brand} · ` : ''}{language === 'en' && p.categorySlug ? p.categorySlug : (p.categoryNameBn || 'সাধারণ')}
                             </div>
                             <h4 className="text-sm font-bold text-stone-900 group-hover:text-[#0F4C3A] truncate mt-0.5">
                               {title}

@@ -89,8 +89,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="p-4 sm:p-5 flex flex-col flex-1 justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-xs text-stone-500 font-medium">
-              <span className="font-semibold text-stone-700">{product.brand}</span>
-              <span aria-hidden="true">·</span>
+              {product.brand ? (
+                <>
+                  <span className="font-semibold text-stone-700">{product.brand}</span>
+                  <span aria-hidden="true">·</span>
+                </>
+              ) : null}
               <span className="truncate">{language === 'en' && product.categorySlug ? product.categorySlug : (product.categoryNameBn || 'সাধারণ')}</span>
               {product.sku && (
                 <>
@@ -234,8 +238,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div>
           {/* Metadata: Brand · Category */}
           <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-stone-500 font-medium">
-            <span className="font-semibold text-stone-700">{product.brand}</span>
-            <span aria-hidden="true">·</span>
+            {product.brand ? (
+              <>
+                <span className="font-semibold text-stone-700">{product.brand}</span>
+                <span aria-hidden="true">·</span>
+              </>
+            ) : null}
             <span className="truncate">{language === 'en' && product.categorySlug ? product.categorySlug : (product.categoryNameBn || 'সাধারণ')}</span>
           </div>
 
