@@ -9,6 +9,23 @@ let isConnected = false;
 const mongoUri = (process.env.MONGODB_URI || '').trim();
 const dbName = (process.env.MONGODB_DB_NAME || 'sashroyidaam').trim();
 
+let initMongoPromise: Promise<boolean> | null = null;
+
+/**
+ * Ensures MongoDB is initialized and ready before query execution
+ */
+export function ensureMongoReady(): Promise<boolean> {
+  if (isConnected && db) return Promise.resolve(true);
+  if (!mongoUri) return Promise.resolve(false);
+  if (!initMongoPromise) {
+    initMongoPromise = initMongo().then((ok) => {
+      initMongoPromise = null;
+      return ok;
+    });
+  }
+  return initMongoPromise;
+}
+
 /**
  * Initializes connection to MongoDB Atlas or local MongoDB using MONGODB_URI from environment
  */
@@ -60,7 +77,7 @@ export async function initMongo(): Promise<boolean> {
 
 // Auto-initialize if MONGODB_URI is present in env
 if (mongoUri) {
-  initMongo().catch(() => {});
+  ensureMongoReady().catch(() => {});
 }
 
 export function isMongoConfigured(): boolean {
@@ -72,6 +89,10 @@ export function getMongoDatabase(): Db | null {
 }
 
 export async function getMongoStatus() {
+  if (mongoUri && (!isConnected || !db)) {
+    await ensureMongoReady();
+  }
+
   if (!isMongoConfigured() || !db) {
     return {
       isConfigured: Boolean(mongoUri),
@@ -114,11 +135,14 @@ export async function getMongoStatus() {
  * Fetches all persistent data from MongoDB on startup if available
  */
 export async function fetchMongoData(): Promise<Partial<DatabaseSchema> | null> {
+  if (mongoUri && (!isConnected || !db)) {
+    await ensureMongoReady();
+  }
   if (!isMongoConfigured() || !db) return null;
 
   try {
     const [products, categories, orders, storeSettingsDoc, coupons, users] = await Promise.all([
-      db.collection('products').find({}, { projection: { _id: 0 } }).toArray() as unknown as Promise<Product[]>,
+      db.collection('products').find({}, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray() as unknown as Promise<Product[]>,
       db.collection('categories').find({}, { projection: { _id: 0 } }).toArray() as unknown as Promise<Category[]>,
       db.collection('orders').find({}, { projection: { _id: 0 } }).toArray() as unknown as Promise<Order[]>,
       db.collection('store_settings').findOne({}, { projection: { _id: 0 } }) as unknown as Promise<StoreSettings | null>,
@@ -150,6 +174,9 @@ export async function fetchMongoData(): Promise<Partial<DatabaseSchema> | null> 
  * Upsert an Order into MongoDB
  */
 export async function syncOrderToMongo(order: Order): Promise<void> {
+  if (mongoUri && (!isConnected || !db)) {
+    await ensureMongoReady();
+  }
   if (!isMongoConfigured() || !db) return;
   try {
     await db.collection('orders').updateOne(
@@ -166,6 +193,9 @@ export async function syncOrderToMongo(order: Order): Promise<void> {
  * Upsert a Category into MongoDB
  */
 export async function syncCategoryToMongo(category: Category): Promise<void> {
+  if (mongoUri && (!isConnected || !db)) {
+    await ensureMongoReady();
+  }
   if (!isMongoConfigured() || !db) return;
   try {
     await db.collection('categories').updateOne(
@@ -182,6 +212,9 @@ export async function syncCategoryToMongo(category: Category): Promise<void> {
  * Delete a Category from MongoDB
  */
 export async function deleteCategoryFromMongo(categoryId: string): Promise<void> {
+  if (mongoUri && (!isConnected || !db)) {
+    await ensureMongoReady();
+  }
   if (!isMongoConfigured() || !db) return;
   try {
     await db.collection('categories').deleteOne({ id: categoryId });
@@ -194,6 +227,9 @@ export async function deleteCategoryFromMongo(categoryId: string): Promise<void>
  * Upsert a Product into MongoDB (stores Base64 photos directly in the product document's images array)
  */
 export async function syncProductToMongo(product: Product): Promise<void> {
+  if (mongoUri && (!isConnected || !db)) {
+    await ensureMongoReady();
+  }
   if (!isMongoConfigured() || !db) return;
   try {
     // Ensure images are preserved in product document
@@ -215,6 +251,9 @@ export async function syncProductToMongo(product: Product): Promise<void> {
  * Delete a Product from MongoDB
  */
 export async function deleteProductFromMongo(productId: string): Promise<void> {
+  if (mongoUri && (!isConnected || !db)) {
+    await ensureMongoReady();
+  }
   if (!isMongoConfigured() || !db) return;
   try {
     await db.collection('products').deleteOne({ id: productId });
@@ -227,6 +266,9 @@ export async function deleteProductFromMongo(productId: string): Promise<void> {
  * Upsert a User into MongoDB
  */
 export async function syncUserToMongo(user: User): Promise<void> {
+  if (mongoUri && (!isConnected || !db)) {
+    await ensureMongoReady();
+  }
   if (!isMongoConfigured() || !db) return;
   try {
     await db.collection('users').updateOne(

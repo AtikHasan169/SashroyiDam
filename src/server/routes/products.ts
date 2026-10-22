@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getDatabase, withTransaction } from '../db.ts';
+import { getDatabase, ensureDatabaseReady, withTransaction } from '../db.ts';
 import { authenticateUser, type AuthenticatedRequest } from '../auth.ts';
 import type { Product, Review } from '../../types/index.ts';
 
 const router = Router();
 
 // GET all categories
-router.get('/categories', (req, res) => {
-  const db = getDatabase();
+router.get('/categories', async (req, res) => {
+  const db = await ensureDatabaseReady();
   const categories = db.categories
     .map((c) => {
       const productCount = db.products.filter(
@@ -22,8 +22,8 @@ router.get('/categories', (req, res) => {
 });
 
 // GET products with rich filtering, search, and pagination
-router.get('/products', (req, res) => {
-  const db = getDatabase();
+router.get('/products', async (req, res) => {
+  const db = await ensureDatabaseReady();
   const {
     category,
     search,
@@ -140,9 +140,9 @@ router.get('/products', (req, res) => {
 });
 
 // GET single product by slug or ID
-router.get('/products/:slugOrId', (req, res) => {
+router.get('/products/:slugOrId', async (req, res) => {
   const { slugOrId } = req.params;
-  const db = getDatabase();
+  const db = await ensureDatabaseReady();
 
   const product = db.products.find(
     (p) => (p.slug === slugOrId || p.id === slugOrId) && !p.isArchived

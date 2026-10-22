@@ -50,7 +50,7 @@ import type {
 interface AdminDashboardProps {
   isOpen: boolean;
   onClose: () => void;
-  onStoreDataChanged: () => void;
+  onStoreDataChanged: (updatedProduct?: Product) => void;
   initialEditingProduct?: Partial<Product> | null;
   onViewProduct?: (p: Product) => void;
 }
@@ -258,7 +258,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isUploadingProdImage, setIsUploadingProdImage] = useState(false);
   const [prodSearchTerm, setProdSearchTerm] = useState('');
   const [prodCatFilter, setProdCatFilter] = useState('all');
-  const [prodStatusFilter, setProdStatusFilter] = useState<'all' | 'published' | 'hidden'>('all');
+  const [prodStatusFilter, setProdStatusFilter] = useState<'all' | 'published' | 'hidden' | 'unavailable'>('all');
 
   // Coupon modal
   const [showCouponModal, setShowCouponModal] = useState(false);
@@ -324,7 +324,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       setMetrics(mRes);
       setOrders(oRes.orders);
-      setProducts(pRes.products);
+      setProducts((currentProds) => {
+        if (!pRes?.products) return currentProds;
+        const serverMap = new Map(pRes.products.map((p) => [p.id, p]));
+        const merged = [...pRes.products];
+        for (const cp of currentProds) {
+          if (!serverMap.has(cp.id)) {
+            merged.unshift(cp);
+          }
+        }
+        return merged;
+      });
       setCategories(cRes.categories);
       setCoupons(coupRes.coupons);
       setStoreSettings(setRes.settings);
@@ -491,6 +501,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const handleToggleAvailabilityProduct = async (id: string) => {
+    try {
+      const res = await api.toggleProductAvailability(id);
+      setFeedbackMsg(res.message);
+      loadAllAdminData();
+      onStoreDataChanged();
+      setTimeout(() => setFeedbackMsg(''), 3000);
+    } catch (err: any) {
+      setFeedbackMsg(err.message || 'অনুপলব্ধ স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে');
+    }
+  };
+
   const handleSyncAllMongo = async () => {
     setIsSyncingMongo(true);
     try {
@@ -547,17 +569,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         images: Array.isArray(editingProduct.images) ? editingProduct.images.filter(Boolean) : []
       };
 
+      let savedProduct: Product;
       if (editingProduct.id) {
         const res = await api.updateProduct(editingProduct.id, payload);
-        const updatedProd = res.product || (payload as Product);
-        setProducts((prev) => prev.map((p) => (p.id === updatedProd.id ? updatedProd : p)));
+        savedProduct = res.product || (payload as Product);
+        setProducts((prev) => prev.map((p) => (p.id === savedProduct.id ? savedProduct : p)));
         setFeedbackMsg(`"${cleanTitle}" পণ্যটি সফলভাবে আপডেট করা হয়েছে`);
       } else {
         const res = await api.createProduct(payload);
-        const createdProd = res.product;
-        if (createdProd) {
-          setProducts((prev) => [createdProd, ...prev.filter((p) => p.id !== createdProd.id)]);
-        }
+        savedProduct = res.product || (payload as Product);
+        setProducts((prev) => [savedProduct, ...prev.filter((p) => p.id !== savedProduct.id)]);
         setFeedbackMsg(`"${cleanTitle}" পণ্যটি সফলভাবে তৈরি হয়েছে এবং তালিকায় যোগ হয়েছে`);
       }
 
@@ -567,8 +588,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       setShowProductModal(false);
       setEditingProduct(null);
-      await loadAllAdminData();
-      onStoreDataChanged();
+
+      // Instantly notify storefront catalog with the newly saved product
+      onStoreDataChanged(savedProduct);
+
+      // Refresh other admin data in background
+      loadAllAdminData();
       setTimeout(() => setFeedbackMsg(''), 4000);
     } catch (err: any) {
       setModalError(err.message || 'পণ্য সংরক্ষণ ব্যর্থ হয়েছে');
@@ -1472,6 +1497,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <option value="hidden">
                           শুধু লুকানো / ড্রাফট ({products.filter((p) => p.isPublished === false).length})
                         </option>
+                        <option value="unavailable">
+                          বিক্রয়ে অনুপলব্ধ ({products.filter((p) => p.isUnavailable).length})
+                        </option>
                       </select>
                     </div>
                   </div>
@@ -1498,6 +1526,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             if (prodCatFilter !== 'all' && p.categoryId !== prodCatFilter) return false;
                             if (prodStatusFilter === 'published' && p.isPublished === false) return false;
                             if (prodStatusFilter === 'hidden' && p.isPublished !== false) return false;
+                            if (prodStatusFilter === 'unavailable' && !p.isUnavailable) return false;
                             if (prodSearchTerm.trim()) {
                               const q = prodSearchTerm.trim().toLowerCase();
                               return (
@@ -1535,7 +1564,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         images: [],
                                         descriptionBn: '',
                                         isFeatured: false,
-                                        isPublished: true
+                                        isPublished: true,
+                                        isUnavailable: false
                                       });
                                       setShowProductModal(true);
                                     }}
@@ -1577,17 +1607,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </td>
                               <td className="py-2.5 px-3 text-stone-600">{p.categoryNameBn || 'সাধারণ'}</td>
                               <td className="py-2.5 px-3 text-center">
-                                {p.isPublished !== false ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                                    প্রকাশিত
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                    লুকানো
-                                  </span>
-                                )}
+                                <div className="flex flex-col items-center gap-1">
+                                  {p.isPublished !== false ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                                      প্রকাশিত
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                                      লুকানো
+                                    </span>
+                                  )}
+
+                                  {p.isUnavailable ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+                                      অনুপলব্ধ
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-100 text-stone-600 border border-stone-200">
+                                      বিক্রয় চালু
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="py-2.5 px-3 text-right">
                                 <div className="flex items-center justify-end gap-1.5 flex-wrap">
@@ -1608,7 +1651,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     <span>ভিউ</span>
                                   </button>
 
-                                  {/* Unambiguous Visibility Action Button */}
+                                  {/* Visibility Action Button */}
                                   {p.isPublished !== false ? (
                                     <button
                                       type="button"
@@ -1626,6 +1669,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                       title="স্টোরে এখনই প্রকাশ করুন"
                                     >
                                       পাবলিশ
+                                    </button>
+                                  )}
+
+                                  {/* Availability Action Button */}
+                                  {p.isUnavailable ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleAvailabilityProduct(p.id)}
+                                      className="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold border border-rose-200 transition-colors cursor-pointer"
+                                      title="পণ্যটির বিক্রয় পুনরায় চালু করুন"
+                                    >
+                                      বিক্রয় চালু
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleAvailabilityProduct(p.id)}
+                                      className="px-2 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-medium border border-amber-200 transition-colors cursor-pointer"
+                                      title="সাময়িকভাবে এই পণ্যের অর্ডার বন্ধ রাখুন"
+                                    >
+                                      অনুপলব্ধ
                                     </button>
                                   )}
 
@@ -2535,7 +2599,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 />
               </div>
 
-              <div className="flex items-center gap-4 pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-1">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -2554,6 +2618,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     className="rounded text-[#0F4C3A]"
                   />
                   <span>পাবলিশড (গ্রাহকদের কাছে দৃশ্যমান)</span>
+                </label>
+              </div>
+
+              {/* Unavailable for Sale Configuration */}
+              <div className="p-3 rounded-xl border border-rose-200 bg-rose-50/70">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingProduct.isUnavailable || false}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, isUnavailable: e.target.checked })}
+                    className="mt-0.5 rounded text-rose-600 focus:ring-rose-500 w-4 h-4 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-rose-900 block">
+                      🚫 পণ্যটি বর্তমানে আর বিক্রয়ের জন্য উপলব্ধ নেই (Mark Unavailable for Sale)
+                    </span>
+                    <span className="text-[11px] text-rose-700 block mt-0.5">
+                      পণ্যটি স্টোরে দেখা যাবে, কিন্তু 'কার্টে যোগ করুন' ও 'সরাসরি কিনুন' বাটন বন্ধ থাকবে এবং গ্রাহকদের অনুপলব্ধ নোটিশ দেওয়া হবে।
+                    </span>
+                  </div>
                 </label>
               </div>
 

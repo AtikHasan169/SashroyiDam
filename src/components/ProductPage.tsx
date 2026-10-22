@@ -100,6 +100,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({
   const currentPrice = product.price + (selectedVariant?.priceDelta || 0);
   const currentStock = selectedVariant ? selectedVariant.stock : product.stock;
   const isOutOfStock = currentStock <= 0;
+  const isUnavailable = Boolean(product.isUnavailable);
+  const canOrder = !isOutOfStock && !isUnavailable;
   const isWish = isInWishlist(product.id);
 
   // Category matching
@@ -139,12 +141,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({
   };
 
   const handleAddToCart = () => {
-    if (isOutOfStock) return;
+    if (!canOrder) return;
     addToCart(product.id, selectedVariantId, quantity);
   };
 
   const handleBuyNow = () => {
-    if (isOutOfStock) return;
+    if (!canOrder) return;
     if (onDirectBuy) {
       onDirectBuy(product, selectedVariantId, quantity);
     } else {
@@ -335,6 +337,33 @@ export const ProductPage: React.FC<ProductPageProps> = ({
         </div>
       )}
 
+      {/* Product Currently Unavailable for Sale Alert Banner */}
+      {isUnavailable && (
+        <div className="bg-rose-50 border-b border-rose-200 px-4 sm:px-6 md:px-8 lg:px-10 py-3 text-rose-900 text-xs sm:text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl shrink-0">⛔</span>
+              <p>
+                <strong className="font-bold">
+                  {language === 'en' ? 'Currently Unavailable for Sale:' : 'বর্তমানে বিক্রয়ের জন্য উপলব্ধ নেই:'}
+                </strong>{' '}
+                {language === 'en'
+                  ? 'This product is currently not available for purchase. All ordering buttons have been temporarily disabled.'
+                  : 'এই পণ্যটি বর্তমানে আর বিক্রয়ের জন্য উপলব্ধ নেই। সাময়িকভাবে এর সকল অর্ডার গ্রহণ বন্ধ রাখা হয়েছে।'}
+              </p>
+            </div>
+            {isAdmin && onEditProduct && (
+              <button
+                onClick={() => onEditProduct(product)}
+                className="shrink-0 px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-xs cursor-pointer shadow-2xs transition-colors self-start sm:self-auto"
+              >
+                {language === 'en' ? 'Edit Availability' : 'অনুপলব্ধতা পরিবর্তন'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Product Stage Container */}
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8">
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200/90 shadow-sm overflow-hidden p-4 sm:p-8 lg:p-10">
@@ -505,7 +534,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({
 
                   {/* Stock Availability */}
                   <div className="text-xs font-semibold">
-                    {isOutOfStock ? (
+                    {isUnavailable ? (
+                      <span className="text-rose-600 flex items-center gap-1.5 font-bold">
+                        <span className="w-2 h-2 rounded-full bg-rose-600" />
+                        {language === 'en' ? 'Currently Unavailable for Sale' : 'বর্তমানে আর বিক্রয়ের জন্য উপলব্ধ নেই'}
+                      </span>
+                    ) : isOutOfStock ? (
                       <span className="text-rose-600 flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-rose-500" />
                         {t('outOfStock')}
@@ -543,12 +577,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                         return (
                           <button
                             key={v.id}
-                            disabled={isVOutOfStock}
+                            disabled={isVOutOfStock || isUnavailable}
                             onClick={() => setSelectedVariantId(v.id)}
                             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer ${
                               isSelected
                                 ? 'bg-[#0F4C3A] text-white border-[#0F4C3A] shadow-sm scale-102 ring-2 ring-emerald-500/30'
-                                : isVOutOfStock
+                                : isVOutOfStock || isUnavailable
                                 ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed opacity-60 line-through'
                                 : 'bg-white hover:bg-stone-50 text-stone-800 border-stone-300'
                             }`}
@@ -574,7 +608,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                     <div className="flex items-center border border-stone-300 rounded-xl bg-white overflow-hidden shadow-2xs">
                       <button
                         onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                        disabled={quantity <= 1 || isOutOfStock}
+                        disabled={quantity <= 1 || !canOrder}
                         className="px-3 py-2 text-stone-600 hover:bg-stone-100 transition-colors disabled:opacity-40 cursor-pointer"
                       >
                         <Minus className="w-3.5 h-3.5" />
@@ -584,7 +618,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                       </span>
                       <button
                         onClick={() => setQuantity((q) => Math.min(currentStock, q + 1))}
-                        disabled={quantity >= currentStock || isOutOfStock}
+                        disabled={quantity >= currentStock || !canOrder}
                         className="px-3 py-2 text-stone-600 hover:bg-stone-100 transition-colors disabled:opacity-40 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -600,28 +634,28 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
                   <button
                     onClick={handleAddToCart}
-                    disabled={isOutOfStock}
+                    disabled={!canOrder}
                     className={`py-3.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition-all cursor-pointer ${
-                      isOutOfStock
+                      !canOrder
                         ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed'
                         : 'bg-emerald-50 text-[#0F4C3A] border-emerald-300 hover:bg-emerald-100 shadow-2xs'
                     }`}
                   >
                     <ShoppingCart className="w-4 h-4" />
-                    <span>{t('addToCart')}</span>
+                    <span>{isUnavailable ? (language === 'en' ? 'Unavailable' : 'অনুপলব্ধ') : t('addToCart')}</span>
                   </button>
 
                   <button
                     onClick={handleBuyNow}
-                    disabled={isOutOfStock}
+                    disabled={!canOrder}
                     className={`py-3.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
-                      isOutOfStock
+                      !canOrder
                         ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
                         : 'bg-[#0F4C3A] hover:bg-[#135D48] text-white hover:shadow-lg'
                     }`}
                   >
-                    <span>{t('buyNow')}</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <span>{isUnavailable ? (language === 'en' ? 'Unavailable for Sale' : 'বর্তমানে বিক্রয়ের জন্য উপলব্ধ নেই') : t('buyNow')}</span>
+                    {canOrder && <ArrowRight className="w-4 h-4" />}
                   </button>
                 </div>
 

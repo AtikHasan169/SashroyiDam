@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, ShoppingBag, Truck, Check, AlertCircle } from 'lucide-react';
 import type { Product, Order, OrderItemSnapshot } from '../../types/index.ts';
+import {
+  BANGLADESH_DIVISIONS,
+  getUpazilasForDistrict,
+  CUSTOM_UPAZILA_OPTION_BN,
+  CUSTOM_UPAZILA_OPTION_EN
+} from '../../data/bangladeshGeo.ts';
 import { BANGLADESH_DISTRICTS } from '../../data/districts.ts';
 import { api } from '../../lib/api.ts';
 
@@ -32,12 +38,21 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [fullAddress, setFullAddress] = useState('');
+  const [division, setDivision] = useState('dhaka');
   const [district, setDistrict] = useState('ঢাকা');
-  const [upazila, setUpazila] = useState('');
+  const [upazila, setUpazila] = useState('ধানমন্ডি');
+  const [customUpazilaText, setCustomUpazilaText] = useState('');
+  const [isCustomUpazila, setIsCustomUpazila] = useState(false);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [initialStatus, setInitialStatus] = useState<'confirmed' | 'processing' | 'pending_confirmation'>('confirmed');
   const [paymentStatus, setPaymentStatus] = useState<'unpaid' | 'paid'>('unpaid');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bkash' | 'nagad' | 'bank'>('cod');
+
+  const currentDivData = BANGLADESH_DIVISIONS.find((d) => d.id === division) || BANGLADESH_DIVISIONS[0];
+  const availableDistricts = currentDivData ? currentDivData.districts : [];
+  const availableUpazilas = React.useMemo(() => {
+    return getUpazilasForDistrict(district);
+  }, [district]);
 
   // Products Selected
   const [items, setItems] = useState<SelectedItem[]>(() => {
@@ -53,11 +68,50 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Handle District Change to auto-adjust delivery fee
+  // Handle Division Change
+  const handleDivisionChange = (divId: string) => {
+    setDivision(divId);
+    setIsCustomUpazila(false);
+    setCustomUpazilaText('');
+    const divData = BANGLADESH_DIVISIONS.find((d) => d.id === divId);
+    if (divData && divData.districts.length > 0) {
+      const firstDist = divData.districts[0];
+      setDistrict(firstDist.nameBn);
+      const isDhaka = firstDist.nameBn.includes('ঢাকা') || firstDist.nameEn.toLowerCase() === 'dhaka';
+      setDeliveryFee(isDhaka ? 70 : 130);
+      const upzList = getUpazilasForDistrict(firstDist.nameBn);
+      if (upzList.length > 0) {
+        setUpazila(upzList[0]);
+      } else {
+        setUpazila(CUSTOM_UPAZILA_OPTION_BN);
+        setIsCustomUpazila(true);
+      }
+    }
+  };
+
+  // Handle District Change to auto-adjust delivery fee and upazila
   const handleDistrictChange = (distName: string) => {
     setDistrict(distName);
+    setIsCustomUpazila(false);
+    setCustomUpazilaText('');
     const isDhaka = distName.includes('ঢাকা') || distName.toLowerCase().includes('dhaka');
     setDeliveryFee(isDhaka ? 70 : 130);
+    const upzList = getUpazilasForDistrict(distName);
+    if (upzList.length > 0) {
+      setUpazila(upzList[0]);
+    } else {
+      setUpazila(CUSTOM_UPAZILA_OPTION_BN);
+      setIsCustomUpazila(true);
+    }
+  };
+
+  const handleUpazilaChange = (val: string) => {
+    setUpazila(val);
+    if (val === CUSTOM_UPAZILA_OPTION_BN || val === CUSTOM_UPAZILA_OPTION_EN) {
+      setIsCustomUpazila(true);
+    } else {
+      setIsCustomUpazila(false);
+    }
   };
 
   // Add Item Row
@@ -125,10 +179,15 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const matchedDist = BANGLADESH_DISTRICTS.find(
-        (d) => district.includes(d.nameBn) || district.toLowerCase().includes(d.nameEn.toLowerCase())
-      );
-      const division = matchedDist ? matchedDist.division.toLowerCase() : 'dhaka';
+      const finalUpazila = (isCustomUpazila || upazila === CUSTOM_UPAZILA_OPTION_BN)
+        ? customUpazilaText.trim()
+        : upazila.trim();
+
+      if (!finalUpazila) {
+        setErrorMessage('উপজেলা বা থানার নাম নির্বাচন বা লিখুন।');
+        setIsSubmitting(false);
+        return;
+      }
 
       const orderPayload = {
         customerName: customerName.trim(),
@@ -136,7 +195,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
         customerEmail: customerEmail.trim() || undefined,
         division,
         district,
-        upazila: upazila.trim() || district,
+        upazila: finalUpazila,
         fullAddress: fullAddress.trim(),
         deliveryInstructions: deliveryInstructions.trim() || undefined,
         orderSource,
@@ -284,7 +343,24 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+                  বিভাগ (Division) *
+                </label>
+                <select
+                  value={division}
+                  onChange={(e) => handleDivisionChange(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0F4C3A] cursor-pointer"
+                >
+                  {BANGLADESH_DIVISIONS.map((div) => (
+                    <option key={div.id} value={div.id}>
+                      {div.nameBn} ({div.nameEn})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="block text-[11px] font-semibold text-stone-600 mb-1">
                   জেলা (District) *
@@ -292,18 +368,10 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                 <select
                   value={district}
                   onChange={(e) => handleDistrictChange(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
+                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0F4C3A] cursor-pointer"
                 >
-                  <option value="ঢাকা">ঢাকা (Dhaka)</option>
-                  <option value="চট্টগ্রাম">চট্টগ্রাম (Chattogram)</option>
-                  <option value="সিলেট">সিলেট (Sylhet)</option>
-                  <option value="রাজশাহী">রাজশাহী (Rajshahi)</option>
-                  <option value="খুলনা">খুলনা (Khulna)</option>
-                  <option value="বরিশাল">বরিশাল (Barishal)</option>
-                  <option value="রংপুর">রংপুর (Rangpur)</option>
-                  <option value="ময়মনসিংহ">ময়মনসিংহ (Mymensingh)</option>
-                  {BANGLADESH_DISTRICTS.map((d) => (
-                    <option key={d.id} value={d.nameBn}>
+                  {availableDistricts.map((d) => (
+                    <option key={d.nameBn} value={d.nameBn}>
                       {d.nameBn} ({d.nameEn})
                     </option>
                   ))}
@@ -312,17 +380,41 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
 
               <div>
                 <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                  থানা / উপজেলা (ঐচ্ছিক)
+                  থানা / উপজেলা (Upazila) *
+                </label>
+                <select
+                  value={upazila}
+                  onChange={(e) => handleUpazilaChange(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0F4C3A] cursor-pointer"
+                >
+                  {availableUpazilas.map((upz) => (
+                    <option key={upz} value={upz}>
+                      {upz}
+                    </option>
+                  ))}
+                  <option value={CUSTOM_UPAZILA_OPTION_BN}>
+                    {CUSTOM_UPAZILA_OPTION_BN}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            {/* Custom Upazila text input */}
+            {isCustomUpazila && (
+              <div className="p-2.5 bg-emerald-50/60 rounded-xl border border-emerald-200">
+                <label className="block text-xs font-semibold text-[#0F4C3A] mb-1">
+                  থানা বা উপজেলার নাম লিখুন *
                 </label>
                 <input
                   type="text"
-                  placeholder="যেমন: ধানমন্ডি / মিরপুর"
-                  value={upazila}
-                  onChange={(e) => setUpazila(e.target.value)}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
+                  required
+                  placeholder="যেমন: রামপুরা, খিলগাঁও, কোতোয়ালী..."
+                  value={customUpazilaText}
+                  onChange={(e) => setCustomUpazilaText(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0F4C3A]"
                 />
               </div>
-            </div>
+            )}
 
             <div>
               <label className="block text-[11px] font-semibold text-stone-600 mb-1">

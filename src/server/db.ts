@@ -16,6 +16,7 @@ import type {
 } from '../types/index.ts';
 import {
   isMongoConfigured,
+  ensureMongoReady,
   fetchMongoData,
   syncAllToMongo,
   syncProductToMongo,
@@ -556,11 +557,102 @@ export async function saveDatabase(data: DatabaseSchema): Promise<void> {
   }
 }
 
+let lastMongoSyncTime = 0;
+const MONGO_SYNC_INTERVAL_MS = 2500; // 2.5 seconds cache freshness window for live queries
+
+export async function ensureDatabaseReady(): Promise<DatabaseSchema> {
+  const db = getDatabase();
+  const mongoUri = (process.env.MONGODB_URI || '').trim();
+  if (!mongoUri) {
+    return db;
+  }
+
+  const now = Date.now();
+  if (now - lastMongoSyncTime > MONGO_SYNC_INTERVAL_MS) {
+    try {
+      const ready = await ensureMongoReady();
+      if (ready) {
+        const mongoData = await fetchMongoData();
+        if (mongoData && memoryDb) {
+          if (mongoData.products && mongoData.products.length > 0) {
+            const mongoMap = new Map((mongoData.products as Product[]).map((p) => [p.id, p]));
+            const merged = [...(mongoData.products as Product[])];
+            for (const lp of memoryDb.products) {
+              if (!mongoMap.has(lp.id)) {
+                merged.unshift(lp);
+              }
+            }
+            memoryDb.products = merged;
+          } else if (memoryDb.products.length > 0) {
+            // First time seeding MongoDB with initial products
+            for (const prod of memoryDb.products) {
+              syncProductToMongo(prod).catch(() => {});
+            }
+          }
+
+          if (mongoData.categories && mongoData.categories.length > 0) {
+            const mongoCatMap = new Map((mongoData.categories as Category[]).map((c) => [c.id, c]));
+            const mergedCats = [...(mongoData.categories as Category[])];
+            for (const lc of memoryDb.categories) {
+              if (!mongoCatMap.has(lc.id)) {
+                mergedCats.push(lc);
+              }
+            }
+            memoryDb.categories = mergedCats;
+          } else if (memoryDb.categories.length > 0) {
+            for (const cat of memoryDb.categories) {
+              syncCategoryToMongo(cat).catch(() => {});
+            }
+          }
+
+          if (mongoData.orders && mongoData.orders.length > 0) {
+            const mongoOrderMap = new Map((mongoData.orders as Order[]).map((o) => [o.id, o]));
+            const mergedOrders = [...(mongoData.orders as Order[])];
+            for (const lo of memoryDb.orders) {
+              if (!mongoOrderMap.has(lo.id)) {
+                mergedOrders.unshift(lo);
+              }
+            }
+            memoryDb.orders = mergedOrders;
+          }
+
+          if (mongoData.storeSettings) {
+            memoryDb.storeSettings = mongoData.storeSettings as StoreSettings;
+          }
+          if (mongoData.coupons && mongoData.coupons.length > 0) {
+            memoryDb.coupons = mongoData.coupons as Coupon[];
+          }
+          if (mongoData.users && mongoData.users.length > 0) {
+            for (const mu of mongoData.users) {
+              const idx = memoryDb.users.findIndex(
+                (u) => u.id === mu.id || u.email.toLowerCase() === mu.email.toLowerCase() || u.phone === mu.phone
+              );
+              if (idx !== -1) {
+                memoryDb.users[idx] = {
+                  ...mu,
+                  passwordHash: mu.passwordHash || memoryDb.users[idx].passwordHash
+                };
+              } else {
+                memoryDb.users.push(mu);
+              }
+            }
+          }
+          lastMongoSyncTime = now;
+        }
+      }
+    } catch (err) {
+      console.warn('MongoDB sync error in ensureDatabaseReady:', err);
+    }
+  }
+
+  return memoryDb!;
+}
+
 // Concurrency-safe atomic transaction helper
 export async function withTransaction<T>(
   action: (db: DatabaseSchema) => Promise<T> | T
 ): Promise<T> {
-  const db = getDatabase();
+  const db = await ensureDatabaseReady();
   const result = await action(db);
   await saveDatabase(db);
   return result;
@@ -588,3 +680,4 @@ export async function recordAuditLog(
     }
   });
 }
+

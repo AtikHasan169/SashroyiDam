@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Package, MapPin, LogOut, Plus, AlertCircle, CheckCircle, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
+import { useLanguage } from '../context/LanguageContext.tsx';
 import { api } from '../lib/api.ts';
 import type { Order } from '../types/index.ts';
-import { BANGLADESH_DIVISIONS } from '../data/bangladeshGeo.ts';
+import {
+  BANGLADESH_DIVISIONS,
+  getUpazilasForDistrict,
+  CUSTOM_UPAZILA_OPTION_BN,
+  CUSTOM_UPAZILA_OPTION_EN
+} from '../data/bangladeshGeo.ts';
 import { BANGLADESH_DISTRICTS } from '../data/districts.ts';
 import { BrandLogo } from './BrandLogo.tsx';
 
@@ -21,6 +27,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onOpenAdmin
 }) => {
   const { user, isAdmin, login, register, logout, refreshUser } = useAuth();
+  const { language } = useLanguage();
   const [mode, setMode] = useState<'signin' | 'signup' | 'profile'>('signin');
 
   // Form states
@@ -53,25 +60,53 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [addrUpazila, setAddrUpazila] = useState('ধানমন্ডি');
   const [addrFull, setAddrFull] = useState('');
 
+  const [customUpazilaText, setCustomUpazilaText] = useState('');
+  const [isCustomUpazila, setIsCustomUpazila] = useState(false);
+
   const currentDivData = BANGLADESH_DIVISIONS.find((d) => d.id === addrDivision) || BANGLADESH_DIVISIONS[0];
   const availableDistricts = currentDivData ? currentDivData.districts : [];
-  const currentDistrictData = availableDistricts.find((d) => d.nameBn === addrDistrict) || availableDistricts[0];
-  const availableUpazilas = currentDistrictData ? currentDistrictData.upazilas : [];
+  const availableUpazilas = React.useMemo(() => {
+    return getUpazilasForDistrict(addrDistrict);
+  }, [addrDistrict]);
 
   const handleDivChange = (divId: string) => {
     setAddrDivision(divId);
+    setIsCustomUpazila(false);
+    setCustomUpazilaText('');
     const divData = BANGLADESH_DIVISIONS.find((d) => d.id === divId);
     if (divData && divData.districts.length > 0) {
       const firstDist = divData.districts[0];
       setAddrDistrict(firstDist.nameBn);
-      setAddrUpazila(firstDist.upazilas[0] || '');
+      const upzList = getUpazilasForDistrict(firstDist.nameBn);
+      if (upzList.length > 0) {
+        setAddrUpazila(upzList[0]);
+      } else {
+        setAddrUpazila(CUSTOM_UPAZILA_OPTION_BN);
+        setIsCustomUpazila(true);
+      }
     }
   };
 
   const handleDistChange = (distName: string) => {
     setAddrDistrict(distName);
-    const distData = availableDistricts.find((d) => d.nameBn === distName);
-    setAddrUpazila(distData?.upazilas[0] || '');
+    setIsCustomUpazila(false);
+    setCustomUpazilaText('');
+    const upzList = getUpazilasForDistrict(distName);
+    if (upzList.length > 0) {
+      setAddrUpazila(upzList[0]);
+    } else {
+      setAddrUpazila(CUSTOM_UPAZILA_OPTION_BN);
+      setIsCustomUpazila(true);
+    }
+  };
+
+  const handleUpazilaChange = (val: string) => {
+    setAddrUpazila(val);
+    if (val === CUSTOM_UPAZILA_OPTION_BN || val === CUSTOM_UPAZILA_OPTION_EN) {
+      setIsCustomUpazila(true);
+    } else {
+      setIsCustomUpazila(false);
+    }
   };
 
   useEffect(() => {
@@ -131,19 +166,30 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     e.preventDefault();
     setErrorMsg('');
     try {
+      const finalUpazila = (isCustomUpazila || addrUpazila === CUSTOM_UPAZILA_OPTION_BN)
+        ? customUpazilaText.trim()
+        : addrUpazila.trim();
+
+      if (!finalUpazila) {
+        setErrorMsg('উপজেলা বা থানার নাম নির্বাচন বা লিখুন');
+        return;
+      }
+
       await api.addAddress({
         title: addrTitle,
         name: addrName || user?.name || 'গ্রাহক',
         phone: addrPhone || user?.phone || '',
         division: addrDivision,
         district: addrDistrict,
-        upazila: addrUpazila,
+        upazila: finalUpazila,
         fullAddress: addrFull,
         isDefault: true
       });
       await refreshUser();
       setShowAddAddress(false);
       setAddrFull('');
+      setCustomUpazilaText('');
+      setIsCustomUpazila(false);
     } catch (err: any) {
       setErrorMsg(err.message || 'ঠিকানা যোগ করতে সমস্যা হয়েছে');
     }
@@ -529,7 +575,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                           >
                             {BANGLADESH_DIVISIONS.map((div) => (
                               <option key={div.id} value={div.id}>
-                                {div.nameBn} ({div.nameEn})
+                                {language === 'en' ? div.nameEn : div.nameBn}
                               </option>
                             ))}
                           </select>
@@ -543,7 +589,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                           >
                             {availableDistricts.map((dist) => (
                               <option key={dist.nameBn} value={dist.nameBn}>
-                                {dist.nameBn} ({dist.nameEn})
+                                {language === 'en' ? dist.nameEn : dist.nameBn}
                               </option>
                             ))}
                           </select>
@@ -552,7 +598,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                           <label className="block text-[11px] font-semibold text-stone-600 mb-0.5">উপজেলা / থানা *</label>
                           <select
                             value={addrUpazila}
-                            onChange={(e) => setAddrUpazila(e.target.value)}
+                            onChange={(e) => handleUpazilaChange(e.target.value)}
                             className="w-full px-2.5 py-1.5 border border-stone-200 rounded text-xs bg-white focus:outline-none cursor-pointer"
                           >
                             {availableUpazilas.map((upz) => (
@@ -560,9 +606,22 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                                 {upz}
                               </option>
                             ))}
+                            <option value={CUSTOM_UPAZILA_OPTION_BN}>
+                              {CUSTOM_UPAZILA_OPTION_BN}
+                            </option>
                           </select>
                         </div>
                       </div>
+                      {isCustomUpazila && (
+                        <input
+                          type="text"
+                          required
+                          placeholder="আপনার থানা বা উপজেলার নাম লিখুন..."
+                          value={customUpazilaText}
+                          onChange={(e) => setCustomUpazilaText(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-emerald-300 rounded text-xs bg-emerald-50/20 focus:outline-none"
+                        />
+                      )}
                       <textarea
                         required
                         rows={2}

@@ -16,6 +16,9 @@ export function createExpressApp() {
 
   const app = express();
 
+  // Disable Express ETag generation to prevent 304 caching of live retail data
+  app.set('etag', false);
+
   // CORS support
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -26,6 +29,15 @@ export function createExpressApp() {
       res.sendStatus(200);
       return;
     }
+    next();
+  });
+
+  // Strict zero-cache headers on all API endpoints so products and orders always reflect real-time live data
+  app.use('/api', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
     next();
   });
 

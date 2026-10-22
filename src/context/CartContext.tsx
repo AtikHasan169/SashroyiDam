@@ -10,10 +10,12 @@ interface CartContextType {
   division: string;
   isCartDrawerOpen: boolean;
   isValidating: boolean;
+  hasUnavailableItems: boolean;
   addToCart: (productId: string, variantId?: string, quantity?: number) => void;
   removeFromCart: (productId: string, variantId?: string) => void;
   updateQuantity: (productId: string, variantId: string | undefined, quantity: number) => void;
   clearCart: () => void;
+  removeUnavailableItems: () => void;
   applyCouponCode: (code: string) => Promise<{ success: boolean; message: string }>;
   removeCoupon: () => void;
   setCustomerDivision: (div: string) => void;
@@ -61,7 +63,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(DIVISION_STORAGE_KEY, division);
   }, [division]);
 
-  // Server-side validation
+  // Server-side validation with automatic deleted/unlisted item purge
   const refreshCartValidation = useCallback(async () => {
     if (items.length === 0) {
       setCartValidation({
@@ -82,6 +84,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         couponCode: couponCode || undefined,
         division
       });
+
+      // Auto-purge items that have been deleted from store database or unlisted
+      if (res.purgedItemIds && res.purgedItemIds.length > 0) {
+        const purgedSet = new Set(res.purgedItemIds);
+        setItems((prev) => prev.filter((i) => !purgedSet.has(i.productId)));
+      }
+
       setCartValidation(res);
     } catch (err) {
       console.error('Cart validation error:', err);
@@ -138,6 +147,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCartValidation(null);
   };
 
+  const removeUnavailableItems = () => {
+    if (!cartValidation?.items) return;
+    const unavailableKeys = new Set(
+      cartValidation.items
+        .filter((it) => !it.isAvailable)
+        .map((it) => `${it.productId}_${it.variantId || 'base'}`)
+    );
+    setItems((prev) =>
+      prev.filter((i) => !unavailableKeys.has(`${i.productId}_${i.variantId || 'base'}`))
+    );
+  };
+
+  const hasUnavailableItems = Boolean(
+    cartValidation?.items?.some((it) => !it.isAvailable)
+  );
+
   const applyCouponCode = async (code: string): Promise<{ success: boolean; message: string }> => {
     if (!code.trim()) {
       return { success: false, message: 'কুপন কোড প্রদান করুন' };
@@ -177,10 +202,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         division,
         isCartDrawerOpen,
         isValidating,
+        hasUnavailableItems,
         addToCart,
         removeFromCart,
         updateQuantity,
         clearCart,
+        removeUnavailableItems,
         applyCouponCode,
         removeCoupon,
         setCustomerDivision,

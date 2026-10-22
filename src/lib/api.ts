@@ -84,7 +84,16 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     ? endpoint
     : `${API_BASE}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
 
-  const res = await fetch(fullUrl, {
+  // Add cache-busting timestamp on GET requests to guarantee real-time data
+  const method = (options.method || 'GET').toUpperCase();
+  let finalUrl = fullUrl;
+  if (method === 'GET') {
+    const separator = finalUrl.includes('?') ? '&' : '?';
+    finalUrl = `${finalUrl}${separator}_t=${Date.now()}`;
+  }
+
+  const res = await fetch(finalUrl, {
+    cache: 'no-store',
     ...options,
     headers
   });
@@ -585,9 +594,14 @@ export const api = {
 
   getAuditLogs: () => request<{ logs: AuditLog[] }>('/api/admin/audit-logs'),
 
-  // Product & Category Visibility Toggles
+  // Product & Category Visibility & Availability Toggles
   togglePublishProduct: (id: string) =>
     request<{ product: Product; message: string }>(`/api/admin/products/${id}/toggle-publish`, {
+      method: 'PATCH'
+    }),
+
+  toggleProductAvailability: (id: string) =>
+    request<{ product: Product; message: string }>(`/api/admin/products/${id}/toggle-availability`, {
       method: 'PATCH'
     }),
 

@@ -23,7 +23,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
-import { BANGLADESH_DIVISIONS } from '../data/bangladeshGeo.ts';
+import {
+  BANGLADESH_DIVISIONS,
+  getUpazilasForDistrict,
+  CUSTOM_UPAZILA_OPTION_BN,
+  CUSTOM_UPAZILA_OPTION_EN
+} from '../data/bangladeshGeo.ts';
 import { api } from '../lib/api.ts';
 import type { Order, Address } from '../types/index.ts';
 
@@ -83,33 +88,53 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [addressSuccessMsg, setAddressSuccessMsg] = useState('');
   const [addressErrorMsg, setAddressErrorMsg] = useState('');
 
+  const [customUpazilaText, setCustomUpazilaText] = useState('');
+  const [isCustomUpazila, setIsCustomUpazila] = useState(false);
+
   // Cascading geo calculations for address form
   const currentDivData = BANGLADESH_DIVISIONS.find((d) => d.id === newAddrDivision) || BANGLADESH_DIVISIONS[0];
   const availableDistricts = currentDivData ? currentDivData.districts : [];
-  const currentDistrictData = availableDistricts.find((d) => d.nameBn === newAddrDistrict) || availableDistricts[0];
-  const availableUpazilas = currentDistrictData ? currentDistrictData.upazilas : [];
+  const availableUpazilas = React.useMemo(() => {
+    return getUpazilasForDistrict(newAddrDistrict);
+  }, [newAddrDistrict]);
 
   const handleDivisionChange = (divId: string) => {
     setNewAddrDivision(divId);
+    setIsCustomUpazila(false);
+    setCustomUpazilaText('');
     const divData = BANGLADESH_DIVISIONS.find((d) => d.id === divId);
     if (divData && divData.districts.length > 0) {
       const firstDist = divData.districts[0];
       setNewAddrDistrict(firstDist.nameBn);
-      if (firstDist.upazilas.length > 0) {
-        setNewAddrUpazila(firstDist.upazilas[0]);
+      const upzList = getUpazilasForDistrict(firstDist.nameBn);
+      if (upzList.length > 0) {
+        setNewAddrUpazila(upzList[0]);
       } else {
-        setNewAddrUpazila('');
+        setNewAddrUpazila(CUSTOM_UPAZILA_OPTION_BN);
+        setIsCustomUpazila(true);
       }
     }
   };
 
   const handleDistrictChange = (distName: string) => {
     setNewAddrDistrict(distName);
-    const distData = availableDistricts.find((d) => d.nameBn === distName);
-    if (distData && distData.upazilas.length > 0) {
-      setNewAddrUpazila(distData.upazilas[0]);
+    setIsCustomUpazila(false);
+    setCustomUpazilaText('');
+    const upzList = getUpazilasForDistrict(distName);
+    if (upzList.length > 0) {
+      setNewAddrUpazila(upzList[0]);
     } else {
-      setNewAddrUpazila('');
+      setNewAddrUpazila(CUSTOM_UPAZILA_OPTION_BN);
+      setIsCustomUpazila(true);
+    }
+  };
+
+  const handleUpazilaChange = (val: string) => {
+    setNewAddrUpazila(val);
+    if (val === CUSTOM_UPAZILA_OPTION_BN || val === CUSTOM_UPAZILA_OPTION_EN) {
+      setIsCustomUpazila(true);
+    } else {
+      setIsCustomUpazila(false);
     }
   };
 
@@ -229,8 +254,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     setAddressErrorMsg('');
     setAddressSuccessMsg('');
 
-    if (!newAddrName.trim() || !newAddrPhone.trim() || !newAddrFull.trim()) {
-      setAddressErrorMsg(language === 'en' ? 'Please fill all required fields' : 'সকল আবশ্যকীয় তথ্য পূরণ করুন');
+    const finalUpazila = (isCustomUpazila || newAddrUpazila === CUSTOM_UPAZILA_OPTION_BN)
+      ? customUpazilaText.trim()
+      : newAddrUpazila.trim();
+
+    if (!finalUpazila) {
+      setAddressErrorMsg(language === 'en' ? 'Please enter Thana / Upazila' : 'থানা বা উপজেলার নাম নির্বাচন বা লিখুন');
       return;
     }
 
@@ -242,7 +271,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         phone: newAddrPhone.trim(),
         division: newAddrDivision,
         district: newAddrDistrict,
-        upazila: newAddrUpazila.trim(),
+        upazila: finalUpazila,
         fullAddress: newAddrFull.trim(),
         isDefault: newAddrIsDefault
       });
@@ -985,7 +1014,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                           >
                             {BANGLADESH_DIVISIONS.map((div) => (
                               <option key={div.id} value={div.id}>
-                                {div.nameBn} ({div.nameEn})
+                                {language === 'en' ? div.nameEn : div.nameBn}
                               </option>
                             ))}
                           </select>
@@ -1002,7 +1031,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                           >
                             {availableDistricts.map((dist) => (
                               <option key={dist.nameBn} value={dist.nameBn}>
-                                {dist.nameBn} ({dist.nameEn})
+                                {language === 'en' ? dist.nameEn : dist.nameBn}
                               </option>
                             ))}
                           </select>
@@ -1014,7 +1043,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                           </label>
                           <select
                             value={newAddrUpazila}
-                            onChange={(e) => setNewAddrUpazila(e.target.value)}
+                            onChange={(e) => handleUpazilaChange(e.target.value)}
                             className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-[#0F4C3A] cursor-pointer"
                           >
                             {availableUpazilas.map((upz) => (
@@ -1022,9 +1051,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                                 {upz}
                               </option>
                             ))}
+                            <option value={CUSTOM_UPAZILA_OPTION_BN}>
+                              {language === 'en' ? CUSTOM_UPAZILA_OPTION_EN : CUSTOM_UPAZILA_OPTION_BN}
+                            </option>
                           </select>
                         </div>
                       </div>
+
+                      {/* Custom Upazila input */}
+                      {isCustomUpazila && (
+                        <div className="p-2.5 bg-emerald-50/50 rounded-xl border border-emerald-200">
+                          <label className="block text-xs font-semibold text-[#0F4C3A] mb-1">
+                            {language === 'en' ? 'Thana / Upazila Name' : 'আপনার থানা বা উপজেলার নাম লিখুন'} *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={customUpazilaText}
+                            onChange={(e) => setCustomUpazilaText(e.target.value)}
+                            placeholder={language === 'en' ? 'e.g. Rampura, Kotwali' : 'যেমন: রামপুরা, কোতোয়ালী...'}
+                            className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs focus:outline-none focus:border-[#0F4C3A]"
+                          />
+                        </div>
+                      )}
 
                       <div>
                         <label className="block text-xs font-semibold text-stone-700 mb-1">

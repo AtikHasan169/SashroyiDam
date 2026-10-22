@@ -3,7 +3,12 @@ import { X, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, CreditCard, Bank
 import { useCart } from '../context/CartContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
-import { BANGLADESH_DIVISIONS } from '../data/bangladeshGeo.ts';
+import {
+  BANGLADESH_DIVISIONS,
+  getUpazilasForDistrict,
+  CUSTOM_UPAZILA_OPTION_BN,
+  CUSTOM_UPAZILA_OPTION_EN
+} from '../data/bangladeshGeo.ts';
 import { BANGLADESH_DISTRICTS, getDistrictById } from '../data/districts.ts';
 import { api } from '../lib/api.ts';
 import type { Order, Product } from '../types/index.ts';
@@ -37,7 +42,9 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
     couponCode,
     applyCouponCode,
     removeCoupon,
-    clearCart
+    clearCart,
+    refreshCartValidation,
+    removeUnavailableItems
   } = useCart();
   const { user, setSession } = useAuth();
   const { language, t, formatPrice } = useLanguage();
@@ -50,6 +57,8 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
   const [selectedDivision, setSelectedDivision] = useState(division || 'dhaka');
   const [selectedDistrict, setSelectedDistrict] = useState('ঢাকা');
   const [selectedUpazila, setSelectedUpazila] = useState('ধানমন্ডি');
+  const [customUpazilaText, setCustomUpazilaText] = useState('');
+  const [isCustomUpazila, setIsCustomUpazila] = useState(false);
   const [fullAddress, setFullAddress] = useState('');
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
@@ -71,8 +80,18 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
         const defaultAddr = user.savedAddresses.find((a) => a.isDefault) || user.savedAddresses[0];
         setSelectedDivision(defaultAddr.division || 'dhaka');
         setSelectedDistrict(defaultAddr.district || 'ঢাকা');
-        setSelectedUpazila(defaultAddr.upazila || '');
         setFullAddress(defaultAddr.fullAddress || '');
+
+        const upzList = getUpazilasForDistrict(defaultAddr.district || 'ঢাকা');
+        if (defaultAddr.upazila && upzList.includes(defaultAddr.upazila)) {
+          setSelectedUpazila(defaultAddr.upazila);
+          setIsCustomUpazila(false);
+          setCustomUpazilaText('');
+        } else if (defaultAddr.upazila) {
+          setSelectedUpazila(CUSTOM_UPAZILA_OPTION_BN);
+          setIsCustomUpazila(true);
+          setCustomUpazilaText(defaultAddr.upazila);
+        }
       }
     }
   }, [user]);
@@ -87,8 +106,9 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
   const districts = currentDivData ? currentDivData.districts : [];
 
   // Dynamic upazilas based on selected district
-  const currentDistrictData = districts.find((dist) => dist.nameBn === selectedDistrict);
-  const upazilas = currentDistrictData ? currentDistrictData.upazilas : [];
+  const upazilas = React.useMemo(() => {
+    return getUpazilasForDistrict(selectedDistrict);
+  }, [selectedDistrict]);
 
   const handleDivisionChange = (divId: string) => {
     setSelectedDivision(divId);
@@ -96,25 +116,37 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
     if (divData && divData.districts.length > 0) {
       const firstDist = divData.districts[0];
       setSelectedDistrict(firstDist.nameBn);
-      if (firstDist.upazilas.length > 0) {
-        setSelectedUpazila(firstDist.upazilas[0]);
+      setIsCustomUpazila(false);
+      setCustomUpazilaText('');
+      const upzList = getUpazilasForDistrict(firstDist.nameBn);
+      if (upzList.length > 0) {
+        setSelectedUpazila(upzList[0]);
       } else {
-        setSelectedUpazila('');
+        setSelectedUpazila(CUSTOM_UPAZILA_OPTION_BN);
+        setIsCustomUpazila(true);
       }
-    } else {
-      setSelectedDistrict('');
-      setSelectedUpazila('');
     }
   };
 
   const handleDistrictChange = (distName: string) => {
     setSelectedDistrict(distName);
-    const divData = BANGLADESH_DIVISIONS.find((d) => d.id === selectedDivision);
-    const distData = divData?.districts.find((d) => d.nameBn === distName);
-    if (distData && distData.upazilas.length > 0) {
-      setSelectedUpazila(distData.upazilas[0]);
+    setIsCustomUpazila(false);
+    setCustomUpazilaText('');
+    const upzList = getUpazilasForDistrict(distName);
+    if (upzList.length > 0) {
+      setSelectedUpazila(upzList[0]);
     } else {
-      setSelectedUpazila('');
+      setSelectedUpazila(CUSTOM_UPAZILA_OPTION_BN);
+      setIsCustomUpazila(true);
+    }
+  };
+
+  const handleUpazilaChange = (val: string) => {
+    setSelectedUpazila(val);
+    if (val === CUSTOM_UPAZILA_OPTION_BN || val === CUSTOM_UPAZILA_OPTION_EN) {
+      setIsCustomUpazila(true);
+    } else {
+      setIsCustomUpazila(false);
     }
   };
 
@@ -156,22 +188,53 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
     setIsSubmitting(true);
 
     try {
-      const orderItems = isDirectBuy
-        ? [
-            {
-              productId: directBuyItem.product.id,
-              variantId: directBuyItem.variantId,
-              quantity: directBuyItem.quantity
-            }
-          ]
-        : cartItems.map((i) => ({
+      const finalUpazila = (isCustomUpazila || selectedUpazila === CUSTOM_UPAZILA_OPTION_BN)
+        ? customUpazilaText.trim()
+        : selectedUpazila.trim();
+
+      if (!finalUpazila) {
+        throw new Error(language === 'en' ? 'Please specify your Upazila or Thana' : 'উপজেলা বা থানার নাম নির্বাচন বা লিখুন');
+      }
+
+      let orderItems: { productId: string; variantId?: string; quantity: number }[] = [];
+
+      if (isDirectBuy) {
+        orderItems = [
+          {
+            productId: directBuyItem.product.id,
+            variantId: directBuyItem.variantId,
+            quantity: directBuyItem.quantity
+          }
+        ];
+      } else {
+        // Filter out any items that are unavailable or have quantity 0
+        const validAvailable = cartValidation?.items?.filter((it) => it.isAvailable && it.quantity > 0);
+        if (validAvailable && validAvailable.length > 0) {
+          orderItems = validAvailable.map((i) => ({
             productId: i.productId,
             variantId: i.variantId,
             quantity: i.quantity
           }));
+        } else {
+          // If cartValidation has no available items but cartItems exists
+          const availableCartItems = cartItems.filter((ci) => {
+            const valItem = cartValidation?.items?.find((v) => v.productId === ci.productId && v.variantId === ci.variantId);
+            return valItem ? valItem.isAvailable : true;
+          });
+          orderItems = availableCartItems.map((i) => ({
+            productId: i.productId,
+            variantId: i.variantId,
+            quantity: i.quantity
+          }));
+        }
+      }
 
       if (orderItems.length === 0) {
-        throw new Error('অর্ডার করার জন্য অন্তত একটি পণ্য নির্বাচন করুন');
+        throw new Error(
+          language === 'en'
+            ? 'The products in your cart are currently not available. Please add other items.'
+            : 'আপনার কার্টের নির্বাচিত পণ্যগুলো বর্তমানে বিক্রয়ের জন্য উপলব্ধ নেই। অনুগ্রহ করে অন্য পণ্য যোগ করুন।'
+        );
       }
 
       // 1. Submit order to server
@@ -181,7 +244,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
         customerEmail: customerEmail || undefined,
         division: selectedDivision,
         district: selectedDistrict,
-        upazila: selectedUpazila,
+        upazila: finalUpazila,
         fullAddress,
         deliveryInstructions: deliveryInstructions || undefined,
         paymentMethod,
@@ -216,6 +279,8 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
       }
     } catch (err: any) {
       setOrderError(err.message || 'অর্ডার সম্পন্ন করা সম্ভব হয়নি। পুনরায় চেষ্টা করুন।');
+      // Proactively refresh cart validation to wipe out phantom deleted items
+      refreshCartValidation();
     } finally {
       setIsSubmitting(false);
     }
@@ -463,7 +528,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                     </label>
                     <select
                       value={selectedUpazila}
-                      onChange={(e) => setSelectedUpazila(e.target.value)}
+                      onChange={(e) => handleUpazilaChange(e.target.value)}
                       className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm bg-white focus:outline-none focus:border-[#0F4C3A]"
                     >
                       {upazilas.map((upz) => (
@@ -471,9 +536,34 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                           {upz}
                         </option>
                       ))}
+                      <option value={CUSTOM_UPAZILA_OPTION_BN}>
+                        {language === 'en' ? CUSTOM_UPAZILA_OPTION_EN : CUSTOM_UPAZILA_OPTION_BN}
+                      </option>
                     </select>
                   </div>
                 </div>
+
+                {/* Custom manual Upazila / Thana input when selected or not in preset */}
+                {isCustomUpazila && (
+                  <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-200 animate-in fade-in duration-200">
+                    <label className="block text-xs font-semibold text-[#0F4C3A] mb-1">
+                      {language === 'en' ? 'Specify Thana / Upazila Name' : 'আপনার থানা বা উপজেলার নাম লিখুন'} <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={customUpazilaText}
+                      onChange={(e) => setCustomUpazilaText(e.target.value)}
+                      placeholder={language === 'en' ? 'e.g. Rampura, Kotwali, or Custom Thana' : 'যেমন: রামপুরা, খিলগাঁও, বা স্থানীয় থানা...'}
+                      className="w-full px-3 py-2 border border-emerald-300 rounded-lg text-sm bg-white focus:outline-none focus:border-[#0F4C3A]"
+                    />
+                    <p className="text-[11px] text-stone-500 mt-1">
+                      {language === 'en'
+                        ? 'Our delivery partner will use this exact Thana/Upazila name.'
+                        : 'আমাদের ডেলিভারি রাইডার এই থানা/উপজেলা অনুযায়ী পার্সেল ডেলিভারি করবেন।'}
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-1">

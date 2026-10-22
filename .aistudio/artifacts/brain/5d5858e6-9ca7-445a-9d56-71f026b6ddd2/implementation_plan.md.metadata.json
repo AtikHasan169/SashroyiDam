@@ -1,6 +1,6 @@
 {
-  "summary":  "Resolution for product not found errors and admin product visibility confusion:\n1. Fixed deep linking and URL routing in App.tsx to fetch directly via API when a product slug/ID is not in the currently paginated catalog array.\n2. Eliminated ambiguous 'প্রকাশিত (Hide)' toggle in AdminDashboard with a dedicated Status column and explicit 'পাবলিশ' / 'লুকান' buttons.\n3. Added a Status Filter in the admin products toolbar and a 'ভিউ' (Store View) button to preview products directly.\n4. Added an informative draft banner in ProductPage for unpublished products so they never show a dead 404.",
-  "updatedAt":  "2026-10-21T17:44:05.802549958Z",
+  "summary":  "Implementation plan to standardize address language formatting in user profiles to match current active language, and integrate full cascading Division -> District -> Upazila dropdowns with auto delivery fee calculation in Admin Manual Orders.",
+  "updatedAt":  "2026-10-22T10:27:23.826866847Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

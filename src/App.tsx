@@ -87,7 +87,17 @@ function StorefrontApp() {
         sort: sortOption,
         inStock: inStockOnly ? 'true' : ''
       });
-      setProducts(res.items);
+      setProducts((currentProds) => {
+        if (!res?.items) return currentProds;
+        const serverMap = new Map(res.items.map((p) => [p.id, p]));
+        const merged = [...res.items];
+        for (const cp of currentProds) {
+          if (!serverMap.has(cp.id) && cp.isPublished !== false && !cp.isArchived) {
+            merged.unshift(cp);
+          }
+        }
+        return merged;
+      });
     } catch (err) {
       console.error('Failed to fetch products:', err);
     } finally {
@@ -691,7 +701,18 @@ function StorefrontApp() {
           setAdminEditingProduct(null);
         }}
         initialEditingProduct={adminEditingProduct}
-        onStoreDataChanged={() => {
+        onStoreDataChanged={(updatedProduct) => {
+          if (updatedProduct) {
+            setProducts((prev) => {
+              const exists = prev.some((p) => p.id === updatedProduct.id);
+              if (exists) {
+                return prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
+              }
+              return [updatedProduct, ...prev];
+            });
+            setSelectedCategory('all');
+            setSearchQuery('');
+          }
           loadStoreMeta();
           loadProducts();
         }}

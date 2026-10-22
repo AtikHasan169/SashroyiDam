@@ -87,6 +87,8 @@ export interface Product {
   isFeatured: boolean;
   isHotDeal?: boolean;
   isPublished: boolean;
+  isUnavailable?: boolean; // Currently not available for sale (অর্ডার বন্ধ)
+  unavailableReason?: string;
   isArchived: boolean;
   salesCount: number;
   rating: number;
@@ -123,6 +125,13 @@ export interface CartValidationResult {
   total: number;
   appliedCoupon?: Coupon;
   warnings: string[];
+  purgedItemIds?: string[];
+  purgedItems?: {
+    productId: string;
+    variantId?: string;
+    titleBn?: string;
+    reason: string;
+  }[];
 }
 
 export type OrderFulfilmentStatus =

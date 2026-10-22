@@ -26,6 +26,8 @@ router.post('/validate', (req, res) => {
 
     const db = getDatabase();
     const warnings: string[] = [];
+    const purgedItemIds: string[] = [];
+    const purgedItems: { productId: string; variantId?: string; titleBn?: string; reason: string }[] = [];
     let subtotal = 0;
 
     const populatedItems: PopulatedCartItem[] = [];
@@ -36,7 +38,13 @@ router.post('/validate', (req, res) => {
       );
 
       if (!product) {
-        warnings.push('একটি পণ্য আর পাওয়া যাচ্ছে না এবং কার্ট থেকে বাদ দেয়া হয়েছে');
+        purgedItemIds.push(item.productId);
+        purgedItems.push({
+          productId: item.productId,
+          variantId: item.variantId,
+          reason: 'পণ্যটি বর্তমানে আর উপলব্ধ নেই অথবা মুছে ফেলা হয়েছে'
+        });
+        warnings.push('পূর্বে যুক্ত করা একটি পণ্য আর স্টোরে নেই এবং কার্ট থেকে সরানো হয়েছে');
         continue;
       }
 
@@ -49,6 +57,17 @@ router.post('/validate', (req, res) => {
         if (selectedVariant) {
           availableStock = selectedVariant.stock;
           unitPrice += selectedVariant.priceDelta;
+        } else {
+          // If variant was deleted, mark for purge or warning
+          purgedItemIds.push(item.productId);
+          purgedItems.push({
+            productId: item.productId,
+            variantId: item.variantId,
+            titleBn: product.titleBn,
+            reason: 'নির্বাচিত ভ্যারিয়েন্টটি আর পাওয়া যাচ্ছে না'
+          });
+          warnings.push(`"${product.titleBn}" এর নির্বাচিত ভ্যারিয়েন্টটি আর পাওয়া যাচ্ছে না এবং সরানো হয়েছে`);
+          continue;
         }
       }
 
@@ -57,7 +76,12 @@ router.post('/validate', (req, res) => {
       let finalQty = requestedQty;
       let itemError: string | undefined = undefined;
 
-      if (availableStock <= 0) {
+      if (product.isUnavailable) {
+        isAvailable = false;
+        finalQty = 0;
+        itemError = product.unavailableReason || 'এই পণ্যটি বর্তমানে আর বিক্রয়ের জন্য উপলব্ধ নেই';
+        warnings.push(`"${product.titleBn}" বর্তমানে আর বিক্রয়ের জন্য উপলব্ধ নেই`);
+      } else if (availableStock <= 0) {
         isAvailable = false;
         finalQty = 0;
         itemError = 'পণ্যটি বর্তমানে স্টকে নেই (Out of stock)';
@@ -145,7 +169,9 @@ router.post('/validate', (req, res) => {
       deliveryFee: subtotal > 0 ? deliveryFee : 0,
       total,
       appliedCoupon,
-      warnings
+      warnings,
+      purgedItemIds,
+      purgedItems
     };
 
     res.json(result);

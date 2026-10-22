@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getDatabase, withTransaction, recordAuditLog } from '../db.ts';
+import { getDatabase, ensureDatabaseReady, withTransaction, recordAuditLog } from '../db.ts';
 import { authenticateUser, requireAuth, requireRole, type AuthenticatedRequest } from '../auth.ts';
 import type {
   Product,
@@ -34,8 +34,8 @@ router.use(
 );
 
 // 1. Dashboard Metrics
-router.get('/metrics', (req: AuthenticatedRequest, res) => {
-  const db = getDatabase();
+router.get('/metrics', async (req: AuthenticatedRequest, res) => {
+  const db = await ensureDatabaseReady();
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
@@ -91,8 +91,8 @@ router.get('/metrics', (req: AuthenticatedRequest, res) => {
 });
 
 // 2. Order Management
-router.get('/orders', (req: AuthenticatedRequest, res) => {
-  const db = getDatabase();
+router.get('/orders', async (req: AuthenticatedRequest, res) => {
+  const db = await ensureDatabaseReady();
   const {
     status,
     paymentStatus,
@@ -398,8 +398,8 @@ router.post('/orders', async (req: AuthenticatedRequest, res) => {
 });
 
 // 3. Product Management (CRUD + Stock Adjust)
-router.get('/products', (req: AuthenticatedRequest, res) => {
-  const db = getDatabase();
+router.get('/products', async (req: AuthenticatedRequest, res) => {
+  const db = await ensureDatabaseReady();
   const { search, category, status } = req.query as Record<string, string>;
 
   let list = [...db.products];
@@ -454,6 +454,8 @@ router.post('/products', async (req: AuthenticatedRequest, res) => {
       attributes,
       isFeatured,
       isPublished,
+      isUnavailable,
+      unavailableReason,
       tags
     } = req.body;
 
@@ -507,6 +509,8 @@ router.post('/products', async (req: AuthenticatedRequest, res) => {
         attributes: attributes || {},
         isFeatured: Boolean(isFeatured),
         isPublished: isPublished !== false,
+        isUnavailable: Boolean(isUnavailable),
+        unavailableReason: unavailableReason?.trim() || undefined,
         isArchived: false,
         salesCount: 0,
         rating: 5.0,
@@ -626,6 +630,37 @@ router.patch('/products/:id/toggle-publish', async (req: AuthenticatedRequest, r
     res.json({
       product: updated,
       message: updated.isPublished ? 'পণ্যটি প্রদর্শন করা হচ্ছে (Visible)' : 'পণ্যটি লুকানো হয়েছে (Hidden)'
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে' });
+  }
+});
+
+// Toggle product availability (Currently Available / Unavailable for sale)
+router.patch('/products/:id/toggle-availability', async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await withTransaction((db) => {
+      const prod = db.products.find((p) => p.id === id);
+      if (!prod) throw new Error('পণ্য পাওয়া যায়নি');
+      prod.isUnavailable = prod.isUnavailable ? false : true;
+      prod.updatedAt = new Date().toISOString();
+      return prod;
+    });
+
+    await recordAuditLog(
+      'PRODUCT_AVAILABILITY_TOGGLED',
+      req.user!,
+      `Product "${updated.titleBn}" marked as ${updated.isUnavailable ? 'Unavailable for Sale' : 'Available for Sale'}`
+    );
+
+    await syncProductToMongo(updated);
+
+    res.json({
+      product: updated,
+      message: updated.isUnavailable
+        ? 'পণ্যটি বর্তমানে বিক্রয়ের জন্য অনুপলব্ধ করা হয়েছে'
+        : 'পণ্যটি বিক্রয়ের জন্য পুনরায় উন্মুক্ত করা হয়েছে'
     });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'স্ট্যাটাস পরিবর্তন ব্যর্থ হয়েছে' });
@@ -808,8 +843,8 @@ router.delete('/categories/:id', async (req: AuthenticatedRequest, res) => {
 });
 
 // 5. Coupon Management
-router.get('/coupons', (req: AuthenticatedRequest, res) => {
-  const db = getDatabase();
+router.get('/coupons', async (req: AuthenticatedRequest, res) => {
+  const db = await ensureDatabaseReady();
   res.json({ coupons: db.coupons });
 });
 
@@ -899,8 +934,8 @@ router.delete('/coupons/:id', async (req: AuthenticatedRequest, res) => {
 });
 
 // 6. Store Settings & Shipping Rates
-router.get('/settings', (req: AuthenticatedRequest, res) => {
-  const db = getDatabase();
+router.get('/settings', async (req: AuthenticatedRequest, res) => {
+  const db = await ensureDatabaseReady();
   res.json({
     settings: db.storeSettings,
     shippingRates: db.shippingRates,

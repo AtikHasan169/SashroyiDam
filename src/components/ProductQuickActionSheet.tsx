@@ -33,8 +33,11 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
   const currentPrice = product.price + (selectedVariant?.priceDelta || 0);
   const currentStock = selectedVariant ? selectedVariant.stock : product.stock;
   const isOutOfStock = currentStock <= 0;
+  const isUnavailable = Boolean(product.isUnavailable);
+  const canOrder = !isOutOfStock && !isUnavailable;
 
   const handleAdd = () => {
+    if (!canOrder) return;
     setIsAdding(true);
     onAddToCart(product, selectedVariantId, quantity);
     setTimeout(() => {
@@ -44,6 +47,7 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
   };
 
   const handleBuy = () => {
+    if (!canOrder) return;
     onClose();
     onDirectBuy(product, selectedVariantId, quantity);
   };
@@ -79,13 +83,20 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
           {/* Thumbnail */}
           <div
             onClick={handleFullPage}
-            className="w-20 h-20 rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shrink-0 cursor-pointer group"
+            className="w-20 h-20 rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shrink-0 cursor-pointer group relative"
           >
             <img
               src={product.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'}
               alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${isUnavailable ? 'grayscale-40 opacity-75' : ''}`}
             />
+            {isUnavailable && (
+              <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-[1px] flex items-center justify-center p-1">
+                <span className="text-[10px] font-bold text-white bg-rose-600 px-1.5 py-0.5 rounded shadow-sm text-center leading-tight">
+                  {language === 'bn' ? 'অনুপলব্ধ' : 'Unavailable'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Details */}
@@ -157,35 +168,57 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
           </div>
         )}
 
+        {/* Unavailable notice if marked unavailable */}
+        {isUnavailable && (
+          <div className="mx-4 sm:mx-5 mt-3 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center gap-2">
+            <span className="font-bold text-white bg-rose-600 px-2 py-0.5 rounded text-[11px] shrink-0">
+              {language === 'bn' ? 'অনুপলব্ধ' : 'Unavailable'}
+            </span>
+            <span className="font-medium text-[11px] sm:text-xs leading-snug">
+              {product.unavailableReason || (language === 'bn' ? 'এই পণ্যটি বর্তমানে আর বিক্রয়ের জন্য উপলব্ধ নেই।' : 'This product is currently not available for sale.')}
+            </span>
+          </div>
+        )}
+
         {/* Action Buttons: Add to Bag & Buy Now */}
         <div className="p-4 sm:p-5 space-y-2.5">
           <div className="grid grid-cols-2 gap-2.5">
             {/* 1. Add to Bag */}
             <button
               onClick={handleAdd}
-              disabled={isOutOfStock || isAdding}
+              disabled={!canOrder || isAdding}
               className={`py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
-                isOutOfStock
-                  ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed'
+                !canOrder
+                  ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed shadow-none'
                   : 'bg-emerald-50 text-[#0F4C3A] border-emerald-300 hover:bg-emerald-100 shadow-2xs'
               }`}
             >
               <ShoppingCart className="w-4 h-4" />
-              <span>{isAdding ? (language === 'bn' ? 'যোগ হচ্ছে...' : 'Adding...') : t('addToCart')}</span>
+              <span>
+                {isUnavailable
+                  ? (language === 'bn' ? 'অনুপলব্ধ' : 'Unavailable')
+                  : isAdding
+                  ? (language === 'bn' ? 'যোগ হচ্ছে...' : 'Adding...')
+                  : t('addToCart')}
+              </span>
             </button>
 
             {/* 2. Instant Buy Now */}
             <button
               onClick={handleBuy}
-              disabled={isOutOfStock}
+              disabled={!canOrder}
               className={`py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md ${
-                isOutOfStock
-                  ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                !canOrder
+                  ? 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'
                   : 'bg-[#0F4C3A] hover:bg-[#145C47] text-white hover:shadow-lg'
               }`}
             >
               <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
-              <span>{t('buyNow')}</span>
+              <span>
+                {isUnavailable
+                  ? (language === 'bn' ? 'বিক্রয়ে নেই' : 'Unavailable')
+                  : t('buyNow')}
+              </span>
             </button>
           </div>
 

@@ -26,12 +26,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const { language, t, formatPrice } = useLanguage();
   const isWish = isInWishlist(product.id);
   const isOutOfStock = product.stock <= 0;
+  const isUnavailable = Boolean(product.isUnavailable);
+  const canOrder = !isOutOfStock && !isUnavailable;
 
   const title = language === 'en' && product.titleEn ? product.titleEn : product.titleBn;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isOutOfStock) return;
+    if (!canOrder) return;
     const defaultVariant = product.variants && product.variants.length > 0 ? product.variants[0].id : undefined;
     addToCart(product.id, defaultVariant, 1);
     onQuickAddToast?.(product);
@@ -39,7 +41,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleDirectBuyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isOutOfStock) return;
+    if (!canOrder) return;
     if (onDirectBuy) {
       onDirectBuy(product);
     } else {
@@ -78,6 +80,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           >
             <Heart className={`w-4 h-4 ${isWish ? 'fill-current' : ''}`} />
           </button>
+
+          {/* Unavailable Badge */}
+          {isUnavailable && (
+            <span className="absolute top-2.5 left-2.5 z-20 bg-rose-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md shadow-sm">
+              {language === 'en' ? 'Unavailable' : 'অনুপলব্ধ'}
+            </span>
+          )}
 
           {/* Auto-changing Product Highlight Badge */}
           <div className="absolute bottom-2.5 left-2.5 z-10 max-w-[calc(100%-1.25rem)] pointer-events-none group-hover:opacity-0 transition-opacity duration-200">
@@ -146,7 +155,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 )}
               </div>
               <div className="text-[11px] text-stone-500 font-medium mt-0.5">
-                {isOutOfStock ? (
+                {isUnavailable ? (
+                  <span className="text-rose-600 font-bold">{language === 'en' ? 'Currently Unavailable' : 'বিক্রয়ের জন্য অনুপলব্ধ'}</span>
+                ) : isOutOfStock ? (
                   <span className="text-rose-600 font-semibold">{t('outOfStock')}</span>
                 ) : product.stock <= 5 ? (
                   <span className="text-amber-700 font-semibold">{t('onlyFewLeft', { count: product.stock })}</span>
@@ -170,7 +181,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
               <button
                 onClick={handleQuickAdd}
-                disabled={isOutOfStock}
+                disabled={!canOrder}
                 className="px-3.5 py-2 rounded-xl text-xs font-bold text-stone-700 hover:text-[#0F4C3A] bg-stone-100 hover:bg-emerald-50 border border-stone-200 hover:border-emerald-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
               >
                 <ShoppingCart className="w-3.5 h-3.5" />
@@ -179,15 +190,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
               <button
                 onClick={handleDirectBuyClick}
-                disabled={isOutOfStock}
+                disabled={!canOrder}
                 className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shadow-2xs ${
-                  isOutOfStock
+                  !canOrder
                     ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
                     : 'bg-[#0F4C3A] text-white hover:bg-[#145C47]'
                 }`}
               >
                 <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-                <span>{isOutOfStock ? t('outOfStock') : t('buyNow')}</span>
+                <span>{isUnavailable ? (language === 'en' ? 'Unavailable' : 'অনুপলব্ধ') : isOutOfStock ? t('outOfStock') : t('buyNow')}</span>
               </button>
             </div>
           </div>
@@ -226,6 +237,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         >
           <Heart className={`w-3.5 sm:w-4 h-3.5 sm:h-4 ${isWish ? 'fill-current' : ''}`} />
         </button>
+
+        {/* Unavailable Badge */}
+        {isUnavailable && (
+          <span className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-20 bg-rose-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md shadow-sm">
+            {language === 'en' ? 'Unavailable' : 'অনুপলব্ধ'}
+          </span>
+        )}
 
         {/* Auto-changing Product Highlight Badge */}
         <div className="absolute bottom-2 left-2 sm:bottom-2.5 sm:left-2.5 z-10 max-w-[calc(100%-1rem)] pointer-events-none transition-opacity duration-200">
@@ -279,7 +297,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
 
             <div className="text-[10px] sm:text-[11px] font-semibold shrink-0">
-              {isOutOfStock ? (
+              {isUnavailable ? (
+                <span className="text-rose-600 font-bold">{language === 'en' ? 'Unavailable' : 'অনুপলব্ধ'}</span>
+              ) : isOutOfStock ? (
                 <span className="text-rose-600">{t('outOfStock')}</span>
               ) : product.stock <= 5 ? (
                 <span className="text-amber-700">{t('onlyFewLeft', { count: product.stock })}</span>
@@ -294,7 +314,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* Quick Add to Cart Button */}
             <button
               onClick={handleQuickAdd}
-              disabled={isOutOfStock}
+              disabled={!canOrder}
               title={t('addToCart')}
               className="col-span-1 p-2 rounded-xl text-stone-700 hover:text-[#0F4C3A] bg-stone-100 hover:bg-emerald-50 border border-stone-200 hover:border-emerald-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
             >
@@ -304,15 +324,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* Direct Order Now Button */}
             <button
               onClick={handleDirectBuyClick}
-              disabled={isOutOfStock}
+              disabled={!canOrder}
               className={`col-span-3 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shadow-2xs ${
-                isOutOfStock
+                !canOrder
                   ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
                   : 'bg-[#0F4C3A] text-white hover:bg-[#145C47] hover:shadow-xs'
               }`}
             >
               <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300 shrink-0" />
-              <span>{isOutOfStock ? t('outOfStock') : (language === 'bn' ? 'অর্ডার করুন' : 'Order Now')}</span>
+              <span>{isUnavailable ? (language === 'bn' ? 'অনুপলব্ধ' : 'Unavailable') : isOutOfStock ? t('outOfStock') : (language === 'bn' ? 'অর্ডার করুন' : 'Order Now')}</span>
             </button>
           </div>
         </div>

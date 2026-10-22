@@ -67,11 +67,15 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
 
       for (const reqItem of items) {
         const product = db.products.find(
-          (p) => p.id === reqItem.productId && p.isPublished && !p.isArchived
+          (p) => p.id === reqItem.productId && p.isPublished !== false && !p.isArchived
         );
 
         if (!product) {
-          throw new Error('একটি পণ্য বর্তমানে আর বিক্রয়ের জন্য উপলব্ধ নেই');
+          throw new Error('কার্টে থাকা একটি পণ্য স্টোর থেকে মুছে ফেলা হয়েছে। পণ্যটি বাদ দিয়ে অর্ডারটি সম্পন্ন করুন।');
+        }
+
+        if (product.isUnavailable) {
+          throw new Error(`"${product.titleBn}" বর্তমানে আর বিক্রয়ের জন্য উপলব্ধ নেই। পণ্যটি বাদ দিয়ে অর্ডারটি সম্পন্ন করুন।`);
         }
 
         let variantNameBn: string | undefined = undefined;

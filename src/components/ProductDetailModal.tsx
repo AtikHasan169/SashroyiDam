@@ -131,6 +131,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const currentPrice = product.price + (selectedVariant?.priceDelta || 0);
   const currentStock = selectedVariant ? selectedVariant.stock : product.stock;
   const isOutOfStock = currentStock <= 0;
+  const isUnavailable = Boolean(product.isUnavailable);
+  const canOrder = !isOutOfStock && !isUnavailable;
 
   // Load reviews on mount
   React.useEffect(() => {
@@ -143,13 +145,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   }, [product.id]);
 
   const handleAddToCart = () => {
-    if (isOutOfStock) return;
+    if (!canOrder) return;
     addToCart(product.id, selectedVariantId, quantity);
     onClose();
   };
 
   const handleBuyNow = () => {
-    if (isOutOfStock) return;
+    if (!canOrder) return;
     if (onDirectBuy) {
       onDirectBuy(product, selectedVariantId, quantity);
       onClose();
@@ -384,6 +386,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <p className="text-xs text-stone-400 mt-0.5">{product.titleEn}</p>
               </div>
 
+              {/* Unavailable Warning Banner */}
+              {isUnavailable && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-center gap-2">
+                  <span className="text-base shrink-0">⛔</span>
+                  <span>এই পণ্যটি বর্তমানে আর বিক্রয়ের জন্য উপলব্ধ নেই। সাময়িকভাবে এর সকল অর্ডার বন্ধ রয়েছে।</span>
+                </div>
+              )}
+
               {/* Ratings */}
               <div className="flex items-center gap-3 text-xs text-stone-600">
                 <div className="flex items-center gap-1 text-amber-600 font-bold">
@@ -407,7 +417,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   </span>
                 )}
                 <div className="ml-auto text-xs font-semibold">
-                  {isOutOfStock ? (
+                  {isUnavailable ? (
+                    <span className="text-rose-600 font-bold">বিক্রয়ের জন্য অনুপলব্ধ</span>
+                  ) : isOutOfStock ? (
                     <span className="text-rose-600">স্টক শেষ</span>
                   ) : currentStock <= 5 ? (
                     <span className="text-amber-700">মাত্র {currentStock} টি স্টকে আছে</span>
@@ -517,7 +529,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="flex items-center border border-stone-200 rounded-lg bg-stone-50">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={quantity <= 1 || isOutOfStock}
+                    disabled={quantity <= 1 || !canOrder}
                     className="p-2 hover:bg-stone-200 text-stone-600 rounded-l-lg transition-colors cursor-pointer disabled:opacity-40"
                     aria-label="কমান"
                   >
@@ -528,7 +540,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   </span>
                   <button
                     onClick={() => setQuantity(Math.min(currentStock, quantity + 1))}
-                    disabled={quantity >= currentStock || isOutOfStock}
+                    disabled={quantity >= currentStock || !canOrder}
                     className="p-2 hover:bg-stone-200 text-stone-600 rounded-r-lg transition-colors cursor-pointer disabled:opacity-40"
                     aria-label="বাড়ান"
                   >
@@ -542,28 +554,28 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
                     onClick={handleAddToCart}
-                    disabled={isOutOfStock}
+                    disabled={!canOrder}
                     className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border transition-all cursor-pointer ${
-                      isOutOfStock
+                      !canOrder
                         ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed'
                         : 'bg-emerald-50 text-[#0F4C3A] border-emerald-300 hover:bg-emerald-100 shadow-2xs'
                     }`}
                   >
                     <ShoppingCart className="w-4 h-4" />
-                    <span>কার্টে যোগ করুন</span>
+                    <span>{isUnavailable ? 'অনুপলব্ধ' : 'কার্টে যোগ করুন'}</span>
                   </button>
 
                   <button
                     onClick={handleBuyNow}
-                    disabled={isOutOfStock}
+                    disabled={!canOrder}
                     className={`py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm ${
-                      isOutOfStock
+                      !canOrder
                         ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
                         : 'bg-[#0F4C3A] hover:bg-[#135D48] text-white hover:shadow'
                     }`}
                   >
-                    <span>এখনই কিনুন</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <span>{isUnavailable ? 'বিক্রয়ের জন্য অনুপলব্ধ' : 'এখনই কিনুন'}</span>
+                    {canOrder && <ArrowRight className="w-4 h-4" />}
                   </button>
                 </div>
 
@@ -604,28 +616,28 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={handleAddToCart}
-                    disabled={isOutOfStock}
+                    disabled={!canOrder}
                     className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
-                      isOutOfStock
+                      !canOrder
                         ? 'bg-stone-200 text-stone-400 border-stone-300 cursor-not-allowed'
                         : 'bg-emerald-50 text-[#0F4C3A] border-emerald-300 active:bg-emerald-100'
                     }`}
                   >
                     <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>কার্ট</span>
+                    <span>{isUnavailable ? 'অনুপলব্ধ' : 'কার্ট'}</span>
                   </button>
 
                   <button
                     onClick={handleBuyNow}
-                    disabled={isOutOfStock}
+                    disabled={!canOrder}
                     className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                      isOutOfStock
+                      !canOrder
                         ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
                         : 'bg-[#0F4C3A] active:bg-[#135D48] text-white'
                     }`}
                   >
-                    <span>এখনই কিনুন</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>{isUnavailable ? 'অনুপলব্ধ' : 'এখনই কিনুন'}</span>
+                    {canOrder && <ArrowRight className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
