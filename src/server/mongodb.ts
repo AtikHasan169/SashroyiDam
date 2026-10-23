@@ -98,16 +98,17 @@ export async function getMongoStatus() {
       isConfigured: Boolean(mongoUri),
       isConnected: false,
       dbName: dbName || 'sashroyidaam',
-      collections: { products: 0, categories: 0, orders: 0, users: 0 }
+      collections: { products: 0, categories: 0, orders: 0, users: 0, photos: 0 }
     };
   }
 
   try {
-    const [productsCount, categoriesCount, ordersCount, usersCount] = await Promise.all([
+    const [productsCount, categoriesCount, ordersCount, usersCount, photosCount] = await Promise.all([
       db.collection('products').countDocuments(),
       db.collection('categories').countDocuments(),
       db.collection('orders').countDocuments(),
-      db.collection('users').countDocuments()
+      db.collection('users').countDocuments(),
+      db.collection('photos').countDocuments().catch(() => 0)
     ]);
 
     return {
@@ -118,7 +119,8 @@ export async function getMongoStatus() {
         products: productsCount,
         categories: categoriesCount,
         orders: ordersCount,
-        users: usersCount
+        users: usersCount,
+        photos: photosCount
       }
     };
   } catch (err) {
@@ -126,8 +128,67 @@ export async function getMongoStatus() {
       isConfigured: true,
       isConnected: false,
       dbName,
-      collections: { products: 0, categories: 0, orders: 0, users: 0 }
+      collections: { products: 0, categories: 0, orders: 0, users: 0, photos: 0 }
     };
+  }
+}
+
+/**
+ * Persists a photo to the permanent MongoDB photos collection
+ */
+export async function savePhotoToMongo(name: string, dataUrl: string, contentType: string): Promise<boolean> {
+  if (!isMongoConfigured() || !db) return false;
+  try {
+    await db.collection('photos').updateOne(
+      { name },
+      {
+        $set: {
+          name,
+          data: dataUrl,
+          contentType: contentType || 'image/webp',
+          updatedAt: new Date().toISOString()
+        }
+      },
+      { upsert: true }
+    );
+    return true;
+  } catch (err: any) {
+    console.warn(`Failed to save photo "${name}" to MongoDB:`, err.message);
+    return false;
+  }
+}
+
+/**
+ * Retrieves a photo from MongoDB photos collection by name
+ */
+export async function getPhotoFromMongo(name: string): Promise<{ data: string; contentType: string } | null> {
+  if (!isMongoConfigured() || !db) return null;
+  try {
+    const doc = await db.collection('photos').findOne({ name });
+    if (!doc || !doc.data) return null;
+    return { data: doc.data, contentType: doc.contentType || 'image/webp' };
+  } catch (err: any) {
+    console.warn(`Failed to fetch photo "${name}" from MongoDB:`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Loads all photos from MongoDB photos collection for pre-warming or disk rehydration
+ */
+export async function getAllPhotosFromMongo(): Promise<Array<{ name: string; data: string; contentType: string }>> {
+  if (!isMongoConfigured() || !db) return [];
+  try {
+    const cursor = db.collection('photos').find({}, { projection: { name: 1, data: 1, contentType: 1 } });
+    const list = await cursor.toArray();
+    return list.map((doc: any) => ({
+      name: doc.name,
+      data: doc.data,
+      contentType: doc.contentType || 'image/webp'
+    }));
+  } catch (err: any) {
+    console.warn('Failed to load photos from MongoDB:', err.message);
+    return [];
   }
 }
 
@@ -332,6 +393,14 @@ export async function syncAllToMongo(data: DatabaseSchema): Promise<{ success: b
       await db.collection('orders').deleteMany({});
     } else {
       await db.collection('orders').deleteMany({ id: { $nin: currentOrderIds } });
+    }
+
+    // Clean up categories removed locally
+    const currentCatIds = data.categories.map((c) => c.id);
+    if (currentCatIds.length === 0) {
+      await db.collection('categories').deleteMany({});
+    } else {
+      await db.collection('categories').deleteMany({ id: { $nin: currentCatIds } });
     }
 
     // Upsert categories

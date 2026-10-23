@@ -20,7 +20,7 @@ import { useWishlist } from '../context/WishlistContext.tsx';
 import { useCart } from '../context/CartContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
-import type { Category } from '../types/index.ts';
+import type { Category, StoreSettings } from '../types/index.ts';
 
 interface LeftHamburgerDrawerProps {
   isOpen: boolean;
@@ -30,6 +30,7 @@ interface LeftHamburgerDrawerProps {
   onOpenAdmin: () => void;
   onSelectCategory: (categoryId: string) => void;
   categories: Category[];
+  storeSettings?: StoreSettings;
 }
 
 export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
@@ -39,7 +40,8 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
   onOpenTracking,
   onOpenAdmin,
   onSelectCategory,
-  categories
+  categories,
+  storeSettings
 }) => {
   const { wishlistIds } = useWishlist();
   const { totalItemCount, setIsCartDrawerOpen } = useCart();
@@ -222,21 +224,23 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
               <span className="truncate">{t('trackOrder')}</span>
             </button>
 
-            <a
-              href="https://wa.me/8801700000000"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={onClose}
-              className="p-2.5 bg-white hover:bg-emerald-50/70 border border-stone-200/80 rounded-xl text-left flex items-center justify-between text-xs font-semibold text-emerald-800 transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-2 truncate">
-                <Phone className="w-4 h-4 text-emerald-600" />
-                <span className="truncate">হোয়াটসঅ্যাপ হেল্প</span>
-              </div>
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
-                Live
-              </span>
-            </a>
+            {storeSettings?.phone && (
+              <a
+                href={`https://wa.me/${storeSettings.phone.replace(/[^0-9]/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onClose}
+                className="p-2.5 bg-white hover:bg-emerald-50/70 border border-stone-200/80 rounded-xl text-left flex items-center justify-between text-xs font-semibold text-emerald-800 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Phone className="w-4 h-4 text-emerald-600" />
+                  <span className="truncate">হোয়াটসঅ্যাপ হেল্প</span>
+                </div>
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
+                  Live
+                </span>
+              </a>
+            )}
           </div>
 
           {/* 4. Categories List (Scrollable) */}
@@ -348,63 +352,62 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
           {/* 5. Customer Helpline & Social Footer */}
           <div className="p-4 bg-stone-50 border-t border-stone-200 space-y-2.5">
             {/* Phone hotline */}
-            <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-stone-200 shadow-2xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#0F4C3A] flex items-center justify-center">
-                  <Phone className="w-4 h-4" />
+            {storeSettings?.phone && (
+              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-stone-200 shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#0F4C3A] flex items-center justify-center">
+                    <Phone className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-stone-500 font-medium">{t('customerCare')}</div>
+                    <a
+                      href={`tel:${storeSettings.phone.replace(/[^0-9]/g, '')}`}
+                      className="text-xs font-bold text-stone-900 hover:text-[#0F4C3A] transition-colors"
+                    >
+                      {storeSettings.phone}
+                    </a>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-[10px] text-stone-500 font-medium">{t('customerCare')}</div>
-                  <a
-                    href="tel:09612889900"
-                    className="text-xs font-bold text-stone-900 hover:text-[#0F4C3A] transition-colors"
-                  >
-                    {t('callHotline')}
-                  </a>
-                </div>
+                {storeSettings.supportHoursBn && (
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-semibold">
+                    {storeSettings.supportHoursBn}
+                  </span>
+                )}
               </div>
-              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-semibold">
-                9 AM - 10 PM
-              </span>
-            </div>
+            )}
 
             {/* Social Channels in Drawer */}
-            <div className="grid grid-cols-3 gap-2">
-              <a
-                href="https://wa.me/8801700000000"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 py-2 px-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] rounded-xl text-[11px] font-bold border border-[#25D366]/25 transition-colors cursor-pointer"
-                title="WhatsApp"
-              >
-                <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
-                <span>WhatsApp</span>
-              </a>
+            {(storeSettings?.phone || storeSettings?.facebookUrl) && (
+              <div className="grid grid-cols-2 gap-2">
+                {storeSettings?.phone && (
+                  <a
+                    href={`https://wa.me/${storeSettings.phone.replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2 px-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] rounded-xl text-[11px] font-bold border border-[#25D366]/25 transition-colors cursor-pointer"
+                    title="WhatsApp"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
+                    <span>WhatsApp</span>
+                  </a>
+                )}
 
-              <a
-                href="https://instagram.com/sashroyidaam"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 py-2 px-1.5 bg-pink-50 hover:bg-pink-100 text-pink-700 rounded-xl text-[11px] font-bold border border-pink-200 transition-colors cursor-pointer"
-                title="Instagram"
-              >
-                <Instagram className="w-3.5 h-3.5 text-pink-600" />
-                <span>Instagram</span>
-              </a>
-
-              <a
-                href="https://facebook.com/sashroyidaam"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 py-2 px-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] rounded-xl text-[11px] font-bold border border-[#1877F2]/25 transition-colors cursor-pointer"
-                title="Facebook"
-              >
-                <span className="w-3.5 h-3.5 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-[9px] font-bold">
-                  f
-                </span>
-                <span>Facebook</span>
-              </a>
-            </div>
+                {storeSettings?.facebookUrl && (
+                  <a
+                    href={storeSettings.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 py-2 px-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] rounded-xl text-[11px] font-bold border border-[#1877F2]/25 transition-colors cursor-pointer"
+                    title={storeSettings.facebookPageName || 'Facebook'}
+                  >
+                    <span className="w-3.5 h-3.5 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-[9px] font-bold">
+                      f
+                    </span>
+                    <span>Facebook</span>
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Trust badge */}
             <div className="text-[10px] text-center text-stone-500 flex items-center justify-center gap-1.5 pt-0.5">

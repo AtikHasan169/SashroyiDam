@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getDatabase, ensureDatabaseReady, withTransaction, recordAuditLog } from '../db.ts';
+import { getDatabase, ensureDatabaseReady, withTransaction, recordAuditLog, migrateBase64Images } from '../db.ts';
 import { authenticateUser, requireAuth, requireRole, type AuthenticatedRequest } from '../auth.ts';
 import type {
   Product,
@@ -1035,6 +1035,21 @@ router.post('/mongodb/sync-all', async (req: AuthenticatedRequest, res) => {
     res.json(result);
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'MongoDB সিঙ্ক ব্যর্থ হয়েছে' });
+  }
+});
+
+// 10. Manual & Automated Image Migration Trigger
+router.post('/migrate-images', async (req: AuthenticatedRequest, res) => {
+  try {
+    const result = await migrateBase64Images();
+    await recordAuditLog(
+      'IMAGES_MIGRATED',
+      req.user!,
+      `Migrated ${result.migratedCount} images from Base64 to /uploads files (${(result.savedBytes / 1024 / 1024).toFixed(2)} MB saved)`
+    );
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'ছবি মাইগ্রেশন ব্যর্থ হয়েছে' });
   }
 });
 

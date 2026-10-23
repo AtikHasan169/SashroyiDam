@@ -23,7 +23,8 @@ import {
   syncCategoryToMongo,
   syncOrderToMongo,
   syncUserToMongo,
-  syncStoreSettingsToMongo
+  syncStoreSettingsToMongo,
+  savePhotoToMongo
 } from './mongodb.ts';
 
 const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT);
@@ -68,83 +69,8 @@ export function getSuperAdminEnvCredentials() {
 function getInitialData(): DatabaseSchema {
   const { email: superAdminEmail, password: superAdminPassword } = getSuperAdminEnvCredentials();
   const superAdminHash = hashPassword(superAdminPassword);
-  const staffHash = hashPassword('OsheshStaff2026!');
-  const customerHash = hashPassword('OsheshUser2026!');
 
-  const initialCategories: Category[] = [
-    {
-      id: 'cat-shirts',
-      slug: 'shirts-polos',
-      nameBn: 'শার্ট ও টি-শার্ট',
-      nameEn: 'Shirts & Polos',
-      descriptionBn: 'প্রিমিয়াম সুতি ক্যাজুয়াল শার্ট, ফর্মাল শার্ট, পোলো ও টি-শার্ট। সাইজ ও কালার অপশন সহ।',
-      image: '/src/assets/images/category_fashion_handcraft_1792084990401.jpg',
-      displayOrder: 1,
-      isFeatured: true,
-      variantType: 'apparel_sizes',
-      defaultOptions: ['M (৪০)', 'L (৪২)', 'XL (৪৪)', 'XXL (৪৬)']
-    },
-    {
-      id: 'cat-kitchen',
-      slug: 'kitchen-dining',
-      nameBn: 'রান্নাঘর ও গৃহস্থালি',
-      nameEn: 'Home & Kitchen',
-      descriptionBn: 'রান্নাঘরের নির্ভরযোগ্য সামগ্রী, কপার ও কাস্ট আয়রন প্যান এবং পরিবেশন পাত্র।',
-      image: '/src/assets/images/category_kitchen_cookware_1792084991823.jpg',
-      displayOrder: 2,
-      isFeatured: true,
-      variantType: 'pack_options',
-      defaultOptions: ['১ পিস একক', '২ পিস সেট', '৪ পিস কমপ্লিট সেট']
-    },
-    {
-      id: 'cat-fashion',
-      slug: 'fashion-lifestyle',
-      nameBn: 'ফ্যাশন ও কারুকাজ',
-      nameEn: 'Fashion & Handloom',
-      descriptionBn: 'দেশি তাঁতের জামদানি, সুতি পাঞ্জাবি, শাড়ি ও হস্তনির্মিত প্রাকৃতিক অনুষঙ্গ।',
-      image: '/src/assets/images/category_fashion_handcraft_1792084990401.jpg',
-      displayOrder: 3,
-      isFeatured: true,
-      variantType: 'apparel_sizes',
-      defaultOptions: ['৪০ (M)', '৪২ (L)', '৪৪ (XL)', '৪৬ (XXL)']
-    },
-    {
-      id: 'cat-gadgets',
-      slug: 'gadgets-accessories',
-      nameBn: 'গ্যাজেট ও ইলেকট্রনিক্স',
-      nameEn: 'Gadgets & Tech',
-      descriptionBn: 'টেকসই পাওয়ার ব্যাংক, দ্রুত চার্জিং ক্যাবল, অডিও ডিভাইস এবং স্মার্ট লাইফস্টাইল পণ্য।',
-      image: '/src/assets/images/category_tech_lifestyle_1792084991359.jpg',
-      displayOrder: 4,
-      isFeatured: true,
-      variantType: 'color_options',
-      defaultOptions: ['ম্যাট ব্ল্যাক', 'স্পেস গ্রে', 'সিলভার']
-    },
-    {
-      id: 'cat-grocery',
-      slug: 'grocery-food',
-      nameBn: 'মুদি ও খাঁটি খাদ্যদ্রব্য',
-      nameEn: 'Grocery & Food',
-      descriptionBn: 'গ্রামের ঘানিভাঙা খাঁটি সরিষার তেল, সুন্দরবনের প্রাকৃতিক মধু, প্রিমিয়াম গাওয়া ঘি ও পুষ্টিকর খাদ্য।',
-      image: '/src/assets/images/category_kitchen_cookware_1792084991823.jpg',
-      displayOrder: 5,
-      isFeatured: true,
-      variantType: 'weight_options',
-      defaultOptions: ['১ কেজি', '২ কেজি', '৫ কেজি', '১ লিটার']
-    },
-    {
-      id: 'cat-personal-care',
-      slug: 'personal-care',
-      nameBn: 'ব্যক্তিগত যত্ন ও প্রসাধনী',
-      nameEn: 'Personal Care & Wellness',
-      descriptionBn: 'প্রাকৃতিক উপাদানযুক্ত যত্ন, ভেষজ তেল, এবং নিরাপদ অর্গানিক পণ্য।',
-      image: '/src/assets/images/hero_oshesh_lifestyle_1792084990587.jpg',
-      displayOrder: 6,
-      isFeatured: false,
-      variantType: 'none',
-      defaultOptions: []
-    }
-  ];
+  const initialCategories: Category[] = [];
 
   const initialProducts: Product[] = [];
 
@@ -171,38 +97,27 @@ function getInitialData(): DatabaseSchema {
     }
   ];
 
-  const initialBanners: Banner[] = [
-    {
-      id: 'ban-main',
-      titleBn: 'আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান',
-      subtitleBn: 'বাংলাদেশের প্রতিটি পরিবারের জন্য খাঁটি গৃহস্থালি পণ্য, দেশীয় পোশাক ও মানসম্পন্ন গ্যাজেট। সারাদেশে ক্যাশ অন ডেলিভারি।',
-      buttonTextBn: 'পণ্যসমূহ দেখুন',
-      link: '/#products',
-      imageUrl: '/src/assets/images/hero_oshesh_lifestyle_1792084990587.jpg',
-      displayOrder: 1,
-      isActive: true
-    }
-  ];
+  const initialBanners: Banner[] = [];
 
   const initialStoreSettings: StoreSettings = {
     storeNameBn: 'সাশ্রয়ী দাম',
     storeNameEn: 'Sashroyi Daam',
-    taglineBn: 'আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান।',
-    phone: '০৯৬১২-৮৮৯৯০০',
-    email: 'support@sashroyidaam.com',
-    supportHoursBn: 'প্রতিদিন সকাল ৯টা – রাত ১০টা',
-    addressBn: 'বাড়ি ৪২, রোড ১১, সেক্টর ৩, উত্তরা, ঢাকা-১২৩০',
-    announcementStripBn: '🚚 ২,০০০ টাকার অর্ডারে সারাদেশে ফ্রি ডেলিভারি! সারাদেশে ক্যাশ অন ডেলিভারি সুবিধা।',
-    showAnnouncement: true,
+    taglineBn: '',
+    phone: '',
+    email: '',
+    supportHoursBn: '',
+    addressBn: '',
+    announcementStripBn: '',
+    showAnnouncement: false,
     freeDeliveryThreshold: 2000,
     defaultDeliveryFeeDhaka: 70,
     defaultDeliveryFeeOutside: 130,
     isCodEnabled: true,
-    isSslcommerzEnabled: true,
+    isSslcommerzEnabled: false,
     sslSandboxMode: true,
-    facebookPageName: 'সাশ্রয়ী দাম | Sashroyi Daam',
-    facebookUsername: '@sashroyidaam',
-    facebookUrl: 'https://facebook.com/sashroyidaam'
+    facebookPageName: '',
+    facebookUsername: '',
+    facebookUrl: ''
   };
 
   const initialOrders: Order[] = [];
@@ -212,43 +127,13 @@ function getInitialData(): DatabaseSchema {
   const initialUsers: User[] = [
     {
       id: 'user-superadmin',
-      name: 'সাশ্রয়ী দাম অ্যাডমিন',
+      name: 'Super Admin',
       email: superAdminEmail,
-      phone: '01700000001',
+      phone: '',
       role: 'super_admin',
       passwordHash: superAdminHash,
-      createdAt: '2026-08-01T00:00:00.000Z'
-    },
-    {
-      id: 'user-ordermanager',
-      name: 'রাশেদ চৌধুরী (Order Manager)',
-      email: 'orders@sashroyidaam.com',
-      phone: '01700000002',
-      role: 'order_manager',
-      passwordHash: staffHash,
-      createdAt: '2026-08-15T00:00:00.000Z'
-    },
-    {
-      id: 'user-customer1',
-      name: 'আরিফ মাহমুদ',
-      email: 'customer@sashroyidaam.com',
-      phone: '01711223344',
-      role: 'customer',
-      passwordHash: customerHash,
-      savedAddresses: [
-        {
-          id: 'addr-1',
-          title: 'বাসা (Home)',
-          name: 'আরিফ মাহমুদ',
-          phone: '01711223344',
-          division: 'dhaka',
-          district: 'ঢাকা',
-          upazila: 'উত্তরা',
-          fullAddress: 'সেক্টর ৪, রোড ৭, বাড়ি ১২, ফ্ল্যাট ৫-এ, উত্তরা, ঢাকা',
-          isDefault: true
-        }
-      ],
-      createdAt: '2026-09-01T00:00:00.000Z'
+      savedAddresses: [],
+      createdAt: new Date().toISOString()
     }
   ];
 
@@ -263,17 +148,7 @@ function getInitialData(): DatabaseSchema {
     banners: initialBanners,
     storeSettings: initialStoreSettings,
     inventoryMovements: [],
-    auditLogs: [
-      {
-        id: 'log-seed',
-        action: 'STORE_INITIALIZED',
-        userId: 'system',
-        userEmail: 'system@sashroyidaam.com',
-        userRole: 'system',
-        details: 'Initial Bangladesh retail store database seeded with catalog, admin accounts, and settings.',
-        createdAt: '2026-08-01T00:00:00.000Z'
-      }
-    ],
+    auditLogs: [],
     version: 1
   };
 }
@@ -300,67 +175,46 @@ export function getDatabase(): DatabaseSchema {
       
       // Auto-migrate schema updates
       let hasChanges = false;
-      const initial = getInitialData();
 
-      // Ensure cat-shirts exists
-      if (!memoryDb!.categories.some((c) => c.id === 'cat-shirts' || c.slug === 'shirts-polos')) {
-        const shirtCat = initial.categories.find((c) => c.id === 'cat-shirts');
-        if (shirtCat) {
-          memoryDb!.categories.unshift(shirtCat);
-          hasChanges = true;
-        }
-      }
-
-      // Ensure cat-grocery exists
-      if (!memoryDb!.categories.some((c) => c.id === 'cat-grocery' || c.slug === 'grocery-food')) {
-        const groceryCat = initial.categories.find((c) => c.id === 'cat-grocery');
-        if (groceryCat) {
-          memoryDb!.categories.push(groceryCat);
-          hasChanges = true;
-        }
-      }
-
-      // Removed demo product injection
-
-      // Ensure variantType is populated on categories
+      // Ensure variantType is populated on categories if custom categories exist
       memoryDb!.categories.forEach((c) => {
         if (!c.variantType) {
-          if (c.slug.includes('shirt') || c.nameBn.includes('শার্ট') || c.nameBn.includes('পোশাক') || c.nameBn.includes('ফ্যাশন')) {
-            c.variantType = 'apparel_sizes';
-            c.defaultOptions = ['M (৪০)', 'L (৪২)', 'XL (৪৪)', 'XXL (৪৬)'];
-          } else if (c.slug.includes('shoe') || c.nameBn.includes('জুতা')) {
-            c.variantType = 'shoe_sizes';
-            c.defaultOptions = ['৩৯', '৪০', '৪১', '৪২', '৪৩', '৪৪'];
-          } else if (c.slug.includes('kitchen') || c.nameBn.includes('রান্নাঘর')) {
-            c.variantType = 'pack_options';
-            c.defaultOptions = ['১ পিস একক', '২ পিস সেট', '৪ পিস কমপ্লিট সেট'];
-          } else if (c.slug.includes('gadget') || c.nameBn.includes('গ্যাজেট')) {
-            c.variantType = 'color_options';
-            c.defaultOptions = ['ম্যাট ব্ল্যাক', 'স্পেস গ্রে', 'সিলভার'];
-          } else if (c.slug.includes('grocery') || c.slug.includes('food') || c.nameBn.includes('মুদি')) {
-            c.variantType = 'weight_options';
-            c.defaultOptions = ['১ কেজি', '২ কেজি', '৫ কেজি', '১ লিটার'];
-          } else {
-            c.variantType = 'none';
-          }
+          c.variantType = 'none';
+          c.defaultOptions = c.defaultOptions || [];
           hasChanges = true;
         }
       });
 
-      // Removed demo product injection
+      // Clear any legacy test store contact details so owner can set them manually
+      if (memoryDb!.storeSettings) {
+        if (memoryDb!.storeSettings.phone === '০৯৬১২-৮৮৯৯০০' || memoryDb!.storeSettings.phone === '01700000001') {
+          memoryDb!.storeSettings.phone = '';
+          hasChanges = true;
+        }
+        if (memoryDb!.storeSettings.addressBn?.includes('বাড়ি ৪২')) {
+          memoryDb!.storeSettings.addressBn = '';
+          hasChanges = true;
+        }
+        if (memoryDb!.storeSettings.email === 'support@sashroyidaam.com') {
+          memoryDb!.storeSettings.email = '';
+          hasChanges = true;
+        }
+        if (memoryDb!.storeSettings.announcementStripBn?.includes('🚚 ২,০০০ টাকার অর্ডারে')) {
+          memoryDb!.storeSettings.announcementStripBn = '';
+          memoryDb!.storeSettings.showAnnouncement = false;
+          hasChanges = true;
+        }
+      }
 
-      // Ensure Facebook metadata and new brand name are in store settings
-      if (
-        !memoryDb!.storeSettings.facebookPageName ||
-        memoryDb!.storeSettings.storeNameBn !== 'সাশ্রয়ী দাম'
-      ) {
-        memoryDb!.storeSettings.storeNameBn = 'সাশ্রয়ী দাম';
-        memoryDb!.storeSettings.storeNameEn = 'Sashroyi Daam';
-        memoryDb!.storeSettings.taglineBn = 'আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান।';
-        memoryDb!.storeSettings.announcementStripBn = '🚚 ২,০০০ টাকার অর্ডারে সারাদেশে ফ্রি ডেলিভারি! সারাদেশে ক্যাশ অন ডেলিভারি সুবিধা।';
-        memoryDb!.storeSettings.facebookPageName = 'সাশ্রয়ী দাম | Sashroyi Daam';
-        memoryDb!.storeSettings.facebookUsername = '@sashroyidaam';
-        memoryDb!.storeSettings.facebookUrl = 'https://facebook.com/sashroyidaam';
+      // Remove any test staff or mock customer accounts
+      const initialUsersCount = memoryDb!.users.length;
+      memoryDb!.users = memoryDb!.users.filter(
+        (u) =>
+          u.role === 'super_admin' ||
+          (!['user-ordermanager', 'user-customer1'].includes(u.id) &&
+            !['orders@sashroyidaam.com', 'customer@sashroyidaam.com'].includes(u.email.toLowerCase()))
+      );
+      if (memoryDb!.users.length !== initialUsersCount) {
         hasChanges = true;
       }
 
@@ -382,14 +236,23 @@ export function getDatabase(): DatabaseSchema {
           existingSuper.role = 'super_admin';
           hasChanges = true;
         }
+        if (existingSuper.phone === '01700000001' || existingSuper.phone === '01711223344') {
+          existingSuper.phone = '';
+          hasChanges = true;
+        }
+        if (existingSuper.savedAddresses && existingSuper.savedAddresses.length > 0) {
+          existingSuper.savedAddresses = [];
+          hasChanges = true;
+        }
       } else {
-        memoryDb!.users.push({
+        memoryDb!.users.unshift({
           id: 'user-superadmin',
-          name: 'সাশ্রয়ী দাম অ্যাডমিন',
+          name: 'Super Admin',
           email: envSuperEmail,
-          phone: '01700000001',
+          phone: '',
           role: 'super_admin',
           passwordHash: envSuperHash,
+          savedAddresses: [],
           createdAt: new Date().toISOString()
         });
         hasChanges = true;
@@ -680,4 +543,99 @@ export async function recordAuditLog(
     }
   });
 }
+
+/**
+ * Automatically migrates existing Base64 images across products, categories, and banners
+ * into clean /uploads/ static file URLs and persistent MongoDB photo backups.
+ */
+export async function migrateBase64Images(): Promise<{
+  migratedCount: number;
+  savedBytes: number;
+  message: string;
+}> {
+  const db = await ensureDatabaseReady();
+  const uploadsDir = path.resolve(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    try {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    } catch {}
+  }
+
+  let migratedCount = 0;
+  let savedBytes = 0;
+  let hasChanges = false;
+
+  const processImage = (dataUrl: string, prefix: string): string => {
+    if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
+      return dataUrl;
+    }
+    const match = dataUrl.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
+    if (!match) return dataUrl;
+
+    const rawExt = match[1].toLowerCase();
+    const ext = rawExt === 'jpeg' ? 'jpg' : rawExt === 'svg+xml' ? 'svg' : rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'webp';
+    // Generate deterministic content hash from the base64 content
+    const hash = crypto.createHash('md5').update(match[2]).digest('hex').substring(0, 10);
+    const safeName = `img_${prefix}_${hash}.${ext}`;
+    const filePath = path.join(uploadsDir, safeName);
+
+    try {
+      if (!fs.existsSync(filePath)) {
+        const buffer = Buffer.from(match[2], 'base64');
+        fs.writeFileSync(filePath, buffer);
+      }
+    } catch (e) {
+      console.warn('Error writing migrated file to disk:', e);
+    }
+
+    // Persist to MongoDB photos collection
+    const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+    savePhotoToMongo(safeName, dataUrl, contentType).catch(() => {});
+
+    migratedCount++;
+    savedBytes += dataUrl.length;
+    hasChanges = true;
+    return `/uploads/${safeName}`;
+  };
+
+  // Migrate Categories
+  for (const cat of db.categories) {
+    if (cat.image && cat.image.startsWith('data:image/')) {
+      cat.image = processImage(cat.image, `cat_${cat.id || 'c'}`);
+    }
+  }
+
+  // Migrate Products
+  for (const prod of db.products) {
+    if (Array.isArray(prod.images)) {
+      prod.images = prod.images.map((img, idx) => {
+        if (img && typeof img === 'string' && img.startsWith('data:image/')) {
+          return processImage(img, `prod_${prod.id || 'p'}_${idx}`);
+        }
+        return img;
+      });
+    }
+  }
+
+  // Migrate Banners
+  for (const banner of db.banners) {
+    if (banner.imageUrl && banner.imageUrl.startsWith('data:image/')) {
+      banner.imageUrl = processImage(banner.imageUrl, `ban_${banner.id || 'b'}`);
+    }
+  }
+
+  if (hasChanges) {
+    await saveDatabase(db);
+    console.log(`🚀 Base64 Migration Complete: Migrated ${migratedCount} images, reduced payload size by ~${(savedBytes / 1024 / 1024).toFixed(2)} MB`);
+  }
+
+  return {
+    migratedCount,
+    savedBytes,
+    message: hasChanges
+      ? `সফলভাবে ${migratedCount}টি ছবি Base64 থেকে অপ্টিমাইজড ফাইল সিস্টেমে রূপান্তরিত হয়েছে (মোট ${(savedBytes / 1024 / 1024).toFixed(2)} MB ডাটা সাশ্রয়)`
+      : 'সকল ছবি ইতোমধ্যে অপ্টিমাইজড ফাইল ফরম্যাটে রয়েছে।'
+  };
+}
+
 

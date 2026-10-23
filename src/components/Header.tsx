@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { LeftHamburgerDrawer } from './LeftHamburgerDrawer.tsx';
 import { BrandLogo } from './BrandLogo.tsx';
-import type { Category } from '../types/index.ts';
+import type { Category, StoreSettings } from '../types/index.ts';
 
 interface HeaderProps {
   onOpenAccount: () => void;
@@ -20,6 +20,7 @@ interface HeaderProps {
   setSearchQuery: (query: string) => void;
   announcement?: string;
   categories?: Category[];
+  storeSettings?: StoreSettings;
   isDrawerOpen?: boolean;
   setIsDrawerOpen?: (open: boolean) => void;
 }
@@ -36,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   setSearchQuery,
   announcement,
   categories = [],
+  storeSettings,
   isDrawerOpen: controlledDrawerOpen,
   setIsDrawerOpen: controlledSetDrawerOpen
 }) => {
@@ -340,6 +342,7 @@ export const Header: React.FC<HeaderProps> = ({
         onOpenAdmin={onOpenAdmin}
         onSelectCategory={onSelectCategory}
         categories={categories}
+        storeSettings={storeSettings}
       />
     </>
   );

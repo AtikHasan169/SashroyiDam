@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { Phone, Mail, MapPin, MessageCircle, Instagram } from 'lucide-react';
 import { BrandLogo } from './BrandLogo.tsx';
+import type { StoreSettings } from '../types/index.ts';
 
 interface FooterProps {
   onOpenTracking: () => void;
   onSelectCategory?: (catId: string) => void;
+  settings?: StoreSettings;
 }
 
 type PolicyKey = 'about' | 'contact' | 'faq' | 'shipping' | 'return' | 'privacy' | 'terms';
 
-export const Footer: React.FC<FooterProps> = ({ onOpenTracking }) => {
+export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
   const [activePolicy, setActivePolicy] = useState<PolicyKey | null>(null);
 
   const renderPolicyContent = () => {
@@ -20,10 +22,10 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking }) => {
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <p>
-                <strong>সাশ্রয়ী দাম | Sashroyi Daam</strong> একটি নির্ভরযোগ্য জাতীয় অনলাইন রিটেইল প্ল্যাটফর্ম। আমাদের মূল লক্ষ্য—বাংলাদেশের প্রতিটি গৃহস্থালিতে সুলভ মূল্যে খাঁটি, মানসম্পন্ন ও প্রয়োজনীয় পণ্য পৌঁছে দেওয়া।
+                <strong>{settings?.storeNameBn || 'সাশ্রয়ী দাম'} | {settings?.storeNameEn || 'Sashroyi Daam'}</strong> একটি নির্ভরযোগ্য জাতীয় অনলাইন রিটেইল প্ল্যাটফর্ম। আমাদের মূল লক্ষ্য—বাংলাদেশের প্রতিটি গৃহস্থালিতে সুলভ মূল্যে খাঁটি, মানসম্পন্ন ও প্রয়োজনীয় পণ্য পৌঁছে দেওয়া।
               </p>
               <p>
-                “আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান”—এই প্রতিপাদ্যকে ধারণ করে আমরা রান্নাঘরের ঐতিহ্যবাহী টেকসই সামগ্রী, দেশীয় পোশাক, দৈনন্দিন প্রয়োজনীয় গ্যাজেট সরাসরি গ্রাহকের দ্বারে সরবরাহ করি।
+                “{settings?.taglineBn || 'আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান'}”—এই প্রতিপাদ্যকে ধারণ করে আমরা টেকসই ও মানসম্পন্ন পণ্য সরাসরি গ্রাহকের দ্বারে সরবরাহ করি।
               </p>
             </div>
           )
@@ -34,12 +36,26 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking }) => {
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <p>যেকোনো জিজ্ঞাসা, অর্ডার অনুসন্ধান কিংবা পরামর্শের জন্য আমাদের কাস্টমার কেয়ার টিমের সাথে যোগাযোগ করুন:</p>
-              <div className="bg-stone-50 p-3 rounded-lg border border-stone-200 space-y-1.5 font-medium text-stone-800">
-                <div>📞 হেল্পলাইন: ০৯৬১২-৮৮৯৯০০ (সকাল ৯টা – রাত ১০টা)</div>
-                <div>💬 হোয়াটসঅ্যাপ: +880 1700-000000</div>
-                <div>✉️ ইমেইল: support@sashroyidaam.com</div>
-                <div>🏢 প্রধান কার্যালয়: বাড়ি ৪২, রোড ১১, সেক্টর ৩, উত্তরা, ঢাকা-১২৩০</div>
-              </div>
+              {settings?.phone || settings?.email || settings?.addressBn ? (
+                <div className="bg-stone-50 p-3 rounded-lg border border-stone-200 space-y-1.5 font-medium text-stone-800">
+                  {settings.phone && (
+                    <div>📞 হেল্পলাইন: {settings.phone} {settings.supportHoursBn ? `(${settings.supportHoursBn})` : ''}</div>
+                  )}
+                  {settings.phone && (
+                    <div>💬 হোয়াটসঅ্যাপ: {settings.phone}</div>
+                  )}
+                  {settings.email && (
+                    <div>✉️ ইমেইল: {settings.email}</div>
+                  )}
+                  {settings.addressBn && (
+                    <div>🏢 প্রধান কার্যালয়: {settings.addressBn}</div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-stone-50 p-3 rounded-lg border border-stone-200 text-stone-600 text-xs">
+                  দোকানের অফিসিয়াল ফোন ও যোগাযোগের তথ্য শীঘ্রই হালনাগাদ করা হবে।
+                </div>
+              )}
             </div>
           )
         };
@@ -127,58 +143,58 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking }) => {
               </span>
               <div className="flex items-center gap-2.5">
                 {/* Facebook */}
-                <a
-                  href="https://facebook.com/sashroyidaam"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-[#1877F2]/20 hover:bg-[#1877F2] text-white border border-[#1877F2]/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
-                  title="Facebook (@sashroyidaam)"
-                  aria-label="Facebook"
-                >
-                  <span className="font-bold text-sm leading-none">f</span>
-                </a>
+                {settings?.facebookUrl && (
+                  <a
+                    href={settings.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 rounded-full bg-[#1877F2]/20 hover:bg-[#1877F2] text-white border border-[#1877F2]/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
+                    title={settings.facebookPageName || 'Facebook'}
+                    aria-label="Facebook"
+                  >
+                    <span className="font-bold text-sm leading-none">f</span>
+                  </a>
+                )}
 
                 {/* WhatsApp */}
-                <a
-                  href="https://wa.me/8801700000000"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-[#25D366]/20 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
-                  title="WhatsApp (+8801700000000)"
-                  aria-label="WhatsApp"
-                >
-                  <MessageCircle className="w-4 h-4 fill-current/20 group-hover:fill-current" />
-                </a>
-
-                {/* Instagram */}
-                <a
-                  href="https://instagram.com/sashroyidaam"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-pink-500/20 hover:bg-gradient-to-tr hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] text-pink-400 hover:text-white border border-pink-500/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
-                  title="Instagram (@sashroyidaam)"
-                  aria-label="Instagram"
-                >
-                  <Instagram className="w-4 h-4" />
-                </a>
+                {settings?.phone && (
+                  <a
+                    href={`https://wa.me/${settings.phone.replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 rounded-full bg-[#25D366]/20 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
+                    title={`WhatsApp (${settings.phone})`}
+                    aria-label="WhatsApp"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-current/20 group-hover:fill-current" />
+                  </a>
+                )}
               </div>
             </div>
 
-            {/* Helpline details */}
-            <div className="pt-2 space-y-1.5 text-stone-400 text-xs">
-              <div className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>হেল্পলাইন: ০৯৬১২-৮৮৯৯০০ (সকাল ৯টা – রাত ১০টা)</span>
+            {/* Helpline details (only render if configured) */}
+            {(settings?.phone || settings?.email || settings?.addressBn) && (
+              <div className="pt-2 space-y-1.5 text-stone-400 text-xs">
+                {settings.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>হেল্পলাইন: {settings.phone} {settings.supportHoursBn ? `(${settings.supportHoursBn})` : ''}</span>
+                  </div>
+                )}
+                {settings.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>ইমেইল: {settings.email}</span>
+                  </div>
+                )}
+                {settings.addressBn && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>{settings.addressBn}</span>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>ইমেইল: support@sashroyidaam.com</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>বাড়ি ৪২, রোড ১১, সেক্টর ৩, উত্তরা, ঢাকা-১২৩০</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Quick Help & Tracking */}

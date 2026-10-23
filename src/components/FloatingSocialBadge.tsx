@@ -14,12 +14,12 @@ interface FloatingSocialBadgeProps {
 }
 
 export const FloatingSocialBadge: React.FC<FloatingSocialBadgeProps> = ({
-  facebookUrl = 'https://facebook.com/sashroyidaam',
-  facebookUsername = '@sashroyidaam',
-  instagramUrl = 'https://instagram.com/sashroyidaam',
-  instagramUsername = '@sashroyidaam',
-  whatsappNumber = '8801700000000',
-  phone = '০৯৬১২-৮৮৯৯০০',
+  facebookUrl = '',
+  facebookUsername = '',
+  instagramUrl = '',
+  instagramUsername = '',
+  whatsappNumber = '',
+  phone = '',
   isOpenControlled,
   onOpenChangeControlled
 }) => {
@@ -34,7 +34,8 @@ export const FloatingSocialBadge: React.FC<FloatingSocialBadgeProps> = ({
   };
   const { language } = useLanguage();
 
-  const cleanWaNumber = whatsappNumber.replace(/[^0-9]/g, '') || '8801700000000';
+  const cleanWaNumber = whatsappNumber ? whatsappNumber.replace(/[^0-9]/g, '') : '';
+  const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
   const waGreeting = encodeURIComponent(
     language === 'bn'
       ? 'সাশ্রয়ী দাম (Sashroyi Daam) থেকে সহায়তা প্রয়োজন।'
@@ -74,81 +75,95 @@ export const FloatingSocialBadge: React.FC<FloatingSocialBadgeProps> = ({
           {/* Social Channels Options in সহায়তা */}
           <div className="py-2.5 space-y-2 text-xs">
             {/* 1. WhatsApp Support */}
-            <a
-              href={`https://wa.me/${cleanWaNumber}?text=${waGreeting}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between p-2 rounded-xl bg-emerald-50/70 hover:bg-emerald-100/90 border border-emerald-200/80 text-emerald-950 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-[#25D366] text-white flex items-center justify-center font-bold shrink-0 shadow-2xs">
-                  <MessageCircle className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="font-bold text-xs text-emerald-950 flex items-center gap-1">
-                    <span>হোয়াটসঅ্যাপ (WhatsApp)</span>
-                    <span className="text-[9px] bg-emerald-200 text-emerald-900 font-bold px-1 rounded">দ্রুততম</span>
+            {cleanWaNumber && (
+              <a
+                href={`https://wa.me/${cleanWaNumber}?text=${waGreeting}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-2 rounded-xl bg-emerald-50/70 hover:bg-emerald-100/90 border border-emerald-200/80 text-emerald-950 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-[#25D366] text-white flex items-center justify-center font-bold shrink-0 shadow-2xs">
+                    <MessageCircle className="w-4 h-4" />
                   </div>
-                  <div className="text-[10px] text-emerald-800 font-medium">ইনস্ট্যান্ট চ্যাট ও ছবির মাধ্যমে অর্ডার</div>
+                  <div>
+                    <div className="font-bold text-xs text-emerald-950 flex items-center gap-1">
+                      <span>হোয়াটসঅ্যাপ (WhatsApp)</span>
+                      <span className="text-[9px] bg-emerald-200 text-emerald-900 font-bold px-1 rounded">দ্রুততম</span>
+                    </div>
+                    <div className="text-[10px] text-emerald-800 font-medium">ইনস্ট্যান্ট চ্যাট ও ছবির মাধ্যমে অর্ডার</div>
+                  </div>
                 </div>
-              </div>
-              <ExternalLink className="w-3.5 h-3.5 text-emerald-700 opacity-60 group-hover:opacity-100 transition-opacity" />
-            </a>
+                <ExternalLink className="w-3.5 h-3.5 text-emerald-700 opacity-60 group-hover:opacity-100 transition-opacity" />
+              </a>
+            )}
 
             {/* 2. Instagram Support */}
-            <a
-              href={instagramUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between p-2 rounded-xl bg-purple-50/60 hover:bg-purple-100/80 border border-purple-200/80 text-purple-950 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white flex items-center justify-center shrink-0 shadow-2xs">
-                  <Instagram className="w-3.5 h-3.5" />
+            {instagramUrl && (
+              <a
+                href={instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-2 rounded-xl bg-purple-50/60 hover:bg-purple-100/80 border border-purple-200/80 text-purple-950 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <Instagram className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-xs text-purple-950">ইনস্টাগ্রাম (Instagram)</div>
+                    <div className="text-[10px] text-purple-700 font-medium">{instagramUsername || 'Instagram'}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-bold text-xs text-purple-950">ইনস্টাগ্রাম (Instagram)</div>
-                  <div className="text-[10px] text-purple-700 font-medium">{instagramUsername}</div>
-                </div>
-              </div>
-              <ExternalLink className="w-3.5 h-3.5 text-purple-700 opacity-60 group-hover:opacity-100 transition-opacity" />
-            </a>
+                <ExternalLink className="w-3.5 h-3.5 text-purple-700 opacity-60 group-hover:opacity-100 transition-opacity" />
+              </a>
+            )}
 
             {/* 3. Facebook Support */}
-            <a
-              href={facebookUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between p-2 rounded-xl bg-blue-50/60 hover:bg-blue-100/80 border border-blue-200/80 text-blue-950 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-[#1877F2] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-                  f
+            {facebookUrl && (
+              <a
+                href={facebookUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-2 rounded-xl bg-blue-50/60 hover:bg-blue-100/80 border border-blue-200/80 text-blue-950 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-[#1877F2] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                    f
+                  </div>
+                  <div>
+                    <div className="font-bold text-xs text-blue-950">ফেসবুক পেজ (Facebook)</div>
+                    <div className="text-[10px] text-blue-700 font-medium">{facebookUsername || 'Facebook Page'}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-bold text-xs text-blue-950">ফেসবুক পেজ (Facebook)</div>
-                  <div className="text-[10px] text-blue-700 font-medium">{facebookUsername}</div>
-                </div>
-              </div>
-              <ExternalLink className="w-3.5 h-3.5 text-blue-700 opacity-60 group-hover:opacity-100 transition-opacity" />
-            </a>
+                <ExternalLink className="w-3.5 h-3.5 text-blue-700 opacity-60 group-hover:opacity-100 transition-opacity" />
+              </a>
+            )}
 
             {/* 4. Phone Hotline */}
-            <a
-              href={`tel:${phone.replace(/[^0-9]/g, '') || '09612889900'}`}
-              className="flex items-center justify-between p-2 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-800 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-stone-700 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                  <Phone className="w-3.5 h-3.5" />
+            {phone && (
+              <a
+                href={`tel:${cleanPhone}`}
+                className="flex items-center justify-between p-2 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-800 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-stone-700 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <Phone className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-xs text-stone-900">হটলাইন কল</div>
+                    <div className="text-[10px] text-stone-600 font-medium">{phone}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-bold text-xs text-stone-900">হটলাইন কল</div>
-                  <div className="text-[10px] text-stone-600 font-medium">{phone}</div>
-                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-stone-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+              </a>
+            )}
+
+            {!cleanWaNumber && !instagramUrl && !facebookUrl && !phone && (
+              <div className="p-3 bg-stone-50 rounded-xl text-center text-xs text-stone-500">
+                {language === 'bn' ? 'যোগাযোগের চ্যানেল শীঘ্রই হালনাগাদ করা হবে।' : 'Support channels will be updated soon.'}
               </div>
-              <ExternalLink className="w-3.5 h-3.5 text-stone-500 opacity-60 group-hover:opacity-100 transition-opacity" />
-            </a>
+            )}
           </div>
 
           <p className="text-[10px] text-stone-400 text-center pt-1 border-t border-stone-100">

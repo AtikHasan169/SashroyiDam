@@ -121,11 +121,12 @@ router.post('/login', async (req, res) => {
     if (!user && isTargetingSuperAdmin) {
       user = {
         id: 'user-superadmin',
-        name: 'সাশ্রয়ী দাম অ্যাডমিন',
+        name: 'Super Admin',
         email: envCreds.email,
-        phone: '01700000001',
+        phone: '',
         role: 'super_admin',
         passwordHash: hashPassword(envCreds.password),
+        savedAddresses: [],
         createdAt: new Date().toISOString()
       };
       db.users.push(user);

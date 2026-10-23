@@ -356,6 +356,7 @@ function StorefrontApp() {
         }}
         announcement={storeInfo?.settings?.announcementStripBn}
         categories={categories}
+        storeSettings={storeInfo?.settings}
         isDrawerOpen={isLeftDrawerOpen}
         setIsDrawerOpen={setIsLeftDrawerOpen}
       />
@@ -367,6 +368,7 @@ function StorefrontApp() {
             product={viewingProductPage}
             categories={categories}
             allProducts={products}
+            storePhone={storeInfo?.settings?.phone}
             onBack={handleBackFromProductPage}
             onOpenProduct={handleOpenProductPage}
             onOpenCheckout={() => {
@@ -417,6 +419,7 @@ function StorefrontApp() {
             <div>
               <Hero
                 products={products}
+                banners={storeInfo?.banners || []}
                 onOpenProduct={handleOpenProductPage}
                 onExploreClick={() => {
                   const el = document.getElementById('products');
@@ -607,12 +610,18 @@ function StorefrontApp() {
 
       {/* 6. Footer */}
       <Footer
+        settings={storeInfo?.settings}
         onOpenTracking={() => setIsTrackingOpen(true)}
         onSelectCategory={handleSelectCategory}
       />
 
       {/* Classy Floating Bar: Live Cart Total + 'সহায়তা' WhatsApp Help */}
-      <ClassyFloatingBar />
+      <ClassyFloatingBar
+        phone={storeInfo?.settings?.phone || ''}
+        whatsappNumber={storeInfo?.settings?.phone || ''}
+        facebookUrl={storeInfo?.settings?.facebookUrl || ''}
+        facebookUsername={storeInfo?.settings?.facebookUsername || ''}
+      />
 
       {/* Product Tap Quick-Action Bottom Sheet (Add to Cart / Buy Now / View Details) */}
       <ProductQuickActionSheet

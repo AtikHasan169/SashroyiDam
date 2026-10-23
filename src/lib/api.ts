@@ -29,6 +29,14 @@ export function removeStoredToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+// Automatically purge legacy bloated Base64 catalog cache from client browsers
+try {
+  const cachedCatalog = localStorage.getItem('sashroyi_catalog_cache');
+  if (cachedCatalog && cachedCatalog.includes('data:image/')) {
+    localStorage.removeItem('sashroyi_catalog_cache');
+  }
+} catch {}
+
 const API_BASE = (
   (import.meta.env.VITE_API_URL as string | undefined) ||
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ||
@@ -621,6 +629,16 @@ export const api = {
 
   syncAllToMongo: () =>
     request<{ success: boolean; message: string }>('/api/admin/mongodb/sync-all', {
+      method: 'POST'
+    }),
+
+  // Image Migration & Performance Optimization
+  migrateImages: () =>
+    request<{
+      migratedCount: number;
+      savedBytes: number;
+      message: string;
+    }>('/api/admin/migrate-images', {
       method: 'POST'
     })
 };

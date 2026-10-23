@@ -7,12 +7,19 @@ import cartRouter from './routes/cart.ts';
 import ordersRouter from './routes/orders.ts';
 import paymentRouter from './routes/payment.ts';
 import adminRouter from './routes/admin.ts';
-import { getDatabase } from './db.ts';
-import { getMongoDatabase } from './mongodb.ts';
+import { getDatabase, migrateBase64Images } from './db.ts';
+import { getMongoDatabase, savePhotoToMongo, getPhotoFromMongo, getAllPhotosFromMongo } from './mongodb.ts';
 
 export function createExpressApp() {
   // Eagerly initialize database & MongoDB sync
   getDatabase();
+
+  // Run non-blocking Base64 migration to convert any legacy Base64 images to static files
+  setTimeout(() => {
+    migrateBase64Images().catch((err) => {
+      console.warn('Initial Base64 migration note:', err.message);
+    });
+  }, 1500);
 
   const app = express();
 
@@ -46,20 +53,94 @@ export function createExpressApp() {
   app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
   // Ensure uploads directory exists if filesystem is writable
+  const uploadsDir = path.resolve(process.cwd(), 'uploads');
   try {
-    const uploadsDir = path.resolve(process.cwd(), 'uploads');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
-    app.use('/uploads', express.static(uploadsDir));
   } catch (e) {
     // Graceful fallback for read-only serverless filesystems
   }
 
-  // Image Upload API for categories and products (Stores directly as Base64 in MongoDB)
-  app.post('/api/upload', (req, res) => {
+  // Background Disk Pre-Warmer: Rehydrate all MongoDB photos into /uploads on fresh container startup
+  setTimeout(async () => {
     try {
-      const { data } = req.body;
+      const photos = await getAllPhotosFromMongo();
+      if (photos && photos.length > 0) {
+        let restoredCount = 0;
+        for (const photo of photos) {
+          const filePath = path.join(uploadsDir, photo.name);
+          if (!fs.existsSync(filePath) && photo.data) {
+            try {
+              const base64Data = photo.data.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
+              fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+              restoredCount++;
+            } catch {}
+          }
+        }
+        if (restoredCount > 0) {
+          console.log(`✅ Auto-rehydrated ${restoredCount} images from MongoDB into local /uploads cache`);
+        }
+      }
+    } catch (err: any) {
+      console.warn('Photo pre-warmer note:', err.message);
+    }
+  }, 2500);
+
+  // Deploy-Safe Image Serving & On-Demand Rehydration Middleware
+  // If a container redeployed and wiped local /uploads, missing images are fetched from MongoDB instantly!
+  app.get('/uploads/:filename', async (req, res, next) => {
+    const filename = path.basename(req.params.filename);
+    const filePath = path.join(uploadsDir, filename);
+
+    // Fast path: file already exists in local disk cache
+    if (fs.existsSync(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('Pragma', 'public');
+      return res.sendFile(filePath);
+    }
+
+    // Container redeployment fallback: file missing from disk, pull from permanent MongoDB photos collection
+    try {
+      const photoDoc = await getPhotoFromMongo(filename);
+      if (photoDoc && photoDoc.data) {
+        const base64Data = photoDoc.data.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // Self-heal: re-cache to local disk for subsequent instant hits
+        try {
+          fs.writeFileSync(filePath, buffer);
+        } catch {}
+
+        res.setHeader('Content-Type', photoDoc.contentType || 'image/webp');
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.setHeader('Pragma', 'public');
+        return res.send(buffer);
+      }
+    } catch (err: any) {
+      console.warn(`Rehydration error for image "${filename}":`, err.message);
+    }
+
+    // If not found in MongoDB either, let express.static or 404 handler continue
+    next();
+  });
+
+  // Serve static uploads with long-lived browser caching headers
+  app.use(
+    '/uploads',
+    express.static(uploadsDir, {
+      maxAge: '365d',
+      immutable: true,
+      setHeaders: (res) => {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    })
+  );
+
+  // Image Upload API (Dual-Store: Local Fast Disk + MongoDB Permanent Persistence)
+  app.post('/api/upload', async (req, res) => {
+    try {
+      const { data, filename: customName } = req.body;
       if (!data || typeof data !== 'string') {
         res.status(400).json({ error: 'ছবির ডেটা প্রয়োজন (Image data required)' });
         return;
@@ -72,32 +153,33 @@ export function createExpressApp() {
       }
 
       const rawExt = match[1].toLowerCase();
-      const ext = rawExt === 'jpeg' ? 'jpg' : rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'jpg';
-      const safeName = `img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+      const ext = rawExt === 'jpeg' ? 'jpg' : rawExt === 'svg+xml' ? 'svg' : rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'webp';
+      const safeName = customName && typeof customName === 'string' && /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+$/.test(customName)
+        ? customName
+        : `img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
 
-      // If MongoDB is connected, store in photos collection
-      const mongoDb = getMongoDatabase();
-      if (mongoDb) {
-        mongoDb.collection('photos').updateOne(
-          { name: safeName },
-          {
-            $set: {
-              name: safeName,
-              data,
-              contentType: `image/${ext}`,
-              createdAt: new Date().toISOString()
-            }
-          },
-          { upsert: true }
-        ).catch((err) => {
-          console.warn('MongoDB photo store warning:', err.message);
-        });
+      const buffer = Buffer.from(match[2], 'base64');
+      const filePath = path.join(uploadsDir, safeName);
+
+      // 1. Write file to local disk for ultra-fast static HTTP serving
+      try {
+        fs.writeFileSync(filePath, buffer);
+      } catch (writeErr) {
+        console.warn('Warning writing image file to disk:', writeErr);
       }
 
-      // Return full base64 data URL so it is saved directly into the database row
+      // 2. Persist to MongoDB photos collection for container redeployment/restart immunity
+      const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+      savePhotoToMongo(safeName, data, contentType).catch((err) => {
+        console.warn('MongoDB photo store note:', err.message);
+      });
+
+      // 3. Return lightweight static URL (few bytes instead of multi-megabyte base64 string!)
       res.json({
-        url: data,
-        message: 'ছবি স্থায়ীভাবে (Base64) সংরক্ষিত হয়েছে'
+        url: `/uploads/${safeName}`,
+        name: safeName,
+        size: buffer.length,
+        message: 'ছবি সফলভাবে সংরক্ষিত হয়েছে (Dual-Store Persisted)'
       });
     } catch (err: any) {
       console.error('Upload error:', err);

@@ -70,7 +70,7 @@ export const translations: Translations = {
 
   // Customer care & trust
   customerCare: { bn: 'কাস্টমার কেয়ার হেল্পলাইন', en: 'Customer Care Helpline' },
-  callHotline: { bn: '০৯৬১২-৮৮৯৯০০', en: '09612-889900' },
+  callHotline: { bn: 'কল করুন', en: 'Call Helpline' },
   codPromise: { bn: 'সারাদেশে ক্যাশ অন ডেলিভারি ও যাচাই করে নেওয়ার নিশ্চয়তা', en: 'Nationwide Cash on Delivery with open-box verification' },
   replacementPromise: { bn: '৭ দিনের সহজ রিপ্লেসমেন্ট ও ১০০% আসল পণ্য', en: '7-day easy replacement & 100% genuine products' },
   categoriesTitle: { bn: 'পণ্য ক্যাটাগরিসমূহ', en: 'Product Categories' },

@@ -41,6 +41,7 @@ interface ProductPageProps {
   onDirectBuy?: (product: Product, variantId?: string, quantity?: number) => void;
   onEditProduct?: (p: Product) => void;
   onDeleteProduct?: (id: string) => void;
+  storePhone?: string;
 }
 
 export const ProductPage: React.FC<ProductPageProps> = ({
@@ -52,7 +53,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({
   onOpenCheckout,
   onDirectBuy,
   onEditProduct,
-  onDeleteProduct
+  onDeleteProduct,
+  storePhone
 }) => {
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
@@ -680,8 +682,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                   <div className="col-span-2 sm:col-span-1 flex items-center gap-2 text-stone-700 bg-stone-50 p-2.5 rounded-lg border border-stone-200/70">
                     <PhoneCall className="w-4 h-4 text-[#0F4C3A] shrink-0" />
                     <div>
-                      <div className="font-semibold text-stone-900">সহায়তা হেল্পলাইন</div>
-                      <div className="text-[10px] text-stone-500">০৯৬১২-৮৮৯৯০০</div>
+                      <div className="font-semibold text-stone-900">{language === 'en' ? 'Support Helpline' : 'সহায়তা হেল্পলাইন'}</div>
+                      <div className="text-[10px] text-stone-500">
+                        {storePhone || (language === 'en' ? 'Direct Live Chat' : 'সরাসরি সহায়তা')}
+                      </div>
                     </div>
                   </div>
                 </div>

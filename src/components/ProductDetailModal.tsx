@@ -272,6 +272,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 src={product.images[selectedImageIndex] || product.images[0]}
                 alt={product.titleBn}
                 referrerPolicy="no-referrer"
+                decoding="async"
                 className="w-full h-full object-cover will-change-transform"
                 style={{
                   transform: isZoomed || isHovering ? 'scale(2.4)' : 'scale(1)',

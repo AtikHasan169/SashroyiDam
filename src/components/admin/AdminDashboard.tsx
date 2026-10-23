@@ -274,6 +274,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [errorFeedback, setErrorFeedback] = useState('');
   const [modalError, setModalError] = useState('');
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [isMigratingImages, setIsMigratingImages] = useState(false);
 
   const showFeedback = (msg: string) => {
     setFeedbackMsg(msg);
@@ -396,7 +397,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Helper to read, compress, and upload images from file picker / mobile camera
+  // Handler to migrate existing Base64 images to static /uploads URLs and persistent MongoDB photos
+  const handleMigrateImages = async () => {
+    setIsMigratingImages(true);
+    try {
+      const res = await api.migrateImages();
+      showFeedback(res.message);
+      loadAllAdminData();
+      onStoreDataChanged();
+      setTimeout(() => setFeedbackMsg(''), 5000);
+    } catch (err: any) {
+      showErrorFeedback(err.message || 'ছবি অপ্টিমাইজেশন ব্যর্থ হয়েছে');
+    } finally {
+      setIsMigratingImages(false);
+    }
+  };
+
+  // Helper to read, compress, convert to WebP, and upload images from file picker / mobile camera
   const compressAndUploadImage = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -420,14 +437,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx?.drawImage(img, 0, 0, width, height);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+            // Export to lightweight WebP format (0.82 quality) with JPEG fallback
+            let dataUrl = canvas.toDataURL('image/webp', 0.82);
+            if (!dataUrl.startsWith('data:image/webp')) {
+              dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            }
 
             try {
               const res = await api.uploadImage(dataUrl);
               resolve(res.url);
-            } catch (uploadErr) {
-              // Fallback to dataUrl so user is never blocked
-              resolve(dataUrl);
+            } catch (uploadErr: any) {
+              reject(new Error(uploadErr?.message || 'ছবি সার্ভারে আপলোড করতে সমস্যা হয়েছে'));
             }
           };
           img.onerror = () => reject(new Error('ছবি লোড করা সম্ভব হয়নি'));
@@ -792,7 +813,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleMigrateImages}
+              disabled={isMigratingImages}
+              className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 shadow-2xs"
+              title="সকল Base64 ছবিকে উচ্চগতির ফাইলে মাইগ্রেট করুন ও পেজ লোড সুপারফাস্ট করুন"
+            >
+              <Sparkles className={`w-3.5 h-3.5 text-amber-700 ${isMigratingImages ? 'animate-spin' : ''}`} />
+              <span>{isMigratingImages ? 'অপ্টিমাইজ হচ্ছে...' : '⚡ ছবি অপ্টিমাইজ (WebP)'}</span>
+            </button>
+
             <button
               onClick={loadAllAdminData}
               className="p-2 text-stone-500 hover:text-stone-900 transition-colors"
@@ -3051,9 +3083,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div className="p-3 bg-stone-50 rounded-lg">
                 <div className="font-bold text-stone-800 mb-1">প্রেরক:</div>
-                <div className="text-stone-700">অশেষ রিটেইল বাংলাদেশ</div>
-                <div className="text-stone-500">উত্তরা, ঢাকা-১২৩০</div>
-                <div className="text-stone-500">হেল্পলাইন: ০৯৬১২-৮৮৯৯০০</div>
+                <div className="text-stone-700">{storeSettings?.storeNameBn || 'সাশ্রয়ী দাম'}</div>
+                {storeSettings?.addressBn && <div className="text-stone-500">{storeSettings.addressBn}</div>}
+                {storeSettings?.phone && <div className="text-stone-500">হেল্পলাইন: {storeSettings.phone}</div>}
               </div>
 
               <div className="p-3 bg-stone-50 rounded-lg">

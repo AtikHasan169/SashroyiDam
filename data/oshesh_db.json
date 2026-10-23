@@ -2,222 +2,17 @@
   "users": [
     {
       "id": "user-superadmin",
-      "name": "সাশ্রয়ী দাম অ্যাডমিন",
+      "name": "Super Admin",
       "email": "admin@sashroyidaam.com",
-      "phone": "01700000001",
+      "phone": "",
       "role": "super_admin",
       "passwordHash": "55bdafe818451e4dd5f47b5548cd3574819c099799aa7ccb910a8caa893d3d8c",
-      "createdAt": "2026-08-01T00:00:00.000Z",
-      "savedAddresses": [
-        {
-          "id": "addr-1792513800859",
-          "title": "Home",
-          "name": "সাশ্রয়ী অ্যাডমিন",
-          "phone": "01700000001",
-          "division": "dhaka",
-          "district": "ঢাকা",
-          "upazila": "",
-          "fullAddress": "হাউজ ১০, রোড ৫, বনানী, ঢাকা",
-          "isDefault": true
-        }
-      ]
-    },
-    {
-      "id": "user-ordermanager",
-      "name": "রাশেদ চৌধুরী (Order Manager)",
-      "email": "orders@sashroyidaam.com",
-      "phone": "01700000002",
-      "role": "order_manager",
-      "passwordHash": "0f8d4cb6065a676d8b91af203afc7d979465ea133492862d6789f15243402dbc",
-      "createdAt": "2026-08-15T00:00:00.000Z"
-    },
-    {
-      "id": "user-customer1",
-      "name": "আরিফ মাহমুদ",
-      "email": "customer@sashroyidaam.com",
-      "phone": "01711223344",
-      "role": "customer",
-      "passwordHash": "f8b4f1e5383d7ba822eda75cf42d99f375593171fdda141ce586f71b65de63fa",
-      "savedAddresses": [
-        {
-          "id": "addr-1",
-          "title": "বাসা (Home)",
-          "name": "আরিফ মাহমুদ",
-          "phone": "01711223344",
-          "division": "dhaka",
-          "district": "ঢাকা",
-          "upazila": "উত্তরা",
-          "fullAddress": "সেক্টর ৪, রোড ৭, বাড়ি ১২, ফ্ল্যাট ৫-এ, উত্তরা, ঢাকা",
-          "isDefault": false
-        },
-        {
-          "id": "addr-1792567370876",
-          "title": "বাসা",
-          "name": "আরিফ মাহমুদ",
-          "phone": "01711223344",
-          "division": "chattogram",
-          "district": "কুমিল্লা",
-          "upazila": "কুমিল্লা সদর",
-          "fullAddress": "কান্দিরপাড়, বাড়ি নং ১২, রোড নং ৩",
-          "isDefault": true
-        }
-      ],
-      "createdAt": "2026-09-01T00:00:00.000Z"
+      "savedAddresses": [],
+      "createdAt": "2026-10-22T00:00:00.000Z"
     }
   ],
-  "categories": [
-    {
-      "id": "cat-shirts",
-      "slug": "shirts-polos",
-      "nameBn": "শার্ট ও টি-শার্ট",
-      "nameEn": "Shirts & Polos",
-      "descriptionBn": "প্রিমিয়াম সুতি ক্যাজুয়াল শার্ট, ফর্মাল শার্ট, পোলো ও টি-শার্ট। সাইজ ও কালার অপশন সহ।",
-      "image": "/src/assets/images/category_fashion_handcraft_1792084990401.jpg",
-      "displayOrder": 1,
-      "isFeatured": true,
-      "variantType": "apparel_sizes",
-      "defaultOptions": [
-        "M (৪০)",
-        "L (৪২)",
-        "XL (৪৪)",
-        "XXL (৪৬)"
-      ]
-    },
-    {
-      "id": "cat-kitchen",
-      "slug": "kitchen-dining",
-      "nameBn": "রান্নাঘর ও গৃহস্থালি",
-      "nameEn": "Home & Kitchen",
-      "descriptionBn": "রান্নাঘরের নির্ভরযোগ্য সামগ্রী, কপার ও কাস্ট আয়রন প্যান এবং পরিবেশন পাত্র।",
-      "image": "/src/assets/images/category_kitchen_cookware_1792084991823.jpg",
-      "displayOrder": 2,
-      "isFeatured": true,
-      "variantType": "pack_options",
-      "defaultOptions": [
-        "১ পিস একক",
-        "২ পিস সেট",
-        "৪ পিস কমপ্লিট সেট"
-      ]
-    },
-    {
-      "id": "cat-fashion",
-      "slug": "fashion-lifestyle",
-      "nameBn": "ফ্যাশন ও কারুকাজ",
-      "nameEn": "Fashion & Handloom",
-      "descriptionBn": "দেশি তাঁতের জামদানি, সুতি পাঞ্জাবি, শাড়ি ও হস্তনির্মিত প্রাকৃতিক অনুষঙ্গ।",
-      "image": "/src/assets/images/category_fashion_handcraft_1792084990401.jpg",
-      "displayOrder": 3,
-      "isFeatured": true,
-      "variantType": "apparel_sizes",
-      "defaultOptions": [
-        "৪০ (M)",
-        "৪২ (L)",
-        "৪৪ (XL)",
-        "৪৬ (XXL)"
-      ]
-    },
-    {
-      "id": "cat-gadgets",
-      "slug": "gadgets-accessories",
-      "nameBn": "গ্যাজেট ও ইলেকট্রনিক্স",
-      "nameEn": "Gadgets & Tech",
-      "descriptionBn": "টেকসই পাওয়ার ব্যাংক, দ্রুত চার্জিং ক্যাবল, অডিও ডিভাইস এবং স্মার্ট লাইফস্টাইল পণ্য।",
-      "image": "/src/assets/images/category_tech_lifestyle_1792084991359.jpg",
-      "displayOrder": 4,
-      "isFeatured": true,
-      "variantType": "color_options",
-      "defaultOptions": [
-        "ম্যাট ব্ল্যাক",
-        "স্পেস গ্রে",
-        "সিলভার"
-      ]
-    },
-    {
-      "id": "cat-grocery",
-      "slug": "grocery-food",
-      "nameBn": "মুদি ও খাঁটি খাদ্যদ্রব্য",
-      "nameEn": "Grocery & Food",
-      "descriptionBn": "গ্রামের ঘানিভাঙা খাঁটি সরিষার তেল, সুন্দরবনের প্রাকৃতিক মধু, প্রিমিয়াম গাওয়া ঘি ও পুষ্টিকর খাদ্য।",
-      "image": "/src/assets/images/category_kitchen_cookware_1792084991823.jpg",
-      "displayOrder": 5,
-      "isFeatured": true,
-      "variantType": "weight_options",
-      "defaultOptions": [
-        "১ কেজি",
-        "২ কেজি",
-        "৫ কেজি",
-        "১ লিটার"
-      ]
-    },
-    {
-      "id": "cat-personal-care",
-      "slug": "personal-care",
-      "nameBn": "ব্যক্তিগত যত্ন ও প্রসাধনী",
-      "nameEn": "Personal Care & Wellness",
-      "descriptionBn": "প্রাকৃতিক উপাদানযুক্ত যত্ন, ভেষজ তেল, এবং নিরাপদ অর্গানিক পণ্য।",
-      "image": "/src/assets/images/hero_oshesh_lifestyle_1792084990587.jpg",
-      "displayOrder": 6,
-      "isFeatured": false,
-      "variantType": "none",
-      "defaultOptions": []
-    }
-  ],
-  "products": [
-    {
-      "id": "prod-1792604121829",
-      "slug": "--mvie7krp",
-      "titleBn": "নতুন স্মার্ট ওয়াচ",
-      "titleEn": "নতুন স্মার্ট ওয়াচ",
-      "descriptionBn": "",
-      "descriptionEn": "",
-      "price": 1200,
-      "stock": 15,
-      "categoryId": "cat-gadgets",
-      "categorySlug": "gadgets-accessories",
-      "categoryNameBn": "গ্যাজেট ও ইলেকট্রনিক্স",
-      "brand": "",
-      "sku": "SD-4828",
-      "images": [],
-      "variants": [],
-      "attributes": {},
-      "isFeatured": false,
-      "isPublished": false,
-      "isArchived": true,
-      "salesCount": 0,
-      "rating": 5,
-      "reviewCount": 0,
-      "tags": [],
-      "createdAt": "2026-10-21T17:35:21.829Z",
-      "updatedAt": "2026-10-21T17:35:21.989Z"
-    },
-    {
-      "id": "prod-1792603590555",
-      "slug": "cotton-casual-shirt-mvidw6u3",
-      "titleBn": "কটন ক্যাজুয়াল শার্ট",
-      "titleEn": "Cotton Casual Shirt",
-      "descriptionBn": "প্রিমিয়াম সুতি কাপড়ে তৈরি আরামদায়ক ক্যাজুয়াল শার্ট।",
-      "descriptionEn": "",
-      "price": 850,
-      "stock": 20,
-      "categoryId": "cat-shirts",
-      "categorySlug": "shirts-polos",
-      "categoryNameBn": "শার্ট ও টি-শার্ট",
-      "brand": "",
-      "sku": "SH-01",
-      "images": [],
-      "variants": [],
-      "attributes": {},
-      "isFeatured": false,
-      "isPublished": false,
-      "isArchived": true,
-      "salesCount": 0,
-      "rating": 5,
-      "reviewCount": 0,
-      "tags": [],
-      "createdAt": "2026-10-21T17:26:30.555Z",
-      "updatedAt": "2026-10-21T17:26:30.712Z"
-    }
-  ],
+  "categories": [],
+  "products": [],
   "orders": [],
   "coupons": [],
   "reviews": [],
@@ -251,135 +46,28 @@
       "isActive": true
     }
   ],
-  "banners": [
-    {
-      "id": "ban-main",
-      "titleBn": "আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান",
-      "subtitleBn": "বাংলাদেশের প্রতিটি পরিবারের জন্য খাঁটি গৃহস্থালি পণ্য, দেশীয় পোশাক ও মানসম্পন্ন গ্যাজেট। সারাদেশে ক্যাশ অন ডেলিভারি।",
-      "buttonTextBn": "পণ্যসমূহ দেখুন",
-      "link": "/#products",
-      "imageUrl": "/src/assets/images/hero_oshesh_lifestyle_1792084990587.jpg",
-      "displayOrder": 1,
-      "isActive": true
-    }
-  ],
+  "banners": [],
   "storeSettings": {
     "storeNameBn": "সাশ্রয়ী দাম",
     "storeNameEn": "Sashroyi Daam",
-    "taglineBn": "আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান।",
-    "phone": "০৯৬১২-৮৮৯৯০০",
-    "email": "support@sashroyidaam.com",
-    "supportHoursBn": "প্রতিদিন সকাল ৯টা – রাত ১০টা",
-    "addressBn": "বাড়ি ৪২, রোড ১১, সেক্টর ৩, উত্তরা, ঢাকা-১২৩০",
-    "announcementStripBn": "🚚 ২,০০০ টাকার অর্ডারে সারাদেশে ফ্রি ডেলিভারি! সারাদেশে ক্যাশ অন ডেলিভারি সুবিধা।",
-    "showAnnouncement": true,
+    "taglineBn": "",
+    "phone": "",
+    "email": "",
+    "supportHoursBn": "",
+    "addressBn": "",
+    "announcementStripBn": "",
+    "showAnnouncement": false,
     "freeDeliveryThreshold": 2000,
     "defaultDeliveryFeeDhaka": 70,
     "defaultDeliveryFeeOutside": 130,
     "isCodEnabled": true,
-    "isSslcommerzEnabled": true,
+    "isSslcommerzEnabled": false,
     "sslSandboxMode": true,
-    "facebookPageName": "সাশ্রয়ী দাম | Sashroyi Daam",
-    "facebookUsername": "@sashroyidaam",
-    "facebookUrl": "https://facebook.com/sashroyidaam"
+    "facebookPageName": "",
+    "facebookUsername": "",
+    "facebookUrl": ""
   },
-  "inventoryMovements": [
-    {
-      "id": "inv-1792603590555",
-      "productId": "prod-1792603590555",
-      "productTitleBn": "কটন ক্যাজুয়াল শার্ট",
-      "changeQuantity": 20,
-      "previousStock": 0,
-      "newStock": 20,
-      "reason": "manual_restock",
-      "createdBy": "সাশ্রয়ী দাম অ্যাডমিন",
-      "createdAt": "2026-10-21T17:26:30.555Z"
-    },
-    {
-      "id": "inv-1792604121829",
-      "productId": "prod-1792604121829",
-      "productTitleBn": "নতুন স্মার্ট ওয়াচ",
-      "changeQuantity": 15,
-      "previousStock": 0,
-      "newStock": 15,
-      "reason": "manual_restock",
-      "createdBy": "সাশ্রয়ী দাম অ্যাডমিন",
-      "createdAt": "2026-10-21T17:35:21.829Z"
-    }
-  ],
-  "auditLogs": [
-    {
-      "id": "log-1792604121991-ws0gt",
-      "action": "PRODUCT_ARCHIVED",
-      "userId": "user-superadmin",
-      "userEmail": "admin@sashroyidaam.com",
-      "userRole": "super_admin",
-      "details": "Product \"নতুন স্মার্ট ওয়াচ\" (ID: prod-1792604121829) archived.",
-      "createdAt": "2026-10-21T17:35:21.991Z"
-    },
-    {
-      "id": "log-1792604121830-c5002",
-      "action": "PRODUCT_CREATED",
-      "userId": "user-superadmin",
-      "userEmail": "admin@sashroyidaam.com",
-      "userRole": "super_admin",
-      "details": "Product \"নতুন স্মার্ট ওয়াচ\" (SKU: SD-4828) created.",
-      "createdAt": "2026-10-21T17:35:21.830Z"
-    },
-    {
-      "id": "log-1792603590713-4w8fr",
-      "action": "PRODUCT_ARCHIVED",
-      "userId": "user-superadmin",
-      "userEmail": "admin@sashroyidaam.com",
-      "userRole": "super_admin",
-      "details": "Product \"কটন ক্যাজুয়াল শার্ট\" (ID: prod-1792603590555) archived.",
-      "createdAt": "2026-10-21T17:26:30.713Z"
-    },
-    {
-      "id": "log-1792603590557-bwa6s",
-      "action": "PRODUCT_CREATED",
-      "userId": "user-superadmin",
-      "userEmail": "admin@sashroyidaam.com",
-      "userRole": "super_admin",
-      "details": "Product \"কটন ক্যাজুয়াল শার্ট\" (SKU: SH-01) created.",
-      "createdAt": "2026-10-21T17:26:30.557Z"
-    },
-    {
-      "id": "log-1792567370711-gjb3z",
-      "action": "PRODUCT_CREATED",
-      "userId": "user-superadmin",
-      "userEmail": "admin@sashroyidaam.com",
-      "userRole": "super_admin",
-      "details": "Product \"খাঁটি সরিষার তেল (১ লিটার)\" (SKU: MO-001) created.",
-      "createdAt": "2026-10-21T07:22:50.711Z"
-    },
-    {
-      "id": "log-1792566955158-jnyhk",
-      "action": "PRODUCT_CREATED",
-      "userId": "user-superadmin",
-      "userEmail": "admin@sashroyidaam.com",
-      "userRole": "super_admin",
-      "details": "Product \"প্রিমিয়াম সুতি পাঞ্জাবি\" (SKU: PJ-001) created.",
-      "createdAt": "2026-10-21T07:15:55.158Z"
-    },
-    {
-      "id": "log-1792514487838-bxi6b",
-      "action": "PRODUCT_CREATED",
-      "userId": "user-superadmin",
-      "userEmail": "admin@sashroyidaam.com",
-      "userRole": "super_admin",
-      "details": "Product \"টেস্ট শার্ট\" (SKU: TS-001) created.",
-      "createdAt": "2026-10-20T16:41:27.838Z"
-    },
-    {
-      "id": "log-seed",
-      "action": "STORE_INITIALIZED",
-      "userId": "system",
-      "userEmail": "system@sashroyidaam.com",
-      "userRole": "system",
-      "details": "Initial Bangladesh retail store database seeded with catalog, admin accounts, and settings.",
-      "createdAt": "2026-08-01T00:00:00.000Z"
-    }
-  ],
+  "inventoryMovements": [],
+  "auditLogs": [],
   "version": 1
 }

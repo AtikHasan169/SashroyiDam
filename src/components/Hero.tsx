@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Product } from '../types/index.ts';
+import { ChevronLeft, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
+import type { Product, Banner } from '../types/index.ts';
 
 interface HeroSlide {
   id: string;
@@ -8,55 +8,43 @@ interface HeroSlide {
   alt: string;
   productId?: string;
   categoryId?: string;
+  link?: string;
 }
 
 interface HeroProps {
   onExploreClick: () => void;
   onSelectCategory?: (categoryId: string) => void;
   products?: Product[];
+  banners?: Banner[];
   onOpenProduct?: (product: Product) => void;
+  onOpenAdmin?: () => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({
   onExploreClick,
   onSelectCategory,
   products = [],
-  onOpenProduct
+  banners = [],
+  onOpenProduct,
+  onOpenAdmin
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
-  // Dynamic slides list: Use high quality promotional assets & top products
-  const defaultSlides: HeroSlide[] = [
-    {
-      id: 'slide-1',
-      image: '/src/assets/images/hero_oshesh_lifestyle_1792084990587.jpg',
-      alt: 'সাশ্রয়ী দাম মেগা অফার ও উৎসব ডিসকাউন্ট'
-    },
-    {
-      id: 'slide-2',
-      image: '/src/assets/images/category_kitchen_cookware_1792084991823.jpg',
-      alt: 'টেকসই ও খাঁটি কিচেনওয়্যার কালেকশন',
-      categoryId: 'cat-kitchen'
-    },
-    {
-      id: 'slide-3',
-      image: '/src/assets/images/category_fashion_handcraft_1792084990401.jpg',
-      alt: 'ঐতিহ্যবাহী তাঁত ও আরামদায়ক সুতি পোশাক',
-      categoryId: 'cat-fashion'
-    },
-    {
-      id: 'slide-4',
-      image: '/src/assets/images/category_tech_lifestyle_1792084991359.jpg',
-      alt: 'স্মার্ট গ্যাজেট ও লাইফস্টাইল কালেকশন',
-      categoryId: 'cat-gadgets'
-    }
-  ];
+  // Dynamic slides from configured store banners
+  const bannerSlides: HeroSlide[] = (banners || [])
+    .filter((b) => b.isActive && b.imageUrl)
+    .map((b) => ({
+      id: b.id,
+      image: b.imageUrl,
+      alt: b.titleBn || '',
+      link: b.link
+    }));
 
   // If products are available with images, incorporate top products into the pure image carousel
-  const productSlides: HeroSlide[] = products
-    .filter(p => !p.isArchived && p.isPublished !== false && p.images && p.images.length > 0)
+  const productSlides: HeroSlide[] = (products || [])
+    .filter((p) => !p.isArchived && p.isPublished !== false && p.images && p.images.length > 0)
     .slice(0, 3)
     .map((p, idx) => ({
       id: `prod-slide-${p.id || idx}`,
@@ -65,7 +53,7 @@ export const Hero: React.FC<HeroProps> = ({
       productId: p.id
     }));
 
-  const allSlides = productSlides.length > 0 ? [...defaultSlides.slice(0, 2), ...productSlides] : defaultSlides;
+  const allSlides = [...bannerSlides, ...productSlides];
   const totalSlides = allSlides.length;
 
   // Auto-change timer every 4 seconds
@@ -102,7 +90,7 @@ export const Hero: React.FC<HeroProps> = ({
 
   const handleSlideClick = (slide: HeroSlide) => {
     if (slide.productId && onOpenProduct) {
-      const found = products.find(p => p.id === slide.productId);
+      const found = products.find((p) => p.id === slide.productId);
       if (found) {
         onOpenProduct(found);
         return;
@@ -116,6 +104,42 @@ export const Hero: React.FC<HeroProps> = ({
     }
     onExploreClick();
   };
+
+  if (allSlides.length === 0) {
+    return (
+      <section className="w-full overflow-hidden bg-[#FAF9F6] py-3 sm:py-5">
+        <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12">
+          <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-r from-[#07241A] via-[#0F4C3A] to-[#145642] text-white p-6 sm:p-10 md:p-14 shadow-lg min-h-[200px] sm:min-h-[260px] flex flex-col justify-center border border-emerald-900/40">
+            <div className="max-w-2xl space-y-3 z-10">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold backdrop-blur-xs border border-emerald-500/30">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>সাশ্রয়ী দাম — আপনার বিশ্বস্ত অনলাইন রিটেইল</span>
+              </div>
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white">
+                আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান
+              </h1>
+              <p className="text-xs sm:text-sm md:text-base text-emerald-100/90 leading-relaxed max-w-xl">
+                ক্যাটালগ সম্পূর্ণ প্রস্তুত। অ্যাডমিন প্যানেল থেকে আপনার নিজস্ব পণ্য, ক্যাটাগরি এবং ব্যানার যুক্ত করে দ্রুত বিক্রি শুরু করুন।
+              </p>
+              <div className="pt-2 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={onExploreClick}
+                  className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-md cursor-pointer"
+                >
+                  <span>পণ্য অন্বেষণ করুন</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            {/* Subtle decorative background circles */}
+            <div className="absolute right-0 top-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="w-full overflow-hidden bg-[#FAF9F6] py-3 sm:py-5">

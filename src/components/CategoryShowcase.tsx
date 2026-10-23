@@ -34,6 +34,10 @@ export const CategoryShowcase: React.FC<CategoryShowcaseProps> = ({
     }, 100);
   };
 
+  if (!categories || categories.length === 0) {
+    return null;
+  }
+
   return (
     <section id="categories" className="py-6 sm:py-8 bg-white border-b border-stone-200">
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10">
