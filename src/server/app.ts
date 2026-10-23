@@ -153,7 +153,7 @@ export function createExpressApp() {
       }
 
       const rawExt = match[1].toLowerCase();
-      const ext = rawExt === 'jpeg' ? 'jpg' : rawExt === 'svg+xml' ? 'svg' : rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'webp';
+      const ext = rawExt === 'jpeg' || rawExt === 'jpg' ? 'jpg' : rawExt === 'png' ? 'png' : rawExt === 'webp' ? 'webp' : 'jpg';
       const safeName = customName && typeof customName === 'string' && /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+$/.test(customName)
         ? customName
         : `img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;

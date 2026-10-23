@@ -573,7 +573,7 @@ export async function migrateBase64Images(): Promise<{
     if (!match) return dataUrl;
 
     const rawExt = match[1].toLowerCase();
-    const ext = rawExt === 'jpeg' ? 'jpg' : rawExt === 'svg+xml' ? 'svg' : rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'webp';
+    const ext = rawExt === 'jpeg' || rawExt === 'jpg' ? 'jpg' : rawExt === 'png' ? 'png' : rawExt === 'webp' ? 'webp' : 'jpg';
     // Generate deterministic content hash from the base64 content
     const hash = crypto.createHash('md5').update(match[2]).digest('hex').substring(0, 10);
     const safeName = `img_${prefix}_${hash}.${ext}`;
