@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   LayoutDashboard,
@@ -276,13 +276,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [modalError, setModalError] = useState('');
   const [isSavingProduct, setIsSavingProduct] = useState(false);
 
+  // Floating high-visibility confirmation toast state
+  const [toast, setToast] = useState<{
+    id: number;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  } | null>(null);
+  const toastTimeoutRef = useRef<any>(null);
+
+  const showToast = (title: string, message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToast({
+      id: Date.now(),
+      title,
+      message,
+      type
+    });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+    }, 4500);
+  };
+
   const showFeedback = (msg: string) => {
     setFeedbackMsg(msg);
+    showToast('সফলভাবে সংরক্ষিত', msg, 'success');
     setTimeout(() => setFeedbackMsg(''), 4000);
   };
 
   const showErrorFeedback = (msg: string) => {
     setErrorFeedback(msg);
+    showToast('ত্রুটি ঘটেছে', msg, 'error');
     setTimeout(() => setErrorFeedback(''), 4000);
   };
 
@@ -440,12 +466,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       showErrorFeedback('ক্যাটাগরির নাম দিন');
       return;
     }
+    const catName = editingCategory.nameBn.trim();
     try {
       if (editingCategory.id) {
         await api.updateCategory(editingCategory.id, editingCategory);
+        showToast('ক্যাটাগরি আপডেট হয়েছে', `"${catName}" ক্যাটাগরি সফলভাবে আপডেট করা হয়েছে`, 'success');
         setFeedbackMsg('ক্যাটাগরি সফলভাবে আপডেট করা হয়েছে');
       } else {
         await api.createCategory(editingCategory);
+        showToast('নতুন ক্যাটাগরি যুক্ত হয়েছে', `"${catName}" সফলভাবে তালিকায় যোগ করা হয়েছে`, 'success');
         setFeedbackMsg('নতুন ক্যাটাগরি সফলভাবে যুক্ত করা হয়েছে');
       }
       setShowCategoryModal(false);
@@ -461,12 +490,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleDeleteCategory = async (id: string) => {
     try {
       await api.deleteCategory(id);
+      showToast('ক্যাটাগরি মুছে ফেলা হয়েছে', 'নির্বাচিত ক্যাটাগরি সফলভাবে মুছে ফেলা হয়েছে', 'success');
       setFeedbackMsg('ক্যাটাগরি সফলভাবে মুছে ফেলা হয়েছে');
       loadAllAdminData();
       onStoreDataChanged();
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
-      setFeedbackMsg(err.message || 'ক্যাটাগরি মুছে ফেলা যায়নি');
+      showErrorFeedback(err.message || 'ক্যাটাগরি মুছে ফেলা যায়নি');
     }
   };
 
@@ -567,11 +597,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const res = await api.updateProduct(editingProduct.id, payload);
         savedProduct = res.product || (payload as Product);
         setProducts((prev) => prev.map((p) => (p.id === savedProduct.id ? savedProduct : p)));
+        showToast('পণ্য সফলভাবে আপডেট হয়েছে', `"${cleanTitle}" পণ্যের তথ্য ও বিক্রয়মূল্য সফলভাবে সংরক্ষিত হয়েছে`, 'success');
         setFeedbackMsg(`"${cleanTitle}" পণ্যটি সফলভাবে আপডেট করা হয়েছে`);
       } else {
         const res = await api.createProduct(payload);
         savedProduct = res.product || (payload as Product);
         setProducts((prev) => [savedProduct, ...prev.filter((p) => p.id !== savedProduct.id)]);
+        showToast('নতুন পণ্য তৈরি হয়েছে', `"${cleanTitle}" পণ্যটি সফলভাবে ক্যাটালগে যুক্ত হয়েছে`, 'success');
         setFeedbackMsg(`"${cleanTitle}" পণ্যটি সফলভাবে তৈরি হয়েছে এবং তালিকায় যোগ হয়েছে`);
       }
 
@@ -590,6 +622,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setTimeout(() => setFeedbackMsg(''), 4000);
     } catch (err: any) {
       setModalError(err.message || 'পণ্য সংরক্ষণ ব্যর্থ হয়েছে');
+      showToast('পণ্য সংরক্ষণ ব্যর্থ', err.message || 'পণ্য সংরক্ষণ করা সম্ভব হয়নি', 'error');
     } finally {
       setIsSavingProduct(false);
     }
@@ -603,6 +636,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       await api.archiveProduct(id);
       setProducts((prev) => prev.filter((p) => p.id !== id));
       onStoreDataChanged(undefined, id);
+      showToast('পণ্য আর্কাইভ করা হয়েছে', 'পণ্যটি সফলভাবে আর্কাইভ করা হয়েছে', 'info');
       setFeedbackMsg('পণ্যটি সফলভাবে আর্কাইভ করা হয়েছে');
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
@@ -622,6 +656,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setShowProductModal(false);
       setEditingProduct(null);
       onStoreDataChanged(undefined, id);
+      showToast('পণ্য মুছে ফেলা হয়েছে', `"${prodName}" সফলভাবে ক্যাটালগ থেকে মুছে ফেলা হয়েছে`, 'success');
       setFeedbackMsg('পণ্যটি সফলভাবে মুছে ফেলা হয়েছে');
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
@@ -631,23 +666,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
+    const couponCodeClean = newCouponCode.toUpperCase().trim();
     try {
       if (editingCoupon) {
         await api.updateCoupon(editingCoupon.id, {
-          code: newCouponCode.toUpperCase().trim(),
+          code: couponCodeClean,
           discountType: newCouponType,
           discountValue: Number(newCouponVal),
           minOrderValue: Number(newCouponMin)
         });
-        showFeedback('কুপন সফলভাবে আপডেট করা হয়েছে');
+        showToast('কুপন আপডেট হয়েছে', `কুপন কোড "${couponCodeClean}" সফলভাবে আপডেট করা হয়েছে`, 'success');
+        setFeedbackMsg('কুপন সফলভাবে আপডেট করা হয়েছে');
       } else {
         await api.createCoupon({
-          code: newCouponCode.toUpperCase().trim(),
+          code: couponCodeClean,
           discountType: newCouponType,
           discountValue: Number(newCouponVal),
           minOrderValue: Number(newCouponMin)
         });
-        showFeedback('কুপন সফলভাবে তৈরি হয়েছে');
+        showToast('নতুন কুপন যুক্ত হয়েছে', `কুপন কোড "${couponCodeClean}" সফলভাবে তৈরি করা হয়েছে`, 'success');
+        setFeedbackMsg('কুপন সফলভাবে তৈরি হয়েছে');
       }
       setShowCouponModal(false);
       setEditingCoupon(null);
@@ -656,7 +694,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setNewCouponMin(1000);
       loadAllAdminData();
     } catch (err: any) {
-      showFeedback(err.message || 'কুপন সেভ করতে সমস্যা হয়েছে');
+      showErrorFeedback(err.message || 'কুপন সেভ করতে সমস্যা হয়েছে');
     }
   };
 
@@ -673,20 +711,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       await api.deleteCoupon(id);
       setCoupons((prev) => prev.filter((c) => c.id !== id));
-      showFeedback('কুপন মুছে ফেলা হয়েছে');
+      showToast('কুপন মুছে ফেলা হয়েছে', 'কুপনটি সফলভাবে মুছে ফেলা হয়েছে', 'success');
+      setFeedbackMsg('কুপন মুছে ফেলা হয়েছে');
       loadAllAdminData();
     } catch (err: any) {
-      showFeedback(err.message || 'কুপন মুছতে সমস্যা হয়েছে');
+      showErrorFeedback(err.message || 'কুপন মুছতে সমস্যা হয়েছে');
     }
   };
 
   const handleToggleCoupon = async (id: string) => {
     try {
       await api.toggleCoupon(id);
-      showFeedback('কুপন স্ট্যাটাস পরিবর্তন করা হয়েছে');
+      showToast('কুপন স্ট্যাটাস আপডেট', 'কুপনের সক্রিয় স্ট্যাটাস পরিবর্তন করা হয়েছে', 'success');
+      setFeedbackMsg('কুপন স্ট্যাটাস পরিবর্তন করা হয়েছে');
       loadAllAdminData();
     } catch (err: any) {
-      showFeedback(err.message || 'কুপন স্ট্যাটাস পরিবর্তন ব্যর্থ');
+      showErrorFeedback(err.message || 'কুপন স্ট্যাটাস পরিবর্তন ব্যর্থ');
     }
   };
 
@@ -695,10 +735,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (!storeSettings) return;
     try {
       await api.updateSettings(storeSettings);
-      showFeedback('স্টোর সেটিংস সফলভাবে আপডেট হয়েছে');
+      showToast(
+        'স্টোর সেটিংস সংরক্ষিত',
+        'দোকানের তথ্য, হেল্পলাইন, সোশ্যাল লিংক ও ডেলিভারি সেটিংস সফলভাবে সংরক্ষিত হয়েছে।',
+        'success'
+      );
+      setFeedbackMsg('স্টোর সেটিংস সফলভাবে আপডেট হয়েছে');
       onStoreDataChanged();
+      setTimeout(() => setFeedbackMsg(''), 4000);
     } catch (err: any) {
-      showFeedback(err.message || 'সেটিংস সেভ করতে সমস্যা হয়েছে');
+      showErrorFeedback(err.message || 'সেটিংস সেভ করতে সমস্যা হয়েছে');
     }
   };
 
@@ -3232,11 +3278,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         products={products}
         onOrderCreated={(newOrder) => {
           setOrders((prev) => [newOrder, ...prev]);
-          showFeedback(`ম্যানুয়াল অর্ডার #${newOrder.orderNumber} সফলভাবে তৈরি হয়েছে`);
+          showToast('ম্যানুয়াল অর্ডার তৈরি হয়েছে', `ম্যানুয়াল অর্ডার #${newOrder.orderNumber} সফলভাবে তৈরি হয়েছে`, 'success');
+          setFeedbackMsg(`ম্যানুয়াল অর্ডার #${newOrder.orderNumber} সফলভাবে তৈরি হয়েছে`);
           loadAllAdminData();
           onStoreDataChanged();
         }}
       />
+
+      {/* Floating High-Visibility Confirmation Toast (Top-Right, Above all modals) */}
+      {toast && (
+        <aside
+          role="status"
+          aria-live="polite"
+          aria-label="Admin Notification"
+          className="fixed top-5 right-5 z-[9999] max-w-sm sm:max-w-md w-full bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] border border-stone-200/90 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto"
+        >
+          <div
+            className={`h-1.5 w-full ${
+              toast.type === 'error'
+                ? 'bg-rose-500'
+                : toast.type === 'info'
+                ? 'bg-blue-500'
+                : 'bg-emerald-500'
+            }`}
+          />
+          <div className="p-4 flex items-start gap-3.5">
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
+                toast.type === 'error'
+                  ? 'bg-rose-100 text-rose-600'
+                  : toast.type === 'info'
+                  ? 'bg-blue-100 text-blue-600'
+                  : 'bg-emerald-100 text-emerald-700'
+              }`}
+            >
+              {toast.type === 'error' ? (
+                <AlertCircle className="w-5 h-5" />
+              ) : (
+                <CheckCircle className="w-5 h-5 text-emerald-600" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 pr-1">
+              <h4 className="text-sm font-bold text-stone-900 leading-snug">{toast.title}</h4>
+              <p className="text-xs text-stone-600 mt-1 leading-relaxed break-words">{toast.message}</p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0"
+              aria-label="Dismiss notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </aside>
+      )}
     </div>
   );
 };

@@ -619,6 +619,7 @@ function StorefrontApp() {
       {/* Classy Floating Bar: Live Cart Total + 'সহায়তা' WhatsApp Help */}
       <ClassyFloatingBar
         phone={storeInfo?.settings?.phone || '01700-000000'}
+        supportHoursBn={storeInfo?.settings?.supportHoursBn || 'প্রতিদিন সকাল ৯টা - রাত ১০টা'}
         whatsappNumber={storeInfo?.settings?.whatsappNumber || storeInfo?.settings?.phone || '01700000000'}
         facebookUrl={storeInfo?.settings?.facebookUrl || 'https://facebook.com/sashroyidaam'}
         facebookUsername={storeInfo?.settings?.facebookUsername || 'sashroyidaam'}

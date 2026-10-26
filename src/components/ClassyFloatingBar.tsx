@@ -10,6 +10,7 @@ interface ClassyFloatingBarProps {
   instagramUsername?: string;
   whatsappNumber?: string;
   phone?: string;
+  supportHoursBn?: string;
 }
 
 export const ClassyFloatingBar: React.FC<ClassyFloatingBarProps> = ({
@@ -18,7 +19,8 @@ export const ClassyFloatingBar: React.FC<ClassyFloatingBarProps> = ({
   instagramUrl = '',
   instagramUsername = '',
   whatsappNumber = '',
-  phone = ''
+  phone = '',
+  supportHoursBn = ''
 }) => {
   const { totalItemCount, cartValidation, setIsCartDrawerOpen, isCartDrawerOpen } = useCart();
   const { language, t, formatPrice, formatNumber } = useLanguage();
@@ -178,7 +180,10 @@ export const ClassyFloatingBar: React.FC<ClassyFloatingBarProps> = ({
                   </div>
                   <div>
                     <div className="font-bold text-xs text-stone-900">হটলাইন কল</div>
-                    <div className="text-[10px] text-stone-600 font-medium">{phone}</div>
+                    <div className="text-[10px] text-stone-700 font-medium">{phone}</div>
+                    {supportHoursBn && (
+                      <div className="text-[9.5px] text-stone-500 font-normal mt-0.5">({supportHoursBn})</div>
+                    )}
                   </div>
                 </div>
                 <ExternalLink className="w-3.5 h-3.5 text-stone-500 opacity-60 group-hover:opacity-100 transition-opacity" />

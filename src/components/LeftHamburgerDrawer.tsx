@@ -372,7 +372,7 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
                     </div>
                   </div>
                   <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-semibold">
-                    {storeSettings?.supportHoursBn || 'সকাল ৯টা - রাত ১১টা'}
+                    {storeSettings?.supportHoursBn || 'প্রতিদিন সকাল ৯টা - রাত ১০টা'}
                   </span>
                 </div>
               );

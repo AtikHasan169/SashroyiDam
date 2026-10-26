@@ -39,7 +39,12 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
               {settings?.phone || settings?.email || settings?.addressBn ? (
                 <div className="bg-stone-50 p-3 rounded-lg border border-stone-200 space-y-1.5 font-medium text-stone-800">
                   {settings.phone && (
-                    <div>📞 হেল্পলাইন: {settings.phone} {settings.supportHoursBn ? `(${settings.supportHoursBn})` : ''}</div>
+                    <div className="space-y-0.5">
+                      <div className="font-semibold text-stone-800">📞 হেল্পলাইন: {settings.phone}</div>
+                      {settings.supportHoursBn && (
+                        <div className="text-[11px] text-stone-500 font-normal pl-5">({settings.supportHoursBn})</div>
+                      )}
+                    </div>
                   )}
                   {settings.phone && (
                     <div>💬 হোয়াটসঅ্যাপ: {settings.phone}</div>
@@ -186,9 +191,16 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
             {(settings?.phone || settings?.email || settings?.addressBn) && (
               <div className="pt-2 space-y-1.5 text-stone-400 text-xs">
                 {settings.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>হেল্পলাইন: {settings.phone} {settings.supportHoursBn ? `(${settings.supportHoursBn})` : ''}</span>
+                  <div className="flex items-start gap-2">
+                    <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-stone-300 font-medium">হেল্পলাইন: {settings.phone}</div>
+                      {settings.supportHoursBn && (
+                        <div className="text-[11px] text-stone-400 font-normal mt-0.5">
+                          ({settings.supportHoursBn})
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {settings.email && (
