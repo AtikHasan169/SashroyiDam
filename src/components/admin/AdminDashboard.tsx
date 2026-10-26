@@ -27,6 +27,7 @@ import {
   Filter,
   Phone,
   MessageSquare,
+  MessageCircle,
   Search,
   AlertCircle,
   Loader2
@@ -2021,6 +2022,95 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       onChange={(e) => setStoreSettings({ ...storeSettings, freeDeliveryThreshold: Number(e.target.value) })}
                       className="w-full px-3 py-2 border border-stone-200 rounded-lg"
                     />
+                  </div>
+                </div>
+
+                {/* Social Media & Customer Care Channels */}
+                <div className="pt-2 border-t border-stone-200">
+                  <h4 className="text-sm font-bold text-stone-900 mb-1 flex items-center gap-1.5">
+                    <MessageCircle className="w-4 h-4 text-emerald-600" />
+                    <span>সোশ্যাল মিডিয়া ও কাস্টমার সাপোর্ট চ্যানেল</span>
+                  </h4>
+                  <p className="text-[11px] text-stone-500 mb-3">
+                    ওয়েবসাইটের ফুটার, ফ্লোটিং সাপোর্ট বাটন এবং মোবাইল ড্রয়ারে প্রদর্শিত যোগাযোগের তথ্য
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#25D366]"></span>
+                        <span>হোয়াটসঅ্যাপ নম্বর (WhatsApp)</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="যেমন: 01700000000"
+                        value={storeSettings.whatsappNumber || ''}
+                        onChange={(e) => setStoreSettings({ ...storeSettings, whatsappNumber: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-200 rounded-lg font-mono text-xs"
+                      />
+                      <span className="text-[10px] text-stone-400 mt-0.5 block">সরাসরি চ্যাট লিংকের জন্য ব্যবহৃত হবে</span>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#1877F2]"></span>
+                        <span>ফেসবুক পেজ লিংক (Facebook URL)</span>
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://facebook.com/yourpage"
+                        value={storeSettings.facebookUrl || ''}
+                        onChange={(e) => setStoreSettings({ ...storeSettings, facebookUrl: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1">ফেসবুক পেজের নাম / ইউজারনেম</label>
+                      <input
+                        type="text"
+                        placeholder="যেমন: sashroyidaam"
+                        value={storeSettings.facebookUsername || ''}
+                        onChange={(e) => setStoreSettings({ ...storeSettings, facebookUsername: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-gradient-to-r from-amber-500 to-purple-600"></span>
+                        <span>ইনস্টাগ্রাম লিংক (Instagram URL)</span>
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://instagram.com/yourpage"
+                        value={storeSettings.instagramUrl || ''}
+                        onChange={(e) => setStoreSettings({ ...storeSettings, instagramUrl: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1">সাপোর্ট সময়সূচি (ঘণ্টা)</label>
+                      <input
+                        type="text"
+                        placeholder="যেমন: প্রতিদিন সকাল ৯টা - রাত ১০টা"
+                        value={storeSettings.supportHoursBn || ''}
+                        onChange={(e) => setStoreSettings({ ...storeSettings, supportHoursBn: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-stone-700 mb-1">স্টোর বা আউটলেট ঠিকানা (বাংলা)</label>
+                      <input
+                        type="text"
+                        placeholder="যেমন: মিরপুর, ঢাকা - ১২১৬"
+                        value={storeSettings.addressBn || ''}
+                        onChange={(e) => setStoreSettings({ ...storeSettings, addressBn: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs"
+                      />
+                    </div>
                   </div>
                 </div>
 

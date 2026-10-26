@@ -142,31 +142,41 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
                 কানেক্টেড থাকুন (Social Links)
               </span>
               <div className="flex items-center gap-2.5">
-                {/* Facebook */}
-                {settings?.facebookUrl && (
-                  <a
-                    href={settings.facebookUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 rounded-full bg-[#1877F2]/20 hover:bg-[#1877F2] text-white border border-[#1877F2]/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
-                    title={settings.facebookPageName || 'Facebook'}
-                    aria-label="Facebook"
-                  >
-                    <span className="font-bold text-sm leading-none">f</span>
-                  </a>
-                )}
-
                 {/* WhatsApp */}
-                {settings?.phone && (
+                <a
+                  href={`https://wa.me/${(settings?.whatsappNumber || settings?.phone || '01700000000').replace(/[^0-9]/g, '')}?text=${encodeURIComponent('সাশ্রয়ী দাম (Sashroyi Daam) থেকে সহায়তা প্রয়োজন।')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-[#25D366]/20 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
+                  title={`WhatsApp: ${settings?.whatsappNumber || settings?.phone || '01700-000000'}`}
+                  aria-label="WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4 fill-current/20 group-hover:fill-current" />
+                </a>
+
+                {/* Facebook */}
+                <a
+                  href={settings?.facebookUrl || 'https://facebook.com/sashroyidaam'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-[#1877F2]/20 hover:bg-[#1877F2] text-white border border-[#1877F2]/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
+                  title={settings?.facebookPageName || 'Facebook Page'}
+                  aria-label="Facebook"
+                >
+                  <span className="font-bold text-sm leading-none">f</span>
+                </a>
+
+                {/* Instagram */}
+                {(settings?.instagramUrl || true) && (
                   <a
-                    href={`https://wa.me/${settings.phone.replace(/[^0-9]/g, '')}`}
+                    href={settings?.instagramUrl || 'https://instagram.com/sashroyidaam'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-9 h-9 rounded-full bg-[#25D366]/20 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
-                    title={`WhatsApp (${settings.phone})`}
-                    aria-label="WhatsApp"
+                    className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#F58529]/20 via-[#DD2A7B]/20 to-[#8134AF]/20 hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] text-pink-400 hover:text-white border border-pink-500/40 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
+                    title="Instagram"
+                    aria-label="Instagram"
                   >
-                    <MessageCircle className="w-4 h-4 fill-current/20 group-hover:fill-current" />
+                    <Instagram className="w-4 h-4" />
                   </a>
                 )}
               </div>

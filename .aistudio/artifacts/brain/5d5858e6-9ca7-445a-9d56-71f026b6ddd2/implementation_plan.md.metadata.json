@@ -1,6 +1,6 @@
 {
-  "summary":  "Comprehensive architectural fix to ensure uploaded product photos display reliably on Vercel deployments by routing /uploads/(.*) to the serverless backend, using /tmp for serverless writable disk caching, and awaiting MongoDB Atlas photo persistence.",
-  "updatedAt":  "2026-10-26T17:19:28.561528072Z",
+  "summary":  "Implementation plan to move support hours (প্রতিদিন সকাল ৯টা - রাত ১০টা) onto a clean next line formatted as subtle text beneath the helpline in the Footer, Contact modal, and Floating Support card.",
+  "updatedAt":  "2026-10-26T17:50:23.853067041Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

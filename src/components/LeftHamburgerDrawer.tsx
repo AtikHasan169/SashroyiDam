@@ -352,62 +352,66 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
           {/* 5. Customer Helpline & Social Footer */}
           <div className="p-4 bg-stone-50 border-t border-stone-200 space-y-2.5">
             {/* Phone hotline */}
-            {storeSettings?.phone && (
-              <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-stone-200 shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#0F4C3A] flex items-center justify-center">
-                    <Phone className="w-4 h-4" />
+            {(() => {
+              const displayPhone = storeSettings?.phone || '01700-000000';
+              const cleanPhone = displayPhone.replace(/[^0-9]/g, '');
+              return (
+                <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-stone-200 shadow-2xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#0F4C3A] flex items-center justify-center">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-stone-500 font-medium">{t('customerCare')}</div>
+                      <a
+                        href={`tel:${cleanPhone}`}
+                        className="text-xs font-bold text-stone-900 hover:text-[#0F4C3A] transition-colors"
+                      >
+                        {displayPhone}
+                      </a>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-[10px] text-stone-500 font-medium">{t('customerCare')}</div>
-                    <a
-                      href={`tel:${storeSettings.phone.replace(/[^0-9]/g, '')}`}
-                      className="text-xs font-bold text-stone-900 hover:text-[#0F4C3A] transition-colors"
-                    >
-                      {storeSettings.phone}
-                    </a>
-                  </div>
-                </div>
-                {storeSettings.supportHoursBn && (
                   <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-semibold">
-                    {storeSettings.supportHoursBn}
+                    {storeSettings?.supportHoursBn || 'সকাল ৯টা - রাত ১১টা'}
                   </span>
-                )}
-              </div>
-            )}
+                </div>
+              );
+            })()}
 
             {/* Social Channels in Drawer */}
-            {(storeSettings?.phone || storeSettings?.facebookUrl) && (
-              <div className="grid grid-cols-2 gap-2">
-                {storeSettings?.phone && (
+            {(() => {
+              const waNum = (storeSettings?.whatsappNumber || storeSettings?.phone || '01700000000').replace(/[^0-9]/g, '');
+              const fbUrl = storeSettings?.facebookUrl || 'https://facebook.com/sashroyidaam';
+              const waLink = `https://wa.me/${waNum}?text=${encodeURIComponent('সাশ্রয়ী দাম (Sashroyi Daam) থেকে সহায়তা প্রয়োজন।')}`;
+
+              return (
+                <div className="grid grid-cols-2 gap-2">
                   <a
-                    href={`https://wa.me/${storeSettings.phone.replace(/[^0-9]/g, '')}`}
+                    href={waLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 px-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] rounded-xl text-[11px] font-bold border border-[#25D366]/25 transition-colors cursor-pointer"
-                    title="WhatsApp"
+                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] rounded-xl text-[11px] font-bold border border-[#25D366]/25 transition-colors cursor-pointer"
+                    title="WhatsApp এ সরাসরি চ্যাট"
                   >
-                    <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
+                    <MessageCircle className="w-3.5 h-3.5 text-[#25D366] shrink-0" />
                     <span>WhatsApp</span>
                   </a>
-                )}
 
-                {storeSettings?.facebookUrl && (
                   <a
-                    href={storeSettings.facebookUrl}
+                    href={fbUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 py-2 px-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] rounded-xl text-[11px] font-bold border border-[#1877F2]/25 transition-colors cursor-pointer"
-                    title={storeSettings.facebookPageName || 'Facebook'}
+                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] rounded-xl text-[11px] font-bold border border-[#1877F2]/25 transition-colors cursor-pointer"
+                    title={storeSettings?.facebookPageName || 'Facebook পেজ'}
                   >
-                    <span className="w-3.5 h-3.5 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-[9px] font-bold">
+                    <span className="w-3.5 h-3.5 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-[9px] font-bold shrink-0">
                       f
                     </span>
                     <span>Facebook</span>
                   </a>
-                )}
-              </div>
-            )}
+                </div>
+              );
+            })()}
 
             {/* Trust badge */}
             <div className="text-[10px] text-center text-stone-500 flex items-center justify-center gap-1.5 pt-0.5">

@@ -251,6 +251,7 @@ export interface StoreSettings {
   storeNameEn: string;
   taglineBn: string;
   phone: string;
+  whatsappNumber?: string;
   email: string;
   supportHoursBn: string;
   addressBn: string;
@@ -265,6 +266,8 @@ export interface StoreSettings {
   facebookPageName?: string;
   facebookUsername?: string;
   facebookUrl?: string;
+  instagramUrl?: string;
+  youtubeUrl?: string;
 }
 
 export interface InventoryMovement {

@@ -102,22 +102,24 @@ function getInitialData(): DatabaseSchema {
   const initialStoreSettings: StoreSettings = {
     storeNameBn: 'সাশ্রয়ী দাম',
     storeNameEn: 'Sashroyi Daam',
-    taglineBn: '',
-    phone: '',
-    email: '',
-    supportHoursBn: '',
-    addressBn: '',
-    announcementStripBn: '',
-    showAnnouncement: false,
+    taglineBn: 'সাশ্রয়ী দামে সেরা কেনাকাটা',
+    phone: '01700-000000',
+    whatsappNumber: '01700000000',
+    email: 'support@sashroyidaam.com',
+    supportHoursBn: 'প্রতিদিন সকাল ৯টা - রাত ১০টা',
+    addressBn: 'মিরপুর, ঢাকা - ১২১৬, বাংলাদেশ',
+    announcementStripBn: '🚚 সারাদেশে দ্রুত হোম ডেলিভারি ও ক্যাশ অন ডেলিভারি সুবিধা!',
+    showAnnouncement: true,
     freeDeliveryThreshold: 2000,
     defaultDeliveryFeeDhaka: 70,
     defaultDeliveryFeeOutside: 130,
     isCodEnabled: true,
     isSslcommerzEnabled: false,
     sslSandboxMode: true,
-    facebookPageName: '',
-    facebookUsername: '',
-    facebookUrl: ''
+    facebookPageName: 'সাশ্রয়ী দাম - Sashroyi Daam',
+    facebookUsername: 'sashroyidaam',
+    facebookUrl: 'https://facebook.com/sashroyidaam',
+    instagramUrl: 'https://instagram.com/sashroyidaam'
   };
 
   const initialOrders: Order[] = [];
@@ -185,23 +187,28 @@ export function getDatabase(): DatabaseSchema {
         }
       });
 
-      // Clear any legacy test store contact details so owner can set them manually
+      // Ensure store contact and social channels are active with fallback values
       if (memoryDb!.storeSettings) {
-        if (memoryDb!.storeSettings.phone === '০৯৬১২-৮৮৯৯০০' || memoryDb!.storeSettings.phone === '01700000001') {
-          memoryDb!.storeSettings.phone = '';
+        if (!memoryDb!.storeSettings.whatsappNumber) {
+          memoryDb!.storeSettings.whatsappNumber = memoryDb!.storeSettings.phone || '01700000000';
           hasChanges = true;
         }
-        if (memoryDb!.storeSettings.addressBn?.includes('বাড়ি ৪২')) {
-          memoryDb!.storeSettings.addressBn = '';
+        if (!memoryDb!.storeSettings.phone) {
+          memoryDb!.storeSettings.phone = '01700-000000';
           hasChanges = true;
         }
-        if (memoryDb!.storeSettings.email === 'support@sashroyidaam.com') {
-          memoryDb!.storeSettings.email = '';
+        if (!memoryDb!.storeSettings.facebookUrl) {
+          memoryDb!.storeSettings.facebookUrl = 'https://facebook.com/sashroyidaam';
+          memoryDb!.storeSettings.facebookPageName = 'সাশ্রয়ী দাম - Sashroyi Daam';
+          memoryDb!.storeSettings.facebookUsername = 'sashroyidaam';
           hasChanges = true;
         }
-        if (memoryDb!.storeSettings.announcementStripBn?.includes('🚚 ২,০০০ টাকার অর্ডারে')) {
-          memoryDb!.storeSettings.announcementStripBn = '';
-          memoryDb!.storeSettings.showAnnouncement = false;
+        if (!memoryDb!.storeSettings.instagramUrl) {
+          memoryDb!.storeSettings.instagramUrl = 'https://instagram.com/sashroyidaam';
+          hasChanges = true;
+        }
+        if (!memoryDb!.storeSettings.supportHoursBn) {
+          memoryDb!.storeSettings.supportHoursBn = 'প্রতিদিন সকাল ৯টা - রাত ১০টা';
           hasChanges = true;
         }
       }
