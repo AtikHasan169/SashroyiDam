@@ -438,14 +438,7 @@ export async function ensureDatabaseReady(): Promise<DatabaseSchema> {
         const mongoData = await fetchMongoData();
         if (mongoData && memoryDb) {
           if (mongoData.products && mongoData.products.length > 0) {
-            const mongoMap = new Map((mongoData.products as Product[]).map((p) => [p.id, p]));
-            const merged = [...(mongoData.products as Product[])];
-            for (const lp of memoryDb.products) {
-              if (!mongoMap.has(lp.id)) {
-                merged.unshift(lp);
-              }
-            }
-            memoryDb.products = merged;
+            memoryDb.products = mongoData.products as Product[];
           } else if (memoryDb.products.length > 0) {
             // First time seeding MongoDB with initial products
             for (const prod of memoryDb.products) {
@@ -454,14 +447,7 @@ export async function ensureDatabaseReady(): Promise<DatabaseSchema> {
           }
 
           if (mongoData.categories && mongoData.categories.length > 0) {
-            const mongoCatMap = new Map((mongoData.categories as Category[]).map((c) => [c.id, c]));
-            const mergedCats = [...(mongoData.categories as Category[])];
-            for (const lc of memoryDb.categories) {
-              if (!mongoCatMap.has(lc.id)) {
-                mergedCats.push(lc);
-              }
-            }
-            memoryDb.categories = mergedCats;
+            memoryDb.categories = mongoData.categories as Category[];
           } else if (memoryDb.categories.length > 0) {
             for (const cat of memoryDb.categories) {
               syncCategoryToMongo(cat).catch(() => {});
@@ -469,14 +455,7 @@ export async function ensureDatabaseReady(): Promise<DatabaseSchema> {
           }
 
           if (mongoData.orders && mongoData.orders.length > 0) {
-            const mongoOrderMap = new Map((mongoData.orders as Order[]).map((o) => [o.id, o]));
-            const mergedOrders = [...(mongoData.orders as Order[])];
-            for (const lo of memoryDb.orders) {
-              if (!mongoOrderMap.has(lo.id)) {
-                mergedOrders.unshift(lo);
-              }
-            }
-            memoryDb.orders = mergedOrders;
+            memoryDb.orders = mongoData.orders as Order[];
           }
 
           if (mongoData.storeSettings) {

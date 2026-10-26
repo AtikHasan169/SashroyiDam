@@ -58,10 +58,19 @@ function StorefrontApp() {
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortOption, setSortOption] = useState<'featured' | 'newest' | 'price_asc' | 'price_desc' | 'best_selling'>('featured');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Debounce search input to eliminate redundant API requests during typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Fetch store configuration and categories
   const loadStoreMeta = useCallback(async () => {
@@ -83,27 +92,18 @@ function StorefrontApp() {
     try {
       const res = await api.getProducts({
         category: selectedCategory !== 'all' ? selectedCategory : '',
-        search: searchQuery || '',
+        search: debouncedSearch || '',
         sort: sortOption,
         inStock: inStockOnly ? 'true' : ''
       });
-      setProducts((currentProds) => {
-        if (!res?.items) return currentProds;
-        const serverMap = new Map(res.items.map((p) => [p.id, p]));
-        const merged = [...res.items];
-        for (const cp of currentProds) {
-          if (!serverMap.has(cp.id) && cp.isPublished !== false && !cp.isArchived) {
-            merged.unshift(cp);
-          }
-        }
-        return merged;
-      });
+      // Set products directly from authoritative server response (ensures deleted products never reappear)
+      setProducts(res?.items || []);
     } catch (err) {
       console.error('Failed to fetch products:', err);
     } finally {
       setIsLoadingProducts(false);
     }
-  }, [selectedCategory, searchQuery, sortOption, inStockOnly]);
+  }, [selectedCategory, debouncedSearch, sortOption, inStockOnly]);
 
   useEffect(() => {
     loadStoreMeta();
@@ -418,6 +418,7 @@ function StorefrontApp() {
           {!searchQuery && (
             <div>
               <Hero
+                isLoading={isLoadingProducts}
                 products={products}
                 banners={storeInfo?.banners || []}
                 onOpenProduct={handleOpenProductPage}
@@ -710,8 +711,10 @@ function StorefrontApp() {
           setAdminEditingProduct(null);
         }}
         initialEditingProduct={adminEditingProduct}
-        onStoreDataChanged={(updatedProduct) => {
-          if (updatedProduct) {
+        onStoreDataChanged={(updatedProduct, deletedProductId) => {
+          if (deletedProductId) {
+            setProducts((prev) => prev.filter((p) => p.id !== deletedProductId));
+          } else if (updatedProduct) {
             setProducts((prev) => {
               const exists = prev.some((p) => p.id === updatedProduct.id);
               if (exists) {

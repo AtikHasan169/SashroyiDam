@@ -50,7 +50,7 @@ import type {
 interface AdminDashboardProps {
   isOpen: boolean;
   onClose: () => void;
-  onStoreDataChanged: (updatedProduct?: Product) => void;
+  onStoreDataChanged: (updatedProduct?: Product, deletedProductId?: string) => void;
   initialEditingProduct?: Partial<Product> | null;
   onViewProduct?: (p: Product) => void;
 }
@@ -324,17 +324,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       setMetrics(mRes);
       setOrders(oRes.orders);
-      setProducts((currentProds) => {
-        if (!pRes?.products) return currentProds;
-        const serverMap = new Map(pRes.products.map((p) => [p.id, p]));
-        const merged = [...pRes.products];
-        for (const cp of currentProds) {
-          if (!serverMap.has(cp.id)) {
-            merged.unshift(cp);
-          }
-        }
-        return merged;
-      });
+      setProducts(pRes?.products || []);
       setCategories(cRes.categories);
       setCoupons(coupRes.coupons);
       setStoreSettings(setRes.settings);
@@ -375,8 +365,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         note: statusNote || undefined
       });
       setSelectedOrder(res.order);
+      setOrders((prev) => prev.map((o) => (o.id === res.order.id ? res.order : o)));
+      setStatusNote('');
       setFeedbackMsg('অর্ডার স্ট্যাটাস সফলভাবে আপডেট করা হয়েছে');
-      loadAllAdminData();
       onStoreDataChanged();
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
@@ -609,8 +600,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
     try {
       await api.archiveProduct(id);
-      loadAllAdminData();
-      onStoreDataChanged();
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      onStoreDataChanged(undefined, id);
       setFeedbackMsg('পণ্যটি সফলভাবে আর্কাইভ করা হয়েছে');
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
@@ -626,10 +617,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
     try {
       await api.deleteProduct(id, true);
+      setProducts((prev) => prev.filter((p) => p.id !== id));
       setShowProductModal(false);
       setEditingProduct(null);
-      loadAllAdminData();
-      onStoreDataChanged();
+      onStoreDataChanged(undefined, id);
       setFeedbackMsg('পণ্যটি সফলভাবে মুছে ফেলা হয়েছে');
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
@@ -2489,10 +2480,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             const url = await compressAndUploadImage(files[i]);
                             uploadedUrls.push(url);
                           }
-                          const existingImages = editingProduct.images || [];
-                          setEditingProduct({
-                            ...editingProduct,
-                            images: [...existingImages, ...uploadedUrls]
+                          setEditingProduct((prev) => {
+                            if (!prev) return prev;
+                            const existing = prev.images || [];
+                            return {
+                              ...prev,
+                              images: [...existing, ...uploadedUrls]
+                            };
                           });
                         } catch (err: any) {
                           setModalError(err.message || 'ছবি আপলোড ব্যর্থ হয়েছে');
@@ -2531,8 +2525,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              const filtered = (editingProduct.images || []).filter((_, i) => i !== idx);
-                              setEditingProduct({ ...editingProduct, images: filtered });
+                              setEditingProduct((prev) => {
+                                if (!prev) return prev;
+                                const filtered = (prev.images || []).filter((_, i) => i !== idx);
+                                return { ...prev, images: filtered };
+                              });
                             }}
                             className="absolute top-1 right-1 w-6 h-6 bg-rose-600 hover:bg-rose-700 text-white rounded-full flex items-center justify-center shadow-md cursor-pointer transition-transform hover:scale-110"
                             title="ছবি মুছুন"
@@ -2545,9 +2542,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <button
                               type="button"
                               onClick={() => {
-                                const current = [...(editingProduct.images || [])];
-                                const selected = current.splice(idx, 1)[0];
-                                setEditingProduct({ ...editingProduct, images: [selected, ...current] });
+                                setEditingProduct((prev) => {
+                                  if (!prev) return prev;
+                                  const current = [...(prev.images || [])];
+                                  const selected = current.splice(idx, 1)[0];
+                                  return { ...prev, images: [selected, ...current] };
+                                });
                               }}
                               className="absolute bottom-1 inset-x-1 py-1 bg-black/70 hover:bg-black/90 text-white text-[10px] font-semibold rounded text-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                             >
@@ -2577,9 +2577,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     type="button"
                     onClick={() => {
                       if (!imageUrlInput.trim()) return;
-                      setEditingProduct({
-                        ...editingProduct,
-                        images: [...(editingProduct.images || []), imageUrlInput.trim()]
+                      const trimmed = imageUrlInput.trim();
+                      setEditingProduct((prev) => {
+                        if (!prev) return prev;
+                        return {
+                          ...prev,
+                          images: [...(prev.images || []), trimmed]
+                        };
                       });
                       setImageUrlInput('');
                     }}
@@ -2737,7 +2741,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <img src={editingCategory.image} alt="" className="w-full h-full object-cover" />
                       <button
                         type="button"
-                        onClick={() => setEditingCategory({ ...editingCategory, image: '' })}
+                        onClick={() => setEditingCategory((prev) => prev ? { ...prev, image: '' } : prev)}
                         className="absolute inset-0 bg-stone-900/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                         title="ছবি পরিবর্তন"
                       >
@@ -2766,7 +2770,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           setIsUploadingCatImage(true);
                           try {
                             const url = await compressAndUploadImage(file);
-                            setEditingCategory({ ...editingCategory, image: url });
+                            setEditingCategory((prev) => prev ? { ...prev, image: url } : prev);
                           } catch (err: any) {
                             showErrorFeedback(err.message || 'ছবি আপলোড করতে ব্যর্থ হয়েছে');
                           } finally {

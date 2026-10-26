@@ -1,49 +1,91 @@
-# Implementation Plan: Professional E-Commerce Image Standards & Silent Automation
+# Hero Loading Skeleton & Retail Customer Banner Redesign
 
-Align the platform's image architecture with the industry standards used by professional e-commerce leaders (Shopify, Amazon, Daraz) by switching to high-efficiency universal JPEG (`.jpg`), removing manual UI buttons, and making all optimization 100% automated and silent in the background.
+Eliminate the jarring developer setup placeholder text during initial load and replace it with a smooth shimmer skeleton loader matching exact carousel dimensions, coupled with an authentic customer-facing retail campaign banner fallback when no custom slides are configured.
 
----
+## User Review & Critical Decisions
 
-## 1. Professional E-Commerce Standard: JPEG vs. WebP
+> [!IMPORTANT]
+> The confirmed choices from the clarifying questions have been incorporated into this specification:
+> - **Loading Presentation**: Replace text flash with a dimension-matched smooth shimmer skeleton (`animate-pulse`) during data fetching.
+> - **Fallback Experience**: When loading finishes and no promotional slides exist, display an authentic customer retail headline ("সাশ্রয়ী দামে সেরা কেনাকাটা") and shop now CTA rather than internal admin onboarding copy.
 
-| Criteria | JPEG (.jpg) (Recommended Standard) | WebP (.webp) |
-| :--- | :--- | :--- |
-| **Industry Adoption** | Universal default used by Shopify, Amazon, and marketplaces worldwide | Used by modern CDNs with automatic fallback |
-| **Compatibility** | 100% compatible across all devices, older Android phones, Windows, and iPhones | Supported in modern browsers, but can fail in older desktop software |
-| **Download & Share** | Easily opened in Photoshop, Windows Viewer, Facebook, and WhatsApp without conversion | Often requires conversion when downloaded by customers or staff |
-| **Visual Quality** | Exceptional color depth for textiles, electronics, and fashion retail at 0.85 quality | Slightly higher compression ratio but can soften high-frequency details |
-| **Verdict** | **The Professional Standard**: High-efficiency progressive JPEG (`.jpg`) at 85% quality and max 1200px dimension delivers crisp sharpness, tiny file size (~80KB–130KB), and 100% universal compatibility. |
+- **Confirmed Decision 1**: Dimension-matched shimmer skeleton while storefront metadata and catalog products load.
+- **Confirmed Decision 2**: Premium retail customer banner fallback (removing all developer setup / admin onboarding copy from the public storefront).
 
 ---
 
-## 2. Proposed Refinements
+### 1. Overview & Core Concept
 
-1. **Remove the Manual Optimization Button**:
-   - Delete the `⚡ ছবি অপ্টিমাইজ (WebP)` button from the top admin header in `AdminDashboard.tsx`.
-   - Admin headers in professional applications remain clean, focused, and uncluttered.
-2. **100% Silent Background Processing**:
-   - **Upload**: When staff selects or captures a photo, the browser automatically resizes it to a maximum of 1200px and exports as clean, high-grade JPEG (`image/jpeg`, 0.85 quality).
-   - **Persistence**: The server saves the file as `/uploads/img_<timestamp>_<id>.jpg` on disk and simultaneously syncs it to MongoDB `photos` collection for container redeployment safety.
-   - **Migration**: On server startup, any legacy Base64 strings in the database are automatically converted to `.jpg` files silently in the background—no human intervention or clicks required.
-3. **Clean Universal File Extensions**:
-   - All newly saved or rehydrated images will use standard `.jpg` extensions.
+- **What It Solves**: When visiting the store, users previously experienced a jarring flash of a developer setup message ("ক্যাটালগ সম্পূর্ণ প্রস্তুত। অ্যাডমিন প্যানেল থেকে আপনার নিজস্ব পণ্য, ক্যাটাগরি এবং ব্যানার যুক্ত করে দ্রুত বিক্রি শুরু করুন") while products loaded. This created layout disruption and exposed internal administrative copy to shoppers.
+- **Target Audience**: Shoppers browsing the online retail store on mobile or desktop devices.
+- **Key Value**: Zero visual flicker on page load, smooth skeleton transitions, and a 100% customer-centric retail atmosphere even before promotional banners are uploaded.
 
 ---
 
-## 3. Implementation Steps
+### 2. User Experience & Visual Design
 
-### Step 1: Admin Dashboard UI Clean-up
-- **File**: `src/components/admin/AdminDashboard.tsx`
-- Remove the `⚡ ছবি অপ্টিমাইজ` button from the top header.
-- Update `compressAndUploadImage` to export standard high-grade JPEG (`image/jpeg` at 0.85 quality) with standard `.jpg` file extension.
+- **Loading State**:
+  - A clean, responsive container matching the hero banner's exact dimensions (`aspect-[16/7] sm:aspect-[21/8] md:aspect-[24/8] min-h-[190px] sm:min-h-[280px] md:min-h-[340px] rounded-2xl sm:rounded-3xl`).
+  - Subtle wave/shimmer gradient (`bg-stone-200/80` with dark emerald pulse accents) that occupies identical space to prevent layout shift (CLS = 0).
+  - No text or button flash during network round-trips.
 
-### Step 2: Server Upload & Migration Harmonization
-- **Files**: `src/server/app.ts` & `src/server/db.ts`
-- Ensure default image extension for converted and uploaded files is `.jpg`.
-- Keep background migration running silently on server boot without needing manual button triggers.
-- Retain dual-layer deploy safety (local disk cache + MongoDB auto-rehydration) for `.jpg` images.
+- **Customer Retail Fallback (When No Custom Slides Exist)**:
+  - **Aesthetic**: Deep brand forest green gradient (`#07241A` to `#0F4C3A`) with subtle radial illumination.
+  - **Kicker / Tag**: Clean unboxed typographic label: `সাশ্রয়ী দাম · আপনার বিশ্বস্ত অনলাইন রিটেইল`.
+  - **Headline**: High-contrast, bold retail title: `সাশ্রয়ী দামে সেরা কেনাকাটা · খাঁটি পণ্যের বিশ্বস্ত ঠিকানা`.
+  - **Customer Subtitle**: Customer-focused value proposition: `দেশসেরা গ্যাজেট, লাইফস্টাইল ও খাঁটি নিত্যপ্রয়োজনীয় পণ্যের নির্ভরযোগ্য সংগ্রহ। দ্রুত ডেলিভারি ও ক্যাশ অন ডেলিভারি সুবিধা।`
+  - **Call to Action**: High-contrast amber shopping button (`পণ্য দেখুন →`) that smoothly scrolls to the product collection.
 
-### Step 3: Verification
-- Verify clean, uncluttered admin header.
-- Upload a test product photo in Admin Dashboard and confirm it saves as a high-quality, lightweight `.jpg` file.
-- Verify fast page load speeds, clean JSON payloads (<50KB), and zero console warnings.
+---
+
+### 3. Key Product Decisions & Trade-Offs
+
+- **Decision 1: Explicit Loading State Binding in Hero Component**
+  - *Chosen Approach*: Pass `isLoading` prop from `App.tsx` (`isLoadingProducts`) into `<Hero />`.
+  - *Why*: Decouples data arrival from the zero-slide fallback state, guaranteeing the skeleton shows only while fetching and the fallback shows only after fetch completes with empty slides.
+  - *Alternative Considered*: Showing an empty blank space (causes noticeable layout jump when products render).
+
+- **Decision 2: Complete Removal of Admin Copy from Public Storefront**
+  - *Chosen Approach*: Eliminate all developer onboarding text ("অ্যাডমিন প্যানেল থেকে আপনার নিজস্ব পণ্য...") from the client-facing hero template.
+  - *Why*: Public e-commerce visitors should only ever see commercial shopping propositions, trust assurances, and product exploration prompts.
+
+---
+
+### 4. Technical Architecture & Component Flow
+
+```
+┌────────────────────────────────────────────────────────┐
+│                        App.tsx                         │
+│  State: isLoadingProducts, products, banners           │
+└──────────────────────────┬─────────────────────────────┘
+                           │
+             isLoading & slide data props
+                           │
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│                       Hero.tsx                         │
+│                                                        │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ If isLoading:                                    │  │
+│  │ Render Shimmer Skeleton (Matching Aspect Ratio)  │  │
+│  └──────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ Else If allSlides.length > 0:                    │  │
+│  │ Render Dynamic Pure Image Carousel               │  │
+│  └──────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │ Else:                                            │  │
+│  │ Render Customer Retail Campaign Banner           │  │
+│  │ (No Admin Text, Shopping CTA)                    │  │
+│  └──────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────┘
+```
+
+- **Execution Steps**:
+  1. Update `Hero.tsx`:
+     - Add `isLoading?: boolean` to `HeroProps`.
+     - Build `HeroSkeleton` matching exact responsive aspect ratio and rounded radii.
+     - Rewrite the zero-slide fallback with polished customer copy and clean retail typography.
+  2. Update `App.tsx`:
+     - Pass `isLoading={isLoadingProducts}` to `<Hero />`.
+  3. Validate with `compile_applet` and `lint_applet`.

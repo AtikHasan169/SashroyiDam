@@ -12,6 +12,7 @@ interface HeroSlide {
 }
 
 interface HeroProps {
+  isLoading?: boolean;
   onExploreClick: () => void;
   onSelectCategory?: (categoryId: string) => void;
   products?: Product[];
@@ -21,6 +22,7 @@ interface HeroProps {
 }
 
 export const Hero: React.FC<HeroProps> = ({
+  isLoading = false,
   onExploreClick,
   onSelectCategory,
   products = [],
@@ -105,21 +107,37 @@ export const Hero: React.FC<HeroProps> = ({
     onExploreClick();
   };
 
+  // 1. Loading Skeleton: Dimension-matched shimmer banner preventing layout shift and flashing text
+  if (isLoading) {
+    return (
+      <section className="w-full overflow-hidden bg-[#FAF9F6] py-3 sm:py-5">
+        <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12">
+          <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-200/90 aspect-[16/7] sm:aspect-[21/8] md:aspect-[24/8] 2xl:aspect-[26/8] min-h-[190px] sm:min-h-[280px] md:min-h-[340px] 2xl:min-h-[380px] max-h-[460px] 2xl:max-h-[520px] shadow-xs animate-pulse">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-stone-300/50 via-transparent to-transparent" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // 2. Retail Fallback Banner: Polished customer-facing headline when no promotional slides are active
   if (allSlides.length === 0) {
     return (
       <section className="w-full overflow-hidden bg-[#FAF9F6] py-3 sm:py-5">
         <div className="max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1620px] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12">
           <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-r from-[#07241A] via-[#0F4C3A] to-[#145642] text-white p-6 sm:p-10 md:p-14 shadow-lg min-h-[200px] sm:min-h-[260px] flex flex-col justify-center border border-emerald-900/40">
             <div className="max-w-2xl space-y-3 z-10">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold backdrop-blur-xs border border-emerald-500/30">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>সাশ্রয়ী দাম — আপনার বিশ্বস্ত অনলাইন রিটেইল</span>
+              <div className="flex items-center gap-2 text-xs font-medium text-emerald-300/90 tracking-wide">
+                <span>সাশ্রয়ী দাম</span>
+                <span aria-hidden="true">·</span>
+                <span>আপনার বিশ্বস্ত অনলাইন শপ</span>
               </div>
               <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white">
-                আপনার পছন্দ, সাশ্রয়ী দাম ও সেরা মান
+                সাশ্রয়ী দামে সেরা কেনাকাটা · খাঁটি পণ্যের নিশ্চয়তা
               </h1>
               <p className="text-xs sm:text-sm md:text-base text-emerald-100/90 leading-relaxed max-w-xl">
-                ক্যাটালগ সম্পূর্ণ প্রস্তুত। অ্যাডমিন প্যানেল থেকে আপনার নিজস্ব পণ্য, ক্যাটাগরি এবং ব্যানার যুক্ত করে দ্রুত বিক্রি শুরু করুন।
+                দেশসেরা গ্যাজেট, লাইফস্টাইল ও দৈনন্দিন নিত্যপ্রয়োজনীয় পণ্যের নির্ভরযোগ্য সংগ্রহ। দ্রুত হোম ডেলিভারি ও সহজ ক্যাশ অন ডেলিভারি সুবিধা।
               </p>
               <div className="pt-2 flex flex-wrap gap-3">
                 <button
@@ -127,7 +145,7 @@ export const Hero: React.FC<HeroProps> = ({
                   onClick={onExploreClick}
                   className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-md cursor-pointer"
                 >
-                  <span>পণ্য অন্বেষণ করুন</span>
+                  <span>পণ্য দেখুন</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

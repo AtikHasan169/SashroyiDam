@@ -222,6 +222,8 @@ router.put('/orders/:id/status', async (req: AuthenticatedRequest, res) => {
       `Order ${updated.orderNumber} status changed to ${status}`
     );
 
+    await syncOrderToMongo(updated);
+
     res.json({ order: updated, message: 'অর্ডার স্ট্যাটাস সফলভাবে আপডেট করা হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'স্ট্যাটাস আপডেট ব্যর্থ হয়েছে' });
@@ -247,6 +249,8 @@ router.post('/orders/:id/notes', async (req: AuthenticatedRequest, res) => {
       order.internalNotes.push(entry);
       return order;
     });
+
+    await syncOrderToMongo(updated);
 
     res.json({ order: updated, message: 'অভ্যন্তরীণ নোট যোগ করা হয়েছে' });
   } catch (err: any) {
@@ -674,22 +678,26 @@ router.delete('/products/:id', async (req: AuthenticatedRequest, res) => {
     const permanent = req.query.permanent === 'true';
 
     let productTitle = '';
+    let updatedProduct: Product | null = null;
     await withTransaction((db) => {
       const idx = db.products.findIndex((p) => p.id === id);
       if (idx === -1) throw new Error('পণ্য পাওয়া যায়নি');
 
       productTitle = db.products[idx].titleBn;
       if (permanent) {
-        db.products.splice(idx, 1);
+        db.products = db.products.filter((p) => p.id !== id);
       } else {
         db.products[idx].isArchived = true;
         db.products[idx].isPublished = false;
         db.products[idx].updatedAt = new Date().toISOString();
+        updatedProduct = db.products[idx];
       }
     });
 
     if (permanent) {
       await deleteProductFromMongo(id);
+    } else if (updatedProduct) {
+      await syncProductToMongo(updatedProduct);
     }
 
     await recordAuditLog(

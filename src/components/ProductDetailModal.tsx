@@ -269,10 +269,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               }`}
             >
               <img
-                src={product.images[selectedImageIndex] || product.images[0]}
+                src={product.images?.[selectedImageIndex] || product.images?.[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'}
                 alt={product.titleBn}
                 referrerPolicy="no-referrer"
                 decoding="async"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = '/src/assets/images/category_kitchen_cookware_1792084991823.jpg';
+                }}
                 className="w-full h-full object-cover will-change-transform"
                 style={{
                   transform: isZoomed || isHovering ? 'scale(2.4)' : 'scale(1)',
@@ -333,7 +336,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
 
             {/* Thumbnail Strip */}
-            {product.images.length > 1 && (
+            {Array.isArray(product.images) && product.images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {product.images.map((img, idx) => (
                   <button

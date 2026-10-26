@@ -58,12 +58,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Left: Product Image */}
         <div className="relative w-full sm:w-56 sm:min-w-56 aspect-16/10 sm:aspect-auto bg-stone-100 overflow-hidden shrink-0">
           <img
-            src={product.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'}
+            src={product.images?.[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'}
             alt={title}
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
             loading="lazy"
             decoding="async"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = '/src/assets/images/category_kitchen_cookware_1792084991823.jpg';
+            }}
           />
 
           {/* Wishlist Button */}
@@ -216,12 +219,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       {/* 1. Image Container with Wishlist & Highlight Badge */}
       <div className="relative aspect-square bg-stone-100 overflow-hidden shrink-0">
         <img
-          src={product.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'}
+          src={product.images?.[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'}
           alt={title}
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
           loading="lazy"
           decoding="async"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = '/src/assets/images/category_kitchen_cookware_1792084991823.jpg';
+          }}
         />
 
         {/* Wishlist Button */}

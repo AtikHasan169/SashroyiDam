@@ -77,6 +77,38 @@ export function getUserFromToken(token: string | null): User | null {
   };
 }
 
+interface CacheEntry<T> {
+  data: T;
+  expiry: number;
+}
+const memoryCache = new Map<string, CacheEntry<any>>();
+
+export function getCached<T>(key: string): T | null {
+  const entry = memoryCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiry) {
+    memoryCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+export function setCached<T>(key: string, data: T, ttlMs: number = 30000): void {
+  memoryCache.set(key, { data, expiry: Date.now() + ttlMs });
+}
+
+export function clearCache(keyPrefix?: string): void {
+  if (!keyPrefix) {
+    memoryCache.clear();
+    return;
+  }
+  for (const key of memoryCache.keys()) {
+    if (key.startsWith(keyPrefix)) {
+      memoryCache.delete(key);
+    }
+  }
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getStoredToken();
   const headers: Record<string, string> = {
@@ -92,16 +124,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     ? endpoint
     : `${API_BASE}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
 
-  // Add cache-busting timestamp on GET requests to guarantee real-time data
-  const method = (options.method || 'GET').toUpperCase();
-  let finalUrl = fullUrl;
-  if (method === 'GET') {
-    const separator = finalUrl.includes('?') ? '&' : '?';
-    finalUrl = `${finalUrl}${separator}_t=${Date.now()}`;
-  }
-
-  const res = await fetch(finalUrl, {
-    cache: 'no-store',
+  const res = await fetch(fullUrl, {
     ...options,
     headers
   });
@@ -255,7 +278,18 @@ export const api = {
     }),
 
   // Products & Store
-  getCategories: () => request<{ categories: Category[] }>('/api/categories'),
+  getCategories: async (forceRefresh: boolean = false) => {
+    const cacheKey = 'categories';
+    if (!forceRefresh) {
+      const cached = getCached<{ categories: Category[] }>(cacheKey);
+      if (cached) return cached;
+    }
+    const res = await request<{ categories: Category[] }>('/api/categories');
+    if (res?.categories) {
+      setCached(cacheKey, res, 30000); // 30s TTL
+    }
+    return res;
+  },
 
   getProducts: async (params: Record<string, string | number | boolean> = {}) => {
     const searchParams = new URLSearchParams();
@@ -362,12 +396,26 @@ export const api = {
       body: JSON.stringify(body)
     }),
 
-  getStoreInfo: () =>
-    request<{
+  getStoreInfo: async (forceRefresh: boolean = false) => {
+    const cacheKey = 'store_info';
+    if (!forceRefresh) {
+      const cached = getCached<{
+        banners: Banner[];
+        settings: StoreSettings;
+        shippingRates: ShippingRate[];
+      }>(cacheKey);
+      if (cached) return cached;
+    }
+    const res = await request<{
       banners: Banner[];
       settings: StoreSettings;
       shippingRates: ShippingRate[];
-    }>('/api/store-info'),
+    }>('/api/store-info');
+    if (res?.settings) {
+      setCached(cacheKey, res, 30000); // 30s TTL
+    }
+    return res;
+  },
 
   // Cart & Coupons
   validateCart: (body: {
@@ -540,22 +588,28 @@ export const api = {
       body: JSON.stringify({ data: base64Data })
     }),
 
-  createCategory: (body: any) =>
-    request<{ category: Category; message: string }>('/api/admin/categories', {
+  createCategory: async (body: any) => {
+    clearCache('categories');
+    return request<{ category: Category; message: string }>('/api/admin/categories', {
       method: 'POST',
       body: JSON.stringify(body)
-    }),
+    });
+  },
 
-  updateCategory: (id: string, body: any) =>
-    request<{ category: Category; message: string }>(`/api/admin/categories/${id}`, {
+  updateCategory: async (id: string, body: any) => {
+    clearCache('categories');
+    return request<{ category: Category; message: string }>(`/api/admin/categories/${id}`, {
       method: 'PUT',
       body: JSON.stringify(body)
-    }),
+    });
+  },
 
-  deleteCategory: (id: string) =>
-    request<{ message: string }>(`/api/admin/categories/${id}`, {
+  deleteCategory: async (id: string) => {
+    clearCache('categories');
+    return request<{ message: string }>(`/api/admin/categories/${id}`, {
       method: 'DELETE'
-    }),
+    });
+  },
 
   getAdminCoupons: () => request<{ coupons: Coupon[] }>('/api/admin/coupons'),
 
@@ -588,17 +642,21 @@ export const api = {
       banners: Banner[];
     }>('/api/admin/settings'),
 
-  updateSettings: (body: any) =>
-    request<{ settings: StoreSettings; message: string }>('/api/admin/settings', {
+  updateSettings: async (body: any) => {
+    clearCache('store_info');
+    return request<{ settings: StoreSettings; message: string }>('/api/admin/settings', {
       method: 'PUT',
       body: JSON.stringify(body)
-    }),
+    });
+  },
 
-  updateShippingRate: (id: string, body: any) =>
-    request<{ shippingRate: ShippingRate; message: string }>(`/api/admin/shipping/${id}`, {
+  updateShippingRate: async (id: string, body: any) => {
+    clearCache('store_info');
+    return request<{ shippingRate: ShippingRate; message: string }>(`/api/admin/shipping/${id}`, {
       method: 'PUT',
       body: JSON.stringify(body)
-    }),
+    });
+  },
 
   getAuditLogs: () => request<{ logs: AuditLog[] }>('/api/admin/audit-logs'),
 
@@ -613,10 +671,12 @@ export const api = {
       method: 'PATCH'
     }),
 
-  togglePublishCategory: (id: string) =>
-    request<{ category: Category; message: string }>(`/api/admin/categories/${id}/toggle-publish`, {
+  togglePublishCategory: async (id: string) => {
+    clearCache('categories');
+    return request<{ category: Category; message: string }>(`/api/admin/categories/${id}/toggle-publish`, {
       method: 'PATCH'
-    }),
+    });
+  },
 
   // MongoDB Cloud Persistence (Configured via MONGODB_URI in environment)
   getMongoStatus: () =>
