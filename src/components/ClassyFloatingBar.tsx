@@ -57,15 +57,17 @@ export const ClassyFloatingBar: React.FC<ClassyFloatingBarProps> = ({
   if (isCartDrawerOpen) return null;
 
   const subtotal = cartValidation?.subtotal || 0;
-  const cleanWaNumber = whatsappNumber ? whatsappNumber.replace(/[^0-9]/g, '') : '';
-  const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
+  const targetPhone = phone || '+8801321949742';
+  const targetWaNumber = whatsappNumber || phone || '+8801321949742';
+  const cleanWaNumber = targetWaNumber.replace(/[^0-9]/g, '');
+  const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
   const waGreeting = encodeURIComponent(
     language === 'bn'
       ? 'সাশ্রয়ী দাম (Sashroyi Daam) থেকে সহায়তা প্রয়োজন।'
       : 'Hello! I need assistance with an order on Sashroyi Daam.'
   );
 
-  const hasAnySupportChannel = Boolean(cleanWaNumber || instagramUrl || facebookUrl || phone);
+  const hasAnySupportChannel = Boolean(cleanWaNumber || instagramUrl || facebookUrl || cleanPhone);
 
   return (
     <div
@@ -169,7 +171,7 @@ export const ClassyFloatingBar: React.FC<ClassyFloatingBarProps> = ({
             )}
 
             {/* 4. Phone Hotline Call */}
-            {phone && (
+            {targetPhone && (
               <a
                 href={`tel:${cleanPhone}`}
                 className="flex items-center justify-between p-2 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-800 transition-all cursor-pointer group"
@@ -180,7 +182,7 @@ export const ClassyFloatingBar: React.FC<ClassyFloatingBarProps> = ({
                   </div>
                   <div>
                     <div className="font-bold text-xs text-stone-900">হটলাইন কল</div>
-                    <div className="text-[10px] text-stone-700 font-medium">{phone}</div>
+                    <div className="text-[10px] text-stone-700 font-medium">{targetPhone}</div>
                     {supportHoursBn && (
                       <div className="text-[9.5px] text-stone-500 font-normal mt-0.5">({supportHoursBn})</div>
                     )}

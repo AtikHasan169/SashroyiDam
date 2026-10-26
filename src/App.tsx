@@ -618,9 +618,9 @@ function StorefrontApp() {
 
       {/* Classy Floating Bar: Live Cart Total + 'সহায়তা' WhatsApp Help */}
       <ClassyFloatingBar
-        phone={storeInfo?.settings?.phone || '01700-000000'}
+        phone={storeInfo?.settings?.phone || '+8801321949742'}
         supportHoursBn={storeInfo?.settings?.supportHoursBn || 'প্রতিদিন সকাল ৯টা - রাত ১০টা'}
-        whatsappNumber={storeInfo?.settings?.whatsappNumber || storeInfo?.settings?.phone || '01700000000'}
+        whatsappNumber={storeInfo?.settings?.whatsappNumber || storeInfo?.settings?.phone || '+8801321949742'}
         facebookUrl={storeInfo?.settings?.facebookUrl || 'https://facebook.com/sashroyidaam'}
         facebookUsername={storeInfo?.settings?.facebookUsername || 'sashroyidaam'}
         instagramUrl={storeInfo?.settings?.instagramUrl || ''}

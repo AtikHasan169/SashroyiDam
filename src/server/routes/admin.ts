@@ -954,9 +954,23 @@ router.get('/settings', async (req: AuthenticatedRequest, res) => {
 router.put('/settings', async (req: AuthenticatedRequest, res) => {
   try {
     const updated = await withTransaction((db) => {
+      const incoming = { ...req.body };
+      if (incoming.phone !== undefined) {
+        const p = String(incoming.phone).trim();
+        if (!p || p === '01700-000000' || p === '01700000000') {
+          incoming.phone = '+8801321949742';
+        }
+      }
+      if (incoming.whatsappNumber !== undefined) {
+        const w = String(incoming.whatsappNumber).trim();
+        if (!w || w === '01700-000000' || w === '01700000000') {
+          incoming.whatsappNumber = incoming.phone || '+8801321949742';
+        }
+      }
+
       db.storeSettings = {
         ...db.storeSettings,
-        ...req.body
+        ...incoming
       };
       return db.storeSettings;
     });

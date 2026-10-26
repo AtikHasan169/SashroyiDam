@@ -224,23 +224,28 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
               <span className="truncate">{t('trackOrder')}</span>
             </button>
 
-            {storeSettings?.phone && (
-              <a
-                href={`https://wa.me/${storeSettings.phone.replace(/[^0-9]/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={onClose}
-                className="p-2.5 bg-white hover:bg-emerald-50/70 border border-stone-200/80 rounded-xl text-left flex items-center justify-between text-xs font-semibold text-emerald-800 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <Phone className="w-4 h-4 text-emerald-600" />
-                  <span className="truncate">হোয়াটসঅ্যাপ হেল্প</span>
-                </div>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
-                  Live
-                </span>
-              </a>
-            )}
+            {(() => {
+              const targetWa = storeSettings?.whatsappNumber || storeSettings?.phone || '+8801321949742';
+              const cleanTargetWa = targetWa.replace(/[^0-9]/g, '');
+              const waText = encodeURIComponent('সাশ্রয়ী দাম (Sashroyi Daam) থেকে সহায়তা প্রয়োজন।');
+              return (
+                <a
+                  href={`https://wa.me/${cleanTargetWa}?text=${waText}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={onClose}
+                  className="p-2.5 bg-white hover:bg-emerald-50/70 border border-stone-200/80 rounded-xl text-left flex items-center justify-between text-xs font-semibold text-emerald-800 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <MessageCircle className="w-4 h-4 text-emerald-600" />
+                    <span className="truncate">হোয়াটসঅ্যাপ হেল্প</span>
+                  </div>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
+                    Live
+                  </span>
+                </a>
+              );
+            })()}
           </div>
 
           {/* 4. Categories List (Scrollable) */}
@@ -353,7 +358,7 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
           <div className="p-4 bg-stone-50 border-t border-stone-200 space-y-2.5">
             {/* Phone hotline */}
             {(() => {
-              const displayPhone = storeSettings?.phone || '01700-000000';
+              const displayPhone = storeSettings?.phone || '+8801321949742';
               const cleanPhone = displayPhone.replace(/[^0-9]/g, '');
               return (
                 <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-stone-200 shadow-2xs">
@@ -380,7 +385,7 @@ export const LeftHamburgerDrawer: React.FC<LeftHamburgerDrawerProps> = ({
 
             {/* Social Channels in Drawer */}
             {(() => {
-              const waNum = (storeSettings?.whatsappNumber || storeSettings?.phone || '01700000000').replace(/[^0-9]/g, '');
+              const waNum = (storeSettings?.whatsappNumber || storeSettings?.phone || '+8801321949742').replace(/[^0-9]/g, '');
               const fbUrl = storeSettings?.facebookUrl || 'https://facebook.com/sashroyidaam';
               const waLink = `https://wa.me/${waNum}?text=${encodeURIComponent('সাশ্রয়ী দাম (Sashroyi Daam) থেকে সহায়তা প্রয়োজন।')}`;
 

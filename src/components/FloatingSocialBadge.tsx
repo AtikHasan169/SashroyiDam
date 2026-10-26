@@ -18,8 +18,8 @@ export const FloatingSocialBadge: React.FC<FloatingSocialBadgeProps> = ({
   facebookUsername = '',
   instagramUrl = '',
   instagramUsername = '',
-  whatsappNumber = '',
-  phone = '',
+  whatsappNumber = '+8801321949742',
+  phone = '+8801321949742',
   isOpenControlled,
   onOpenChangeControlled
 }) => {

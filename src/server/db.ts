@@ -103,8 +103,8 @@ function getInitialData(): DatabaseSchema {
     storeNameBn: 'সাশ্রয়ী দাম',
     storeNameEn: 'Sashroyi Daam',
     taglineBn: 'সাশ্রয়ী দামে সেরা কেনাকাটা',
-    phone: '01700-000000',
-    whatsappNumber: '01700000000',
+    phone: '+8801321949742',
+    whatsappNumber: '+8801321949742',
     email: 'support@sashroyidaam.com',
     supportHoursBn: 'প্রতিদিন সকাল ৯টা - রাত ১০টা',
     addressBn: 'মিরপুর, ঢাকা - ১২১৬, বাংলাদেশ',
@@ -187,14 +187,24 @@ export function getDatabase(): DatabaseSchema {
         }
       });
 
-      // Ensure store contact and social channels are active with fallback values
+      // Ensure store contact and social channels are active with authoritative fallback values (+8801321949742)
       if (memoryDb!.storeSettings) {
-        if (!memoryDb!.storeSettings.whatsappNumber) {
-          memoryDb!.storeSettings.whatsappNumber = memoryDb!.storeSettings.phone || '01700000000';
+        const isLegacyOrEmptyPhone = !memoryDb!.storeSettings.phone || 
+          memoryDb!.storeSettings.phone === '01700-000000' || 
+          memoryDb!.storeSettings.phone === '01700000000' ||
+          memoryDb!.storeSettings.phone.trim() === '';
+
+        const isLegacyOrEmptyWa = !memoryDb!.storeSettings.whatsappNumber || 
+          memoryDb!.storeSettings.whatsappNumber === '01700-000000' || 
+          memoryDb!.storeSettings.whatsappNumber === '01700000000' ||
+          memoryDb!.storeSettings.whatsappNumber.trim() === '';
+
+        if (isLegacyOrEmptyWa) {
+          memoryDb!.storeSettings.whatsappNumber = isLegacyOrEmptyPhone ? '+8801321949742' : (memoryDb!.storeSettings.phone || '+8801321949742');
           hasChanges = true;
         }
-        if (!memoryDb!.storeSettings.phone) {
-          memoryDb!.storeSettings.phone = '01700-000000';
+        if (isLegacyOrEmptyPhone) {
+          memoryDb!.storeSettings.phone = '+8801321949742';
           hasChanges = true;
         }
         if (!memoryDb!.storeSettings.facebookUrl) {

@@ -46,8 +46,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
                       )}
                     </div>
                   )}
-                  {settings.phone && (
-                    <div>💬 হোয়াটসঅ্যাপ: {settings.phone}</div>
+                  {(settings.whatsappNumber || settings.phone) && (
+                    <div>💬 হোয়াটসঅ্যাপ: {settings.whatsappNumber || settings.phone}</div>
                   )}
                   {settings.email && (
                     <div>✉️ ইমেইল: {settings.email}</div>
@@ -149,11 +149,11 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
               <div className="flex items-center gap-2.5">
                 {/* WhatsApp */}
                 <a
-                  href={`https://wa.me/${(settings?.whatsappNumber || settings?.phone || '01700000000').replace(/[^0-9]/g, '')}?text=${encodeURIComponent('সাশ্রয়ী দাম (Sashroyi Daam) থেকে সহায়তা প্রয়োজন।')}`}
+                  href={`https://wa.me/${(settings?.whatsappNumber || settings?.phone || '+8801321949742').replace(/[^0-9]/g, '')}?text=${encodeURIComponent('সাশ্রয়ী দাম (Sashroyi Daam) থেকে সহায়তা প্রয়োজন।')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-9 h-9 rounded-full bg-[#25D366]/20 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/50 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-xs cursor-pointer group"
-                  title={`WhatsApp: ${settings?.whatsappNumber || settings?.phone || '01700-000000'}`}
+                  title={`WhatsApp: ${settings?.whatsappNumber || settings?.phone || '+8801321949742'}`}
                   aria-label="WhatsApp"
                 >
                   <MessageCircle className="w-4 h-4 fill-current/20 group-hover:fill-current" />

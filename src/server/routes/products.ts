@@ -292,9 +292,17 @@ router.get('/store-info', (req, res) => {
     .filter((b) => b.isActive)
     .sort((a, b) => a.displayOrder - b.displayOrder);
 
+  const settings = { ...db.storeSettings };
+  if (!settings.phone || settings.phone === '01700-000000' || settings.phone === '01700000000') {
+    settings.phone = '+8801321949742';
+  }
+  if (!settings.whatsappNumber || settings.whatsappNumber === '01700-000000' || settings.whatsappNumber === '01700000000') {
+    settings.whatsappNumber = settings.phone || '+8801321949742';
+  }
+
   res.json({
     banners: activeBanners,
-    settings: db.storeSettings,
+    settings,
     shippingRates: db.shippingRates.filter((s) => s.isActive)
   });
 });

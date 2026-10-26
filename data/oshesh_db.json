@@ -11,9 +11,290 @@
       "createdAt": "2026-10-22T00:00:00.000Z"
     }
   ],
-  "categories": [],
-  "products": [],
-  "orders": [],
+  "categories": [
+    {
+      "id": "cat-1792698627057",
+      "defaultOptions": [
+        "১ পিস একক",
+        "২ পিস সেট",
+        "৪ পিস কমপ্লিট সেট"
+      ],
+      "descriptionBn": "",
+      "displayOrder": 1,
+      "image": "/uploads/img_cat_cat-1792698627057_9f7bf012db.jpg",
+      "isFeatured": true,
+      "nameBn": "বই",
+      "nameEn": "Book",
+      "slug": "-book",
+      "variantType": "none"
+    },
+    {
+      "id": "cat-shirts",
+      "defaultOptions": [
+        "M (৪০)",
+        "L (৪২)",
+        "XL (৪৪)",
+        "XXL (৪৬)"
+      ],
+      "descriptionBn": "প্রিমিয়াম সুতি ক্যাজুয়াল শার্ট, ফর্মাল শার্ট, পোলো ও টি-শার্ট। সাইজ ও কালার অপশন সহ।",
+      "displayOrder": 3,
+      "image": "/uploads/img_cat_cat-shirts_7ccb2834ae.jpg",
+      "isFeatured": true,
+      "nameBn": "শার্ট ও টি-শার্ট",
+      "nameEn": "Shirts & Polos",
+      "slug": "shirts-polos",
+      "variantType": "apparel_sizes"
+    },
+    {
+      "id": "cat-kitchen",
+      "defaultOptions": [
+        "১ পিস একক",
+        "২ পিস সেট",
+        "৪ পিস কমপ্লিট সেট"
+      ],
+      "descriptionBn": "রান্নাঘরের নির্ভরযোগ্য সামগ্রী, কপার ও কাস্ট আয়রন প্যান এবং পরিবেশন পাত্র।",
+      "displayOrder": 2,
+      "image": "/uploads/img_cat_cat-kitchen_25be176ceb.jpg",
+      "isFeatured": true,
+      "nameBn": "রান্নাঘর ও গৃহস্থালি",
+      "nameEn": "Home & Kitchen",
+      "slug": "kitchen-dining",
+      "variantType": "pack_options"
+    },
+    {
+      "id": "cat-fashion",
+      "defaultOptions": [
+        "৪০ (M)",
+        "৪২ (L)",
+        "৪৪ (XL)",
+        "৪৬ (XXL)"
+      ],
+      "descriptionBn": "দেশি তাঁতের জামদানি, সুতি পাঞ্জাবি, শাড়ি ও হস্তনির্মিত প্রাকৃতিক অনুষঙ্গ।",
+      "displayOrder": 3,
+      "image": "/uploads/img_cat_cat-fashion_7ccb2834ae.jpg",
+      "isFeatured": true,
+      "nameBn": "ফ্যাশন ও কারুকাজ",
+      "nameEn": "Fashion & Handloom",
+      "slug": "fashion-lifestyle",
+      "variantType": "apparel_sizes"
+    },
+    {
+      "id": "cat-gadgets",
+      "defaultOptions": [
+        "ম্যাট ব্ল্যাক",
+        "স্পেস গ্রে",
+        "সিলভার"
+      ],
+      "descriptionBn": "টেকসই পাওয়ার ব্যাংক, দ্রুত চার্জিং ক্যাবল, অডিও ডিভাইস এবং স্মার্ট লাইফস্টাইল পণ্য।",
+      "displayOrder": 4,
+      "image": "/src/assets/images/category_tech_lifestyle_1792084991359.jpg",
+      "isFeatured": false,
+      "nameBn": "গ্যাজেট ও ইলেকট্রনিক্স",
+      "nameEn": "Gadgets & Tech",
+      "slug": "gadgets-accessories",
+      "variantType": "color_options"
+    }
+  ],
+  "products": [
+    {
+      "id": "prod-1792822075783",
+      "attributes": {},
+      "brand": "",
+      "categoryId": "cat-1792698627057",
+      "categoryNameBn": "বই",
+      "categorySlug": "-book",
+      "createdAt": "2026-10-24T06:07:55.783Z",
+      "descriptionBn": "",
+      "descriptionEn": "",
+      "images": [
+        "/uploads/img_1792822071502_jyqyw.jpg"
+      ],
+      "isArchived": false,
+      "isFeatured": true,
+      "isPublished": true,
+      "isUnavailable": false,
+      "originalPrice": 1200,
+      "price": 110,
+      "rating": 5,
+      "reviewCount": 0,
+      "salesCount": 0,
+      "sku": "SKU-28922",
+      "slug": "test-mvlzz347",
+      "stock": 10,
+      "tags": [],
+      "titleBn": "Test",
+      "titleEn": "Test",
+      "unavailableReason": null,
+      "updatedAt": "2026-10-24T06:07:55.803Z",
+      "variants": []
+    },
+    {
+      "id": "prod-1792604121829",
+      "attributes": {},
+      "brand": "",
+      "categoryId": "cat-gadgets",
+      "categoryNameBn": "গ্যাজেট ও ইলেকট্রনিক্স",
+      "categorySlug": "gadgets-accessories",
+      "createdAt": "2026-10-21T17:35:21.829Z",
+      "descriptionBn": "",
+      "descriptionEn": "",
+      "images": [],
+      "isArchived": true,
+      "isFeatured": false,
+      "isPublished": false,
+      "price": 1200,
+      "rating": 5,
+      "reviewCount": 0,
+      "salesCount": 0,
+      "sku": "SD-4828",
+      "slug": "--mvie7krp",
+      "stock": 15,
+      "tags": [],
+      "titleBn": "নতুন স্মার্ট ওয়াচ",
+      "titleEn": "নতুন স্মার্ট ওয়াচ",
+      "updatedAt": "2026-10-22T19:50:30.206Z",
+      "variants": []
+    },
+    {
+      "id": "prod-1792603590555",
+      "attributes": {},
+      "brand": "",
+      "categoryId": "cat-shirts",
+      "categoryNameBn": "শার্ট ও টি-শার্ট",
+      "categorySlug": "shirts-polos",
+      "createdAt": "2026-10-21T17:26:30.555Z",
+      "descriptionBn": "প্রিমিয়াম সুতি কাপড়ে তৈরি আরামদায়ক ক্যাজুয়াল শার্ট।",
+      "descriptionEn": "",
+      "images": [],
+      "isArchived": true,
+      "isFeatured": false,
+      "isPublished": false,
+      "price": 850,
+      "rating": 5,
+      "reviewCount": 0,
+      "salesCount": 0,
+      "sku": "SH-01",
+      "slug": "cotton-casual-shirt-mvidw6u3",
+      "stock": 20,
+      "tags": [],
+      "titleBn": "কটন ক্যাজুয়াল শার্ট",
+      "titleEn": "Cotton Casual Shirt",
+      "updatedAt": "2026-10-22T19:50:30.207Z",
+      "variants": []
+    }
+  ],
+  "orders": [
+    {
+      "id": "ord-1792699719735",
+      "couponCode": null,
+      "createdAt": "2026-10-22T20:08:39.735Z",
+      "customerEmail": null,
+      "customerId": "user-1792699719735-c6lp",
+      "customerName": "Atik Hasan",
+      "customerPhone": "01747365714",
+      "deliveryFee": 130,
+      "deliveryInstructions": null,
+      "discount": 0,
+      "district": "কুষ্টিয়া",
+      "division": "khulna",
+      "fulfilmentStatus": "returned",
+      "fullAddress": "Kushtia Govt. College",
+      "internalNotes": [],
+      "items": [
+        {
+          "productId": "prod-1792699614849",
+          "variantId": null,
+          "productTitleBn": "চরিত্রহীন",
+          "productTitleEn": "Choritrohin",
+          "variantNameBn": null,
+          "sku": "SKU-BK-02",
+          "unitPrice": 300,
+          "quantity": 1,
+          "itemTotal": 300,
+          "imageUrl": "https://rokbucket.rokomari.io/ProductNew20190903/260X372/rokimg_2111_50640.GIF"
+        }
+      ],
+      "orderNumber": "SD-2026-4873",
+      "paymentMethod": "cod",
+      "paymentStatus": "unpaid",
+      "statusTimeline": [
+        {
+          "status": "pending_confirmation",
+          "timestamp": "2026-10-22T20:08:39.735Z",
+          "note": "ক্যাশ অন ডেলিভারি অর্ডার গৃহীত হয়েছে। টিম থেকে যাচাই করা হবে।",
+          "changedBy": "System"
+        },
+        {
+          "status": "cancelled",
+          "timestamp": "2026-10-26T17:14:16.284Z",
+          "note": "স্ট্যাটাস পরিবর্তন: pending_confirmation ➔ cancelled",
+          "changedBy": "Super Admin (super_admin)"
+        },
+        {
+          "status": "returned",
+          "timestamp": "2026-10-26T18:18:34.670Z",
+          "note": "স্ট্যাটাস পরিবর্তন: cancelled ➔ returned",
+          "changedBy": "Super Admin (super_admin)"
+        }
+      ],
+      "subtotal": 300,
+      "total": 430,
+      "upazila": "কুষ্টিয়া সদর",
+      "updatedAt": "2026-10-26T18:18:34.686Z"
+    },
+    {
+      "id": "ord-1793034451294",
+      "couponCode": null,
+      "createdAt": "2026-10-26T17:07:31.294Z",
+      "customerEmail": null,
+      "customerId": "user-1793034451294-wnsb",
+      "customerName": "ashikur rahman",
+      "customerPhone": "01321949742",
+      "deliveryFee": 130,
+      "deliveryInstructions": null,
+      "discount": 0,
+      "district": "কুষ্টিয়া",
+      "division": "khulna",
+      "fulfilmentStatus": "confirmed",
+      "fullAddress": "paharpur",
+      "internalNotes": [],
+      "items": [
+        {
+          "productId": "prod-1792822075783",
+          "variantId": null,
+          "productTitleBn": "Test",
+          "productTitleEn": "Test",
+          "variantNameBn": null,
+          "sku": "SKU-28922",
+          "unitPrice": 110,
+          "quantity": 1,
+          "itemTotal": 110,
+          "imageUrl": "/uploads/img_1792822071502_jyqyw.jpg"
+        }
+      ],
+      "orderNumber": "SD-2026-4667",
+      "paymentMethod": "cod",
+      "paymentStatus": "unpaid",
+      "statusTimeline": [
+        {
+          "status": "pending_confirmation",
+          "timestamp": "2026-10-26T17:07:31.294Z",
+          "note": "ক্যাশ অন ডেলিভারি অর্ডার গৃহীত হয়েছে। টিম থেকে যাচাই করা হবে।",
+          "changedBy": "System"
+        },
+        {
+          "status": "confirmed",
+          "timestamp": "2026-10-26T17:13:57.076Z",
+          "note": "স্ট্যাটাস পরিবর্তন: pending_confirmation ➔ confirmed",
+          "changedBy": "Super Admin (super_admin)"
+        }
+      ],
+      "subtotal": 110,
+      "total": 240,
+      "upazila": "কুমারখালী",
+      "updatedAt": "2026-10-26T17:13:57.098Z"
+    }
+  ],
   "coupons": [],
   "reviews": [],
   "shippingRates": [
@@ -51,9 +332,9 @@
     "storeNameBn": "সাশ্রয়ী দাম",
     "storeNameEn": "Sashroyi Daam",
     "taglineBn": "",
-    "phone": "",
+    "phone": "+8801321949742",
     "email": "",
-    "supportHoursBn": "",
+    "supportHoursBn": "প্রতিদিন সকাল ৯টা - রাত ১০টা",
     "addressBn": "",
     "announcementStripBn": "",
     "showAnnouncement": false,
@@ -63,9 +344,11 @@
     "isCodEnabled": true,
     "isSslcommerzEnabled": false,
     "sslSandboxMode": true,
-    "facebookPageName": "",
-    "facebookUsername": "",
-    "facebookUrl": ""
+    "facebookPageName": "সাশ্রয়ী দাম - Sashroyi Daam",
+    "facebookUsername": "sashroyidaam",
+    "facebookUrl": "https://facebook.com/sashroyidaam",
+    "whatsappNumber": "+8801321949742",
+    "instagramUrl": "https://instagram.com/sashroyidaam"
   },
   "inventoryMovements": [],
   "auditLogs": [],

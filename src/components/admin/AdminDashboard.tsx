@@ -2024,10 +2024,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <label className="block font-semibold text-stone-700 mb-1">কাস্টমার কেয়ার হেল্পলাইন</label>
                     <input
                       type="text"
+                      placeholder="যেমন: +8801321949742 (ডিফল্ট)"
                       value={storeSettings.phone}
                       onChange={(e) => setStoreSettings({ ...storeSettings, phone: e.target.value })}
                       className="w-full px-3 py-2 border border-stone-200 rounded-lg"
                     />
+                    <span className="text-[10px] text-stone-400 mt-0.5 block">ফাঁকা রাখলে ডিফল্ট নম্বর +8801321949742 ব্যবহৃত হবে</span>
                   </div>
 
                   <div>
@@ -2089,12 +2091,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </label>
                       <input
                         type="text"
-                        placeholder="যেমন: 01700000000"
+                        placeholder="যেমন: +8801321949742 (ডিফল্ট)"
                         value={storeSettings.whatsappNumber || ''}
                         onChange={(e) => setStoreSettings({ ...storeSettings, whatsappNumber: e.target.value })}
                         className="w-full px-3 py-2 border border-stone-200 rounded-lg font-mono text-xs"
                       />
-                      <span className="text-[10px] text-stone-400 mt-0.5 block">সরাসরি চ্যাট লিংকের জন্য ব্যবহৃত হবে</span>
+                      <span className="text-[10px] text-stone-400 mt-0.5 block">ফাঁকা রাখলে হেল্পলাইন / +8801321949742 ব্যবহৃত হবে</span>
                     </div>
 
                     <div>
