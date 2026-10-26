@@ -27,6 +27,7 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { api } from '../lib/api.ts';
 import { ProductHighlightBadge } from './ProductHighlightBadge.tsx';
+import { ProductShareButton } from './ProductShareButton.tsx';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -203,8 +204,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 md:p-6 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl max-w-4xl w-full overflow-hidden shadow-2xl border border-stone-200 relative my-8 text-left">
-        {/* Top Header Actions (Full Page View, Admin Actions, Close) */}
+        {/* Top Header Actions (Share, Full Page View, Admin Actions, Close) */}
         <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+          <ProductShareButton product={product} variant="card-icon" />
+
           {onOpenDedicatedPage && (
             <button
               onClick={() => onOpenDedicatedPage(product)}
@@ -596,22 +599,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     <span>{isInWishlist(product.id) ? 'পছন্দের তালিকায় সংরক্ষিত' : 'পছন্দের তালিকায় রাখুন'}</span>
                   </button>
 
-                  <button
-                    onClick={handleShare}
-                    className="py-2 px-3 rounded-xl border border-stone-200 hover:border-stone-300 text-stone-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    {copiedLink ? (
-                      <span className="flex items-center gap-1.5">
-                        <Check className="w-4 h-4 text-emerald-600" />
-                        <span className="text-emerald-700 font-bold">লিংক কপি হয়েছে!</span>
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5">
-                        <Share2 className="w-4 h-4" />
-                        <span>শেয়ার</span>
-                      </span>
-                    )}
-                  </button>
+                  <ProductShareButton product={product} variant="modal" />
                 </div>
               </div>
 
@@ -643,6 +631,22 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     <span>{isUnavailable ? 'অনুপলব্ধ' : 'এখনই কিনুন'}</span>
                     {canOrder && <ArrowRight className="w-3.5 h-3.5" />}
                   </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleWishlist(product.id)}
+                    className={`flex-1 py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                      isInWishlist(product.id)
+                        ? 'bg-rose-50 border-rose-200 text-rose-600'
+                        : 'border-stone-200 hover:border-stone-300 text-stone-700'
+                    }`}
+                  >
+                    <Heart className={`w-3.5 h-3.5 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+                    <span>{isInWishlist(product.id) ? 'পছন্দে সংরক্ষিত' : 'পছন্দের তালিকায়'}</span>
+                  </button>
+
+                  <ProductShareButton product={product} variant="modal" />
                 </div>
               </div>
             </div>

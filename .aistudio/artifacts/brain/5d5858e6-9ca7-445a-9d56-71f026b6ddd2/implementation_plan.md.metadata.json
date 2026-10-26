@@ -1,6 +1,6 @@
 {
-  "summary":  "Implementation plan to fix the mobile drawer contact number discrepancy and permanently hardcode +8801321949742 as the authoritative fallback default across mobile drawer, floating help, footer, and server database.",
-  "updatedAt":  "2026-10-26T18:28:45.663257922Z",
+  "summary":  "Implementation plan for adding Product Share buttons (on Product Cards and Product Detail Modal with Web Share API, Copy Link toast, WhatsApp, and Facebook options) and category-based automatic SKU generation (3-letter category prefix + 4-digit number e.g. KIT-4821 with auto-fill on category select, manual editing, and instant regeneration button in admin product modal).",
+  "updatedAt":  "2026-10-26T18:47:59.872795314Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

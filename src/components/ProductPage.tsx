@@ -30,6 +30,7 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { api } from '../lib/api.ts';
 import { ProductHighlightBadge } from './ProductHighlightBadge.tsx';
+import { ProductShareButton } from './ProductShareButton.tsx';
 
 interface ProductPageProps {
   product: Product;
@@ -405,6 +406,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({
                 </div>
 
                 <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                  <ProductShareButton product={product} variant="card-icon" />
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -472,23 +475,26 @@ export const ProductPage: React.FC<ProductPageProps> = ({
             {/* RIGHT COLUMN: Product Information & Purchase CTAs */}
             <div className="lg:col-span-6 flex flex-col justify-between space-y-6">
               <div className="space-y-4">
-                {/* Brand & Category meta */}
-                <div className="flex items-center gap-2 text-xs font-semibold text-stone-500">
-                  {product.brand ? (
-                    <>
-                      <span className="text-[#0F4C3A] uppercase tracking-wider">{product.brand}</span>
-                      <span>·</span>
-                    </>
-                  ) : null}
-                  <span className="bg-stone-100 px-2 py-0.5 rounded text-stone-700">
-                    {matchedCategory?.nameBn || product.categoryNameBn || 'সাধারণ'}
-                  </span>
-                  {product.sku && (
-                    <>
-                      <span>·</span>
-                      <span className="font-mono text-stone-400">SKU: {product.sku}</span>
-                    </>
-                  )}
+                {/* Brand & Category meta + Share */}
+                <div className="flex items-center justify-between text-xs font-semibold text-stone-500">
+                  <div className="flex items-center gap-2">
+                    {product.brand ? (
+                      <>
+                        <span className="text-[#0F4C3A] uppercase tracking-wider">{product.brand}</span>
+                        <span>·</span>
+                      </>
+                    ) : null}
+                    <span className="bg-stone-100 px-2 py-0.5 rounded text-stone-700">
+                      {matchedCategory?.nameBn || product.categoryNameBn || 'সাধারণ'}
+                    </span>
+                    {(selectedVariant?.sku || product.sku) && (
+                      <>
+                        <span>·</span>
+                        <span className="font-mono text-stone-500 font-bold">SKU: {selectedVariant?.sku || product.sku}</span>
+                      </>
+                    )}
+                  </div>
+                  <ProductShareButton product={product} variant="pill" />
                 </div>
 
                 {/* Title */}

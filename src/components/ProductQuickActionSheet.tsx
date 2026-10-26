@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, ShoppingCart, Zap, ArrowRight, Star, ShieldCheck, Check } from 'lucide-react';
 import type { Product } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
+import { ProductShareButton } from './ProductShareButton.tsx';
 
 interface ProductQuickActionSheetProps {
   product: Product | null;
@@ -72,13 +73,16 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
 
         {/* Top Product Header */}
         <div className="p-4 sm:p-5 flex gap-3.5 items-start border-b border-stone-100 relative">
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 p-1.5 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
-            aria-label={t('close')}
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
+            <ProductShareButton product={product} variant="card-icon" />
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
+              aria-label={t('close')}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
           {/* Thumbnail */}
           <div

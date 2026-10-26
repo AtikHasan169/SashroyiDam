@@ -5,6 +5,7 @@ import { useWishlist } from '../context/WishlistContext.tsx';
 import { useCart } from '../context/CartContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
 import { ProductHighlightBadge } from './ProductHighlightBadge.tsx';
+import { ProductShareButton } from './ProductShareButton.tsx';
 
 interface ProductCardProps {
   product: Product;
@@ -69,21 +70,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }}
           />
 
-          {/* Wishlist Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleWishlist(product.id);
-            }}
-            aria-label={t('wishlist')}
-            className={`absolute top-2.5 right-2.5 z-20 p-2 rounded-full backdrop-blur-md transition-colors cursor-pointer ${
-              isWish
-                ? 'bg-rose-50 text-rose-600 shadow-sm'
-                : 'bg-white/80 text-stone-600 hover:bg-white hover:text-stone-900'
-            }`}
-          >
-            <Heart className={`w-4 h-4 ${isWish ? 'fill-current' : ''}`} />
-          </button>
+          {/* Actions: Share & Wishlist */}
+          <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5">
+            <ProductShareButton product={product} variant="card-icon" />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleWishlist(product.id);
+              }}
+              aria-label={t('wishlist')}
+              className={`p-2 rounded-full backdrop-blur-md transition-colors cursor-pointer ${
+                isWish
+                  ? 'bg-rose-50 text-rose-600 shadow-sm'
+                  : 'bg-white/80 text-stone-600 hover:bg-white hover:text-stone-900'
+              }`}
+            >
+              <Heart className={`w-4 h-4 ${isWish ? 'fill-current' : ''}`} />
+            </button>
+          </div>
 
           {/* Unavailable Badge */}
           {isUnavailable && (
@@ -230,21 +234,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           }}
         />
 
-        {/* Wishlist Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleWishlist(product.id);
-          }}
-          aria-label={t('wishlist')}
-          className={`absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-20 p-1.5 sm:p-2 rounded-full backdrop-blur-md transition-colors cursor-pointer ${
-            isWish
-              ? 'bg-rose-50 text-rose-600 shadow-sm'
-              : 'bg-white/80 text-stone-600 hover:bg-white hover:text-stone-900'
-          }`}
-        >
-          <Heart className={`w-3.5 sm:w-4 h-3.5 sm:h-4 ${isWish ? 'fill-current' : ''}`} />
-        </button>
+        {/* Actions: Share & Wishlist */}
+        <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-20 flex items-center gap-1 sm:gap-1.5">
+          <ProductShareButton product={product} variant="card-icon" />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleWishlist(product.id);
+            }}
+            aria-label={t('wishlist')}
+            className={`p-1.5 sm:p-2 rounded-full backdrop-blur-md transition-colors cursor-pointer ${
+              isWish
+                ? 'bg-rose-50 text-rose-600 shadow-sm'
+                : 'bg-white/80 text-stone-600 hover:bg-white hover:text-stone-900'
+            }`}
+          >
+            <Heart className={`w-3.5 sm:w-4 h-3.5 sm:h-4 ${isWish ? 'fill-current' : ''}`} />
+          </button>
+        </div>
 
         {/* Unavailable Badge */}
         {isUnavailable && (
