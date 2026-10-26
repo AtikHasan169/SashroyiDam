@@ -8,11 +8,22 @@
         { "key": "Expires", "value": "0" },
         { "key": "Surrogate-Control", "value": "no-store" }
       ]
+    },
+    {
+      "source": "/uploads/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Pragma", "value": "public" }
+      ]
     }
   ],
   "rewrites": [
     {
       "source": "/api/(.*)",
+      "destination": "/api"
+    },
+    {
+      "source": "/uploads/(.*)",
       "destination": "/api"
     }
   ]

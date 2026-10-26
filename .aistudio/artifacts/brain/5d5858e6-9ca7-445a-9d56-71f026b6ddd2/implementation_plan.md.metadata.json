@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan to eliminate the jarring developer setup loading banner and replace it with a smooth shimmer skeleton loader matching hero dimensions, coupled with a polished retail customer campaign fallback when no promotional slides are active.",
-  "updatedAt":  "2026-10-24T06:53:04.380265156Z",
+  "summary":  "Comprehensive architectural fix to ensure uploaded product photos display reliably on Vercel deployments by routing /uploads/(.*) to the serverless backend, using /tmp for serverless writable disk caching, and awaiting MongoDB Atlas photo persistence.",
+  "updatedAt":  "2026-10-26T17:19:28.561528072Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

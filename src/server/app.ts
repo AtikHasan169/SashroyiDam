@@ -8,7 +8,7 @@ import ordersRouter from './routes/orders.ts';
 import paymentRouter from './routes/payment.ts';
 import adminRouter from './routes/admin.ts';
 import { getDatabase, migrateBase64Images } from './db.ts';
-import { getMongoDatabase, savePhotoToMongo, getPhotoFromMongo, getAllPhotosFromMongo } from './mongodb.ts';
+import { getMongoDatabase, savePhotoToMongo, getPhotoFromMongo, getAllPhotosFromMongo, ensureMongoReady } from './mongodb.ts';
 
 export function createExpressApp() {
   // Eagerly initialize database & MongoDB sync
@@ -52,8 +52,9 @@ export function createExpressApp() {
   app.use(express.json({ limit: '25mb' }));
   app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-  // Ensure uploads directory exists if filesystem is writable
-  const uploadsDir = path.resolve(process.cwd(), 'uploads');
+  // Detect serverless environment (Vercel / AWS Lambda) where process.cwd() is read-only
+  const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT);
+  const uploadsDir = isServerless ? path.join('/tmp', 'sashroyi_uploads') : path.resolve(process.cwd(), 'uploads');
   try {
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
@@ -62,57 +63,63 @@ export function createExpressApp() {
     // Graceful fallback for read-only serverless filesystems
   }
 
-  // Background Disk Pre-Warmer: Rehydrate all MongoDB photos into /uploads on fresh container startup
-  setTimeout(async () => {
-    try {
-      const photos = await getAllPhotosFromMongo();
-      if (photos && photos.length > 0) {
-        let restoredCount = 0;
-        for (const photo of photos) {
-          const filePath = path.join(uploadsDir, photo.name);
-          if (!fs.existsSync(filePath) && photo.data) {
-            try {
-              const base64Data = photo.data.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
-              fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
-              restoredCount++;
-            } catch {}
+  // Background Disk Pre-Warmer: Rehydrate all MongoDB photos into local cache (non-serverless only)
+  if (!isServerless) {
+    setTimeout(async () => {
+      try {
+        const photos = await getAllPhotosFromMongo();
+        if (photos && photos.length > 0) {
+          let restoredCount = 0;
+          for (const photo of photos) {
+            const filePath = path.join(uploadsDir, photo.name);
+            if (!fs.existsSync(filePath) && photo.data) {
+              try {
+                const base64Data = photo.data.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
+                fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+                restoredCount++;
+              } catch {}
+            }
+          }
+          if (restoredCount > 0) {
+            console.log(`✅ Auto-rehydrated ${restoredCount} images from MongoDB into local /uploads cache`);
           }
         }
-        if (restoredCount > 0) {
-          console.log(`✅ Auto-rehydrated ${restoredCount} images from MongoDB into local /uploads cache`);
-        }
+      } catch (err: any) {
+        console.warn('Photo pre-warmer note:', err.message);
       }
-    } catch (err: any) {
-      console.warn('Photo pre-warmer note:', err.message);
-    }
-  }, 2500);
+    }, 2500);
+  }
 
   // Deploy-Safe Image Serving & On-Demand Rehydration Middleware
-  // If a container redeployed and wiped local /uploads, missing images are fetched from MongoDB instantly!
+  // If running in Vercel or container redeployed, missing images are fetched from MongoDB instantly!
   app.get('/uploads/:filename', async (req, res, next) => {
     const filename = path.basename(req.params.filename);
     const filePath = path.join(uploadsDir, filename);
 
-    // Fast path: file already exists in local disk cache
+    // Fast path: file already exists in local/tmp disk cache
     if (fs.existsSync(filePath)) {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       res.setHeader('Pragma', 'public');
       return res.sendFile(filePath);
     }
 
-    // Container redeployment fallback: file missing from disk, pull from permanent MongoDB photos collection
+    // Serverless cold-start or redeployment fallback: pull from permanent MongoDB photos collection
     try {
+      await ensureMongoReady();
       const photoDoc = await getPhotoFromMongo(filename);
       if (photoDoc && photoDoc.data) {
         const base64Data = photoDoc.data.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
 
-        // Self-heal: re-cache to local disk for subsequent instant hits
+        // Self-heal: re-cache to disk for subsequent instant hits
         try {
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
           fs.writeFileSync(filePath, buffer);
         } catch {}
 
-        res.setHeader('Content-Type', photoDoc.contentType || 'image/webp');
+        res.setHeader('Content-Type', photoDoc.contentType || 'image/jpeg');
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         res.setHeader('Pragma', 'public');
         return res.send(buffer);
@@ -161,18 +168,25 @@ export function createExpressApp() {
       const buffer = Buffer.from(match[2], 'base64');
       const filePath = path.join(uploadsDir, safeName);
 
-      // 1. Write file to local disk for ultra-fast static HTTP serving
+      // 1. Write file to disk cache for fast HTTP serving
       try {
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
         fs.writeFileSync(filePath, buffer);
       } catch (writeErr) {
         console.warn('Warning writing image file to disk:', writeErr);
       }
 
-      // 2. Persist to MongoDB photos collection for container redeployment/restart immunity
+      // 2. Persist to MongoDB photos collection for container redeployment & serverless persistence
+      // Note: In serverless (Vercel), this MUST be awaited so the Lambda execution does not terminate prematurely!
       const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
-      savePhotoToMongo(safeName, data, contentType).catch((err) => {
-        console.warn('MongoDB photo store note:', err.message);
-      });
+      try {
+        await ensureMongoReady();
+        await savePhotoToMongo(safeName, data, contentType);
+      } catch (mongoErr: any) {
+        console.warn('MongoDB photo store note:', mongoErr.message);
+      }
 
       // 3. Return lightweight static URL (few bytes instead of multi-megabyte base64 string!)
       res.json({
