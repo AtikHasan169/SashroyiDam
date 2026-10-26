@@ -144,8 +144,9 @@ router.get('/products/:slugOrId', async (req, res) => {
   const { slugOrId } = req.params;
   const db = await ensureDatabaseReady();
 
+  const norm = (slugOrId || '').toLowerCase().trim();
   const product = db.products.find(
-    (p) => (p.slug === slugOrId || p.id === slugOrId) && !p.isArchived
+    (p) => ((p.slug && p.slug.toLowerCase() === norm) || p.id === slugOrId) && !p.isArchived
   );
 
   if (!product) {

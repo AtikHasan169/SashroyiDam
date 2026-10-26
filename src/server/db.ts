@@ -26,6 +26,7 @@ import {
   syncStoreSettingsToMongo,
   savePhotoToMongo
 } from './mongodb.ts';
+import { generateProductSlug } from '../utils/slugify.ts';
 
 const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT);
 const SEED_DB_FILE = path.resolve(process.cwd(), 'data', 'oshesh_db.json');
@@ -153,6 +154,36 @@ function getInitialData(): DatabaseSchema {
     auditLogs: [],
     version: 1
   };
+}
+
+export function migrateProductSlugs(products: Product[]): boolean {
+  let hasChanges = false;
+  const assignedSlugs = new Set<string>();
+  for (const product of products) {
+    const currentSlug = (product.slug || '').trim();
+    const isLegacyOrHash =
+      !currentSlug ||
+      currentSlug.startsWith('product-') ||
+      currentSlug.includes('--') ||
+      /^[a-z0-9]+-[a-z0-9]{6,}$/i.test(currentSlug);
+    const hasInvalidChars = !/^[a-z0-9-]+$/.test(currentSlug);
+
+    if (isLegacyOrHash || hasInvalidChars || assignedSlugs.has(currentSlug)) {
+      const cleanEnglishSlug = generateProductSlug(
+        product.titleEn,
+        product.titleBn,
+        Array.from(assignedSlugs),
+        product.id
+      );
+      if (cleanEnglishSlug !== product.slug) {
+        product.slug = cleanEnglishSlug;
+        hasChanges = true;
+        syncProductToMongo(product).catch(() => {});
+      }
+    }
+    assignedSlugs.add(product.slug);
+  }
+  return hasChanges;
 }
 
 export function getDatabase(): DatabaseSchema {
@@ -298,6 +329,11 @@ export function getDatabase(): DatabaseSchema {
         );
         if (cleanedProducts.length !== memoryDb!.products.length) {
           memoryDb!.products = cleanedProducts;
+          hasChanges = true;
+        }
+
+        // Auto-migrate all existing products to clean English dash-separated slugs (?product=english-name-with-dashes)
+        if (migrateProductSlugs(memoryDb!.products)) {
           hasChanges = true;
         }
       }
@@ -456,6 +492,10 @@ export async function ensureDatabaseReady(): Promise<DatabaseSchema> {
         if (mongoData && memoryDb) {
           if (mongoData.products && mongoData.products.length > 0) {
             memoryDb.products = mongoData.products as Product[];
+            const changed = migrateProductSlugs(memoryDb.products);
+            if (changed) {
+              saveDatabase(memoryDb);
+            }
           } else if (memoryDb.products.length > 0) {
             // First time seeding MongoDB with initial products
             for (const prod of memoryDb.products) {

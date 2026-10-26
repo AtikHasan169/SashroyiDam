@@ -23,6 +23,7 @@ import {
   syncAllToMongo,
   syncOrderToMongo
 } from '../mongodb.ts';
+import { generateProductSlug } from '../../utils/slugify.ts';
 
 const router = Router();
 
@@ -485,17 +486,15 @@ router.post('/products', async (req: AuthenticatedRequest, res) => {
       const targetCatId = categoryId || (db.categories[0]?.id || 'cat-general');
       const cat = db.categories.find((c) => c.id === targetCatId);
 
-      let slugBase = (titleEn || '').trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
-      if (!slugBase || slugBase.length < 2) {
-        slugBase = `product-${Date.now().toString(36)}`;
-      } else {
-        slugBase = slugBase.substring(0, 50) + `-${Date.now().toString(36)}`;
-      }
-      const slug = slugBase;
+      const cleanSlug = generateProductSlug(
+        titleEn,
+        cleanTitle,
+        db.products.map((p) => p.slug)
+      );
 
       const product: Product = {
         id: `prod-${Date.now()}`,
-        slug,
+        slug: cleanSlug,
         titleBn: cleanTitle,
         titleEn: titleEn?.trim() || cleanTitle,
         descriptionBn: descriptionBn?.trim() || '',
@@ -586,9 +585,20 @@ router.put('/products/:id', async (req: AuthenticatedRequest, res) => {
       const newCategoryId = body.categoryId || existing.categoryId;
       const matchedCat = db.categories.find((c) => c.id === newCategoryId);
 
+      // Clean English dash-separated slug
+      let updatedSlug = existing.slug;
+      if (body.slug && body.slug !== existing.slug) {
+        updatedSlug = generateProductSlug(body.slug, body.titleBn || existing.titleBn, undefined, id, db.products);
+      } else if (body.titleEn !== undefined && body.titleEn !== existing.titleEn) {
+        updatedSlug = generateProductSlug(body.titleEn, body.titleBn || existing.titleBn, undefined, id, db.products);
+      } else if (!existing.slug || existing.slug.startsWith('product-') || existing.slug.includes('--')) {
+        updatedSlug = generateProductSlug(existing.titleEn, existing.titleBn, undefined, id, db.products);
+      }
+
       db.products[idx] = {
         ...existing,
         ...body,
+        slug: updatedSlug,
         categoryId: newCategoryId,
         categorySlug: matchedCat?.slug || existing.categorySlug,
         categoryNameBn: matchedCat?.nameBn || existing.categoryNameBn,

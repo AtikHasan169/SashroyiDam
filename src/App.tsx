@@ -131,10 +131,11 @@ function StorefrontApp() {
       }
     }
     if (prodParam) {
-      if (viewingProductPage && (viewingProductPage.slug === prodParam || viewingProductPage.id === prodParam)) {
+      const normParam = prodParam.trim().toLowerCase();
+      if (viewingProductPage && (viewingProductPage.slug?.toLowerCase() === normParam || viewingProductPage.id === prodParam)) {
         return;
       }
-      const found = products.find((p) => p.slug === prodParam || p.id === prodParam);
+      const found = products.find((p) => (p.slug && p.slug.toLowerCase() === normParam) || p.id === prodParam);
       if (found) {
         setViewingProductPage(found);
       } else {
@@ -172,7 +173,8 @@ function StorefrontApp() {
       setIsProfilePageOpen(viewParam === 'profile');
 
       if (prodParam) {
-        const found = products.find((p) => p.slug === prodParam || p.id === prodParam);
+        const normParam = prodParam.trim().toLowerCase();
+        const found = products.find((p) => (p.slug && p.slug.toLowerCase() === normParam) || p.id === prodParam);
         if (found) {
           setViewingProductPage(found);
           setSelectedProduct(null);

@@ -1,91 +1,85 @@
-# Implementation Plan: Product Share Button & Category-Based Automatic SKU Generation
+# Implementation Plan: English Dash-Separated Product URLs & Catalog Migration
 
-Add a cross-platform **Product Share Button** to both product cards and the product details modal, and implement **Category-Based Automatic SKU Generation** in the admin product management dashboard with manual editing and instant regeneration.
+Configure all product URLs and sharing links across the storefront and admin panel to use the product's English title formatted in lowercase with spaces replaced by hyphens (`-`) (e.g., `?product=premium-cotton-panjabi`), migrate all existing catalog items, and handle duplicates with counter numbers (e.g. `blue-shirt-2`).
 
 ---
 
-## User Specifications & Clarifications
+## User Specifications & Core Rules
 
-1. **Product Share Button Locations**:
-   - **Product Cards** (`ProductCard.tsx`): On both grid and list views (alongside existing wishlist/cart quick actions).
-   - **Product Details Modal** (`ProductDetailModal.tsx`): Prominent share button in the modal header/action group.
-   - **Share Capabilities**:
-     - Native Web Share API (`navigator.share`) on mobile devices and modern desktop browsers for seamless sharing.
-     - Fallback / quick-action popover with:
-       - **Copy Link (লিংক কপি করুন)**: One-click clipboard copy with instant toast confirmation.
-       - **WhatsApp**: Direct message share with product title, price, and link (`https://api.whatsapp.com/send?text=...`).
-       - **Facebook**: Share dialog link (`https://www.facebook.com/sharer/sharer.php?u=...`).
-       - **Telegram / Email**: Quick copy/share options.
-
-2. **Category-Based SKU Generation**:
-   - **Format**: 3-letter category prefix followed by a hyphen and a 4-digit unique random number (e.g. `KIT-4821`, `ELE-9204`, `MEN-3015`, `HOM-7812`).
-   - **Category Mapping Logic**:
-     - Extract clean uppercase 3-letter code from the category `slug` or English name (e.g. `kitchen-dining` -> `KIT`, `electronics` -> `ELE`, `fashion-clothing` -> `FAS`, `health-beauty` -> `BEA` or `HEA`, `organic-groceries` -> `GRO`, `home-living` -> `HOM`).
-     - Fallback for custom or unrecognized categories: first 3 valid ASCII alphanumeric characters from the name or slug, uppercase.
-   - **Admin Product Editor Behavior**:
-     - When an admin selects or changes the Category dropdown in the Add/Edit Product modal, automatically generate a new SKU if the field is empty or if creating a new product.
-     - Keep the field fully editable for custom SKUs.
-     - Add an interactive **"Generate New SKU" (রিফ্রেশ / নতুন কোড)** button with a refresh icon directly next to the SKU input field so admins can generate a new one with a single tap anytime.
-     - For variant management: Ensure child variants inherit the base SKU with unique variant suffixes (e.g., `KIT-4821-RED-XL` or `KIT-4821-V1`).
+1. **URL Format**:
+   - Product URLs will use the **English product name** (`titleEn`).
+   - All spaces are replaced by single hyphens (`-`).
+   - Converted to lowercase, non-alphanumeric characters stripped, with no leading or trailing hyphens (e.g. `"Premium Cotton Panjabi"` &rarr; `premium-cotton-panjabi`).
+2. **Catalog Migration**:
+   - **Update existing products now** and apply the rule automatically to all future products created or updated.
+3. **Collision Handling**:
+   - When multiple products have the same English title, append a sequential counter number (`-2`, `-3`, etc.).
+4. **Fallback Handling**:
+   - If a product only has a Bengali title, create a transliterated or clean slug fallback, ensuring valid URL characters only.
 
 ---
 
 ## Proposed Changes
 
-### 1. SKU Generation Utility (`src/utils/skuGenerator.ts`)
-- Create a dedicated utility `generateCategorySku(category?: Category | string, existingProducts?: Product[])`:
-  - Determine 3-character uppercase prefix based on category slug/name mapping.
-  - Generate a 4-digit random number (1000–9999).
-  - Verify uniqueness against existing product SKUs (regenerate digits if duplicate found).
-  - Also provide variant SKU generator helper: `generateVariantSku(baseSku: string, variantKey: string)`.
+### 1. English Slug Generation Utility (`src/utils/slugify.ts`)
+- Implement a universal slug generator used across both frontend and backend:
+  - `generateProductSlug(titleEn: string, titleBn?: string, existingSlugs?: string[], currentProductId?: string): string`
+  - Normalization steps:
+    1. If `titleEn` exists and contains English/alphanumeric characters, use it.
+    2. Convert to lowercase and trim.
+    3. Replace whitespace, underscores, and slashes with single `-`.
+    4. Remove all characters except `[a-z0-9-]`.
+    5. Collapse multiple consecutive hyphens (`--` &rarr; `-`).
+    6. Trim hyphens from both ends.
+    7. If empty, fall back to transliterated text or `product-[timestamp]`.
+    8. Check against `existingSlugs`: If collision occurs with another product, append `-2`, `-3`, etc.
 
-### 2. Share Component & Functionality (`src/components/ProductShareButton.tsx`)
-- Create a reusable, lightweight `ProductShareButton` component:
-  - Props: `product: Product`, `variant?: 'card' | 'modal' | 'icon'`, `className?: string`.
-  - Feature detection for `navigator.share`:
-    - On mobile/supported browsers: Triggers native share sheet with `title: product.nameEn || product.nameBn`, `text: Check out this product on [Store]`, and canonical product URL.
-    - Floating popover dropdown for instant sharing options:
-      - Copy link with feedback toast (`লিংক কপি হয়েছে!`).
-      - WhatsApp Share (`wa.me/?text=...`).
-      - Facebook Share (`facebook.com/sharer...`).
-  - Event propagation stopping (`e.stopPropagation()`) so clicking share on product cards does not inadvertently open the product details modal.
+### 2. Auto-Migration of Existing Catalog Products (`src/server/db.ts`)
+- In `ensureDatabaseReady()` / `getDatabase()`:
+  - Check existing products in `memoryDb.products`.
+  - Migrate any products with legacy or non-English-dash slugs (such as `product-mvplhzjd`, `--mvie7krp`, etc.) to clean English slugs derived from their `titleEn` (e.g., `deshemer-shohore-sobuj-ahammad-mursalin`, `smart-watch`).
+  - Track slugs in a `Set` to enforce unique counter suffixes (`-2`, `-3`).
+  - Immediately persist migrated slugs to `oshesh_db.json` and sync with MongoDB.
 
-### 3. Integrate Share Button into Storefront
-- **`src/components/ProductCard.tsx`**:
-  - Add `ProductShareButton` to the card action overlay / top-right icon buttons (next to wishlist heart icon) with clear tooltip.
-  - Also render smoothly on list view cards.
-- **`src/components/ProductDetailModal.tsx`**:
-  - Place `ProductShareButton` in the modal top action row or next to the wishlist and product code display for high visibility.
+### 3. Server Product Creation & Update (`src/server/routes/admin.ts`)
+- **`POST /api/admin/products`**:
+  - Replace random hash generation (`product-xxxx-${Date.now()}`) with `generateProductSlug(titleEn, titleBn, db.products.map(p => p.slug))`.
+- **`PUT /api/admin/products/:id`**:
+  - When updating a product, update `product.slug` using `generateProductSlug(...)` while excluding the current product's ID to allow retaining its existing slug if the English title hasn't changed.
 
-### 4. Admin Product Modal SKU Auto-Creation (`src/components/admin/AdminDashboard.tsx`)
-- In the Add/Edit Product Modal:
-  - Import `generateCategorySku`.
-  - In `handleCategoryChange`: When category is selected or changed:
-    - If it's a new product or the SKU is empty or matches previous auto-generated format, automatically generate and update `currentProduct.sku`.
-  - Beside the "SKU / প্রোডাক্ট কোড" input field:
-    - Add a sleek "Generate / Refresh" (`রিফ্রেশ`) button with a reload icon.
-    - On click, generate a new SKU matching the currently selected category with an animated spin.
-  - Update variant creation logic so generated variants automatically receive format-aligned SKUs (e.g. `${baseSku}-S`, `${baseSku}-M`).
+### 4. Admin Product Modal UI (`src/components/admin/AdminDashboard.tsx`)
+- Under the "পণ্যের নাম (ইংরেজি)" input field:
+  - Display a live preview of the generated URL slug:
+    `🔗 পেজ লিঙ্ক: ?product=pure-cotton-shirt`
+  - Updates in real-time as the administrator types.
+
+### 5. Storefront Routing & Deep Linking (`src/App.tsx`, `ProductShareButton.tsx`)
+- **`src/App.tsx`**:
+  - `handleOpenProductPage`: Updates browser URL to `?product=${prod.slug}`.
+  - Deep linking listener: Finds products by `p.slug === prodParam` (case-insensitive) or `p.id === prodParam`.
+- **`src/components/ProductShareButton.tsx`**:
+  - Generates shareable URLs using `?product=${product.slug || product.id}` so links shared to WhatsApp, Facebook, or copied to clipboard are clean and readable.
 
 ---
 
 ## Verification Plan
 
 ### Automated Verification
-- Run `compile_applet` to verify TypeScript typing and bundle integrity across all touched files.
+- Run `compile_applet` and `lint_applet` to verify compilation and typing.
 
 ### Manual / Device Verification
-1. **Product Share Verification**:
-   - Navigate to the storefront.
-   - Hover / view a product card; click the Share button.
-   - Test "লিংক কপি করুন" and verify the clipboard has the product URL + toast notification appears.
-   - Click WhatsApp share and verify it opens WhatsApp with the product name and URL formatted.
-   - Open Product Details Modal; click the Share button inside the modal and verify all share actions function smoothly.
-2. **Category SKU Auto-Generation Verification**:
-   - Go to Admin Panel → Products → Click "নতুন প্রোডাক্ট যোগ করুন" (Add New Product).
-   - Select a category (e.g., Electronics, Kitchen, Fashion).
-   - Verify the SKU input automatically populates with a 3-letter prefix + 4-digit code (e.g. `ELE-4892`).
-   - Click the "রিফ্রেশ" (regenerate) icon button next to the SKU input; verify a new unique 4-digit code is generated under the same category prefix.
-   - Switch category to another (e.g., Kitchen); verify prefix changes to `KIT-xxxx`.
-   - Manually edit the SKU to confirm custom text can still be entered without interruption.
-   - Save the product and verify the SKU is saved and displayed in the product list table.
+1. **Catalog Auto-Migration Check**:
+   - Check product list in the store:
+   - Click a product (e.g. "ডিসেম্বরের শহরে" or apparel).
+   - Verify the browser URL bar displays a clean English-dash format: `?product=...` without hashes or percent-encoded characters.
+2. **Product Share Button Check**:
+   - Click the Share button &rarr; "লিংক কপি করুন" (Copy Link).
+   - Paste into address bar and verify URL has the clean English slug with hyphens.
+3. **Admin New Product Creation with Live Preview**:
+   - Go to Admin Panel &rarr; Add New Product.
+   - Type in English name: `Executive Linen Panjabi`.
+   - Verify live URL preview shows `?product=executive-linen-panjabi`.
+   - Save and verify the slug is preserved.
+4. **Duplicate Title Collision Check**:
+   - Add another product with the same English title: `Executive Linen Panjabi`.
+   - Verify the new product receives `?product=executive-linen-panjabi-2`.

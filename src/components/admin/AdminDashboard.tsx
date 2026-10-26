@@ -36,6 +36,7 @@ import { useAuth } from '../../context/AuthContext.tsx';
 import { api } from '../../lib/api.ts';
 import { ManualOrderModal } from './ManualOrderModal.tsx';
 import { generateCategorySku, generateVariantSku } from '../../utils/skuGenerator.ts';
+import { cleanSlug } from '../../utils/slugify.ts';
 import type {
   Product,
   Category,
@@ -261,6 +262,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [prodSearchTerm, setProdSearchTerm] = useState('');
   const [prodCatFilter, setProdCatFilter] = useState('all');
   const [prodStatusFilter, setProdStatusFilter] = useState<'all' | 'published' | 'hidden' | 'unavailable'>('all');
+
+  // Real-time client-side duplicate SKU validator across existing catalog products
+  const conflictingProduct = React.useMemo(() => {
+    if (!editingProduct?.sku?.trim()) return null;
+    const cleanCurrentSku = editingProduct.sku.trim().toUpperCase();
+    return (
+      products.find(
+        (p) => p.sku?.trim().toUpperCase() === cleanCurrentSku && p.id !== editingProduct.id
+      ) || null
+    );
+  }, [editingProduct?.sku, editingProduct?.id, products]);
 
   // Coupon modal
   const [showCouponModal, setShowCouponModal] = useState(false);
@@ -569,6 +581,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
     if (cleanPrice === '' || isNaN(numPrice) || numPrice <= 0) {
       setModalError('পণ্যের সঠিক বিক্রয় মূল্য (৳) প্রদান করুন (০ এর চেয়ে বেশি হতে হবে)');
+      return;
+    }
+
+    const cleanSku = (editingProduct.sku || '').trim().toUpperCase();
+    if (!cleanSku) {
+      setModalError('পণ্যের SKU কোড প্রদান আবশ্যক');
+      return;
+    }
+
+    // Client-side duplicate SKU validation guard
+    const duplicateProd = products.find(
+      (p) => p.sku?.trim().toUpperCase() === cleanSku && p.id !== editingProduct.id
+    );
+
+    if (duplicateProd) {
+      const errorMsg = `এই SKU কোড (${cleanSku}) ইতিমধ্যে "${duplicateProd.titleBn}" পণ্যে ব্যবহৃত হচ্ছে। অনুগ্রহ করে ভিন্ন অথবা নতুন SKU কোড ব্যবহার করুন।`;
+      setModalError(errorMsg);
+      showToast('ডুপ্লিকেট SKU কোড', `SKU "${cleanSku}" ইতিমধ্যে "${duplicateProd.titleBn}" পণ্যে ব্যবহৃত হচ্ছে`, 'error');
       return;
     }
 
@@ -2259,7 +2289,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">পণ্যের নাম (ইংরেজি)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-stone-700">পণ্যের নাম (ইংরেজি)</label>
+                  {cleanSlug(editingProduct.titleEn || '') && (
+                    <span className="text-[11px] text-emerald-800 font-mono bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      🔗 ?product={cleanSlug(editingProduct.titleEn || '')}
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text"
                   placeholder="e.g. Premium Cotton Panjabi"
@@ -2267,6 +2304,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onChange={(e) => setEditingProduct({ ...editingProduct, titleEn: e.target.value })}
                   className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm"
                 />
+                <p className="text-[11px] text-stone-400 mt-1 flex items-center gap-1">
+                  <span>ওয়েবসাইটের পেজ লিঙ্ক:</span>
+                  <code className="text-[#0F4C3A] font-semibold font-mono bg-stone-100 px-1 rounded">
+                    ?product={cleanSlug(editingProduct.titleEn || editingProduct.titleBn || 'product-name')}
+                  </code>
+                </p>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -2347,7 +2390,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block font-semibold text-stone-700">SKU কোড</label>
+                    <label className="block font-semibold text-stone-700">SKU কোড *</label>
                     <button
                       type="button"
                       onClick={() => {
@@ -2368,7 +2411,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       value={editingProduct.sku || ''}
                       onChange={(e) => setEditingProduct({ ...editingProduct, sku: e.target.value.toUpperCase() })}
                       placeholder="যেমন: KIT-4821"
-                      className="w-full px-3 py-2 pr-9 border border-stone-200 rounded-lg font-mono font-bold text-stone-800 tracking-wide text-sm"
+                      className={`w-full px-3 py-2 pr-9 border rounded-lg font-mono font-bold tracking-wide text-sm transition-colors ${
+                        conflictingProduct
+                          ? 'border-rose-400 focus:border-rose-500 bg-rose-50/40 text-rose-900 ring-2 ring-rose-200'
+                          : 'border-stone-200 focus:border-[#0F4C3A] text-stone-800'
+                      }`}
                     />
                     <button
                       type="button"
@@ -2383,6 +2430,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <RefreshCw className="w-3.5 h-3.5" />
                     </button>
                   </div>
+
+                  {/* Real-time Inline Conflict Alert Banner */}
+                  {conflictingProduct && (
+                    <div className="mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <div>
+                          <span className="font-bold">ডুপ্লিকেট SKU!</span> এই কোডটি ইতিমধ্যে{' '}
+                          <span className="font-bold underline decoration-rose-300">"{conflictingProduct.titleBn}"</span> পণ্যে ব্যবহৃত হচ্ছে।
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const matchedCat = categories.find((c) => c.id === editingProduct.categoryId);
+                          const freshSku = generateCategorySku(matchedCat, products);
+                          setEditingProduct({ ...editingProduct, sku: freshSku });
+                        }}
+                        className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0 shadow-xs cursor-pointer"
+                      >
+                        <Sparkles className="w-3 h-3 text-amber-200" />
+                        <span>নতুন অনন্য SKU দিন</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2849,11 +2921,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </button>
                   <button
                     type="submit"
-                    disabled={isSavingProduct}
-                    className="px-5 py-2 bg-[#0F4C3A] text-white font-semibold rounded-lg hover:bg-[#135D48] cursor-pointer disabled:opacity-60 flex items-center gap-1.5"
+                    disabled={isSavingProduct || Boolean(conflictingProduct)}
+                    className={`px-5 py-2 font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                      conflictingProduct
+                        ? 'bg-rose-100 text-rose-700 border border-rose-300 cursor-not-allowed opacity-90'
+                        : isSavingProduct
+                        ? 'bg-stone-300 text-stone-500 cursor-not-allowed'
+                        : 'bg-[#0F4C3A] text-white hover:bg-[#135D48] shadow-sm'
+                    }`}
                   >
-                    {isSavingProduct && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    <span>{isSavingProduct ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}</span>
+                    {isSavingProduct ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>সংরক্ষণ হচ্ছে...</span>
+                      </>
+                    ) : conflictingProduct ? (
+                      <>
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                        <span>ডুপ্লিকেট SKU সমাধান করুন</span>
+                      </>
+                    ) : (
+                      <span>সংরক্ষণ করুন</span>
+                    )}
                   </button>
                 </div>
               </div>

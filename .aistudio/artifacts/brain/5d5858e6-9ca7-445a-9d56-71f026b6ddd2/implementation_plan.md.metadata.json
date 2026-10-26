@@ -1,6 +1,6 @@
 {
-  "summary":  "Implementation plan for adding Product Share buttons (on Product Cards and Product Detail Modal with Web Share API, Copy Link toast, WhatsApp, and Facebook options) and category-based automatic SKU generation (3-letter category prefix + 4-digit number e.g. KIT-4821 with auto-fill on category select, manual editing, and instant regeneration button in admin product modal).",
-  "updatedAt":  "2026-10-26T18:47:59.872795314Z",
+  "summary":  "Implementation plan for formatting product URLs with the product's English name and dash-separated words (e.g. ?product=premium-cotton-panjabi). Covers auto-migrating all existing products, duplicate resolution with numerical counters (e.g. blue-shirt-2), slug generation on create/update, live URL preview in the admin modal, and storefront sharing/deep-linking synchronization.",
+  "updatedAt":  "2026-10-26T19:15:15.356813946Z",
   "requestFeedback":  true,
   "userFacing":  true
 }
