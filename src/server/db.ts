@@ -24,6 +24,8 @@ import {
   syncOrderToMongo,
   syncUserToMongo,
   syncStoreSettingsToMongo,
+  syncAdminSettingsToMongo,
+  fetchAdminSettingsFromMongo,
   savePhotoToMongo
 } from './mongodb.ts';
 import { generateProductSlug } from '../utils/slugify.ts';
@@ -377,6 +379,22 @@ export function getDatabase(): DatabaseSchema {
             }
             if (mongoData.storeSettings) {
               memoryDb.storeSettings = mongoData.storeSettings as StoreSettings;
+            } else if (memoryDb.storeSettings) {
+              syncAdminSettingsToMongo({
+                storeSettings: memoryDb.storeSettings,
+                shippingRates: memoryDb.shippingRates,
+                coupons: memoryDb.coupons,
+                banners: memoryDb.banners
+              }, 'initial_auto_seed').catch(() => {});
+            }
+            if (mongoData.shippingRates && mongoData.shippingRates.length > 0) {
+              memoryDb.shippingRates = mongoData.shippingRates as ShippingRate[];
+            }
+            if (mongoData.banners && mongoData.banners.length > 0) {
+              memoryDb.banners = mongoData.banners as Banner[];
+            }
+            if (mongoData.coupons && mongoData.coupons.length > 0) {
+              memoryDb.coupons = mongoData.coupons as Coupon[];
             }
             if (mongoData.users && mongoData.users.length > 0) {
               for (const mu of mongoData.users) {
@@ -424,6 +442,22 @@ export function getDatabase(): DatabaseSchema {
         }
         if (mongoData.storeSettings) {
           memoryDb.storeSettings = mongoData.storeSettings as StoreSettings;
+        } else if (memoryDb.storeSettings) {
+          syncAdminSettingsToMongo({
+            storeSettings: memoryDb.storeSettings,
+            shippingRates: memoryDb.shippingRates,
+            coupons: memoryDb.coupons,
+            banners: memoryDb.banners
+          }, 'boot_auto_seed').catch(() => {});
+        }
+        if (mongoData.shippingRates && mongoData.shippingRates.length > 0) {
+          memoryDb.shippingRates = mongoData.shippingRates as ShippingRate[];
+        }
+        if (mongoData.banners && mongoData.banners.length > 0) {
+          memoryDb.banners = mongoData.banners as Banner[];
+        }
+        if (mongoData.coupons && mongoData.coupons.length > 0) {
+          memoryDb.coupons = mongoData.coupons as Coupon[];
         }
         if (mongoData.users && mongoData.users.length > 0) {
           for (const mu of mongoData.users) {
@@ -531,6 +565,19 @@ export async function ensureDatabaseReady(): Promise<DatabaseSchema> {
 
           if (mongoData.storeSettings) {
             memoryDb.storeSettings = mongoData.storeSettings as StoreSettings;
+          } else if (memoryDb.storeSettings) {
+            syncAdminSettingsToMongo({
+              storeSettings: memoryDb.storeSettings,
+              shippingRates: memoryDb.shippingRates,
+              coupons: memoryDb.coupons,
+              banners: memoryDb.banners
+            }, 'ensure_ready_seed').catch(() => {});
+          }
+          if (mongoData.shippingRates && mongoData.shippingRates.length > 0) {
+            memoryDb.shippingRates = mongoData.shippingRates as ShippingRate[];
+          }
+          if (mongoData.banners && mongoData.banners.length > 0) {
+            memoryDb.banners = mongoData.banners as Banner[];
           }
           if (mongoData.coupons && mongoData.coupons.length > 0) {
             memoryDb.coupons = mongoData.coupons as Coupon[];

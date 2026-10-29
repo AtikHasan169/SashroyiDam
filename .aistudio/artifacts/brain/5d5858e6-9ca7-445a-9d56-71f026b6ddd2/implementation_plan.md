@@ -1,78 +1,49 @@
-# Implementation Plan: Admin MFS Payment Review, Address Validation Popup & Secure TrxID Management
+# Implementation Plan: Dedicated MongoDB `admin_settings` Collection & Real-Time Sync
 
-Implement a dedicated review section in the Admin Dashboard for bKash/Nagad pending orders with missing or unverified TrxIDs, remove customer-side TrxID editing to prevent fraudulent tampering, and add an address validation modal popup to checkout.
-
-## User Review Required
-
-> [!IMPORTANT]
-> - **Customer TrxID Edit Removal**: As confirmed, customers will no longer be able to edit or modify TrxIDs after checkout from the Order Confirmation or Tracking modals. All edits and manual payment verifications will be strictly handled by administrators in the Admin Dashboard.
-> - **Address Validation Modal Popup**: When clicking "পরবর্তী ধাপ (পেমেন্ট)" in Checkout Step 1, if any required address fields are missing (e.g. invalid phone number, empty detailed address, or missing upazila), a focused modal dialog pops up listing the missing items, with a single tap to focus directly on the missing field.
+Ensure all administrative configurations created or edited in the Admin Panel—including store settings, bKash and Nagad payment numbers, delivery charges, shipping zones, coupons, and banners—are persistently saved to and loaded directly from a dedicated `admin_settings` collection in MongoDB Atlas, preventing values from ever resetting to defaults on restart, re-deployment, or container recycling.
 
 ---
 
-## Proposed Changes
-
-### 1. Admin Dashboard: Dedicated 'পেন্ডিং TrxID রিভিউ' Section
-#### `src/components/AdminDashboard.tsx`
-- In the **Orders** section:
-  - Add a dedicated sub-filter / tab: **"পেন্ডিং পেমেন্ট রিভিউ (bKash/Nagad)"** with a live counter badge showing the number of orders requiring review.
-  - Specifically filter for orders where:
-    - `paymentMethod` is `'bkash'` or `'nagad'`
-    - AND (`paymentStatus !== 'paid'` OR `!transactionId` OR transactionId is flagged)
-  - Display review cards / table rows equipped with:
-    - **Customer Info**: Name, 11-digit phone number with quick copy/call.
-    - **Payment Details**: bKash (10-char TrxID) or Nagad (8-char TrxID), sender phone number, total payable amount.
-    - **TrxID Status**: Clearly styled badge (e.g., "১০ অক্ষরের TrxID যুক্ত", "TrxID অনুপস্থিত", "অসম্পূর্ণ TrxID").
-    - **Admin One-Click Actions**:
-      - **"পেমেন্ট নিশ্চিত করুন (Mark as Paid)"**: Instantly updates order payment status to `'paid'`, adds a timeline entry with admin signature, and logs an audit record.
-      - **"TrxID সংশোধন করুন (Admin Edit TrxID)"**: Modal dialog allowing authorized staff to record or correct the TrxID with strict length validation (10 chars for bKash, 8 chars for Nagad).
-      - **"বিস্তারিত দেখুন"**: Opens full order modal.
+## 1. Root Cause Analysis
+- Currently, when an administrator edits store settings via `PUT /api/admin/settings` or shipping rates via `PUT /api/admin/shipping/:id`, the values are saved in local memory and local JSON (`oshesh_db.json`), but are never synced to MongoDB.
+- On cold boots or re-deployments, `fetchMongoData()` only loaded data if `products.length > 0 || categories.length > 0 || orders.length > 0`. If those were empty or during fresh container startups, store settings reverted to the hardcoded `initialStoreSettings`.
+- There is currently no dedicated `admin_settings` collection in MongoDB that aggregates and guarantees authoritative preservation of the store's core admin configurations.
 
 ---
 
-### 2. Checkout Flow: Address Validation Modal Popup
-#### `src/components/CheckoutFlow.tsx`
-- Create an **AddressValidationModal** component:
-  - If a customer clicks **"পরবর্তী ধাপ (পেমেন্ট)"** with missing/invalid fields (e.g., 11-digit mobile number incomplete, detailed address empty, or upazila unselected):
-    - Prevent step transition.
-    - Open an attention-focused modal dialog with an alert icon, clear Bangla bullet points of what needs correction (e.g., "১১ ডিজিটের সঠিক মোবাইল নম্বর দিন", "সম্পূর্ণ ঠিকানা (বাসা/রোড/এলাকা) লিখুন").
-    - Provide a primary button: **"ঠিকানা ঠিক করুন"** that closes the modal and immediately smooth-scrolls and focuses the first invalid input.
-    - Eliminates the need to look at distant top alerts or get confused about form status.
+## 2. Proposed Changes
 
----
+### Step 1: Implement `admin_settings` Collection in `src/server/mongodb.ts`
+- Define an authoritative schema and document structure for the `admin_settings` collection (`id: 'primary_admin_config'`).
+- Document payload will store:
+  - `storeSettings`: Store name, phone, WhatsApp number, bKash number & type (personal/merchant), Nagad number & type, address, delivery fees (Dhaka Metro & Nationwide), free delivery threshold, notice announcements, social links.
+  - `shippingRates`: Dhaka and outside-Dhaka rates, estimated delivery days, active states.
+  - `coupons`: Active discount codes, limits, rules, and usage metrics.
+  - `banners`: Promotional carousel and campaign banners.
+  - `updatedAt` and `updatedBy`: Timestamp and administrator identifier.
+- Add `syncAdminSettingsToMongo(data: { storeSettings?: StoreSettings; shippingRates?: ShippingRate[]; coupons?: Coupon[]; banners?: Banner[] }, updatedBy?: string): Promise<boolean>` to immediately upsert to `admin_settings`.
+- Add `fetchAdminSettingsFromMongo(): Promise<{ storeSettings?: StoreSettings; shippingRates?: ShippingRate[]; coupons?: Coupon[]; banners?: Banner[] } | null>` to unconditionally retrieve admin configs from MongoDB.
+- Update `fetchMongoData()` to fetch `admin_settings` unconditionally on startup, even if other collections are empty.
+- Update `getMongoStatus()` to monitor the `admin_settings` collection count and status.
 
-### 3. Restricting Customer-Side TrxID Editing to Prevent Misuse
-#### `src/components/CheckoutFlow.tsx`
-- In the `completedOrder` confirmation view:
-  - Retain the display of the store's payment number with copy button and the submitted TrxID with copy button.
-  - Remove the inline customer edit/modify form for TrxID post-checkout to prevent fraudulent submissions or tampering. Show a clear badge: *"পেমেন্ট তথ্য যাচাইয়ের জন্য অ্যাডমিন প্যানেলে অপেক্ষমাণ"* (Awaiting admin verification).
+### Step 2: Auto-Load and Seed `admin_settings` in `src/server/db.ts`
+- In `getDatabase()` and `ensureDatabaseReady()`:
+  - Query MongoDB's `admin_settings` upon server startup.
+  - If `admin_settings` document exists in MongoDB, override initial defaults with cloud values so live database values are immediately served to the storefront and admin panel.
+  - If MongoDB is connected and `admin_settings` does not yet exist, automatically seed the initial admin configuration into MongoDB so the document is created right away.
+- In `syncAllToMongo()`, ensure `admin_settings` is included and updated during full catalog syncs.
 
-#### `src/components/OrderTrackingModal.tsx`
-- Remove the customer-facing `isEditingPayment` form and edit button.
-- Display the verified/submitted TrxID with a copy button, payment status badge, and store contact info if payment verification is needed.
+### Step 3: Wire Real-Time Cloud Sync in `src/server/routes/admin.ts`
+- In `PUT /api/admin/settings`:
+  - After updating `db.storeSettings` locally, immediately call `syncAdminSettingsToMongo({ storeSettings: updated }, req.user?.email)` and `syncStoreSettingsToMongo(updated)`.
+- In `PUT /api/admin/shipping/:id`:
+  - After updating `shippingRates`, immediately call `syncAdminSettingsToMongo({ shippingRates: db.shippingRates }, req.user?.email)`.
+- In `POST /api/admin/coupons`, `PUT /api/admin/coupons/:id`, and `DELETE /api/admin/coupons/:id`:
+  - Immediately sync updated coupons to `admin_settings`.
+- Ensure public settings endpoints (`GET /api/settings`, `GET /api/store/settings`) and checkout flow always retrieve the live persisted values from memory and MongoDB.
 
----
-
-### 4. Backend Admin Endpoint
-#### `src/server/routes/admin.ts`
-- Ensure `PUT /api/admin/orders/:id/status` and a dedicated `PUT /api/admin/orders/:id/payment` allows admins to update TrxID and confirm payment status simultaneously, recording the admin's name and timestamp in `statusTimeline` and the system `AuditLog`.
-
----
-
-## Verification Plan
-
-### Automated Tests & Type Checking
-- Run `lint_applet` (`tsc --noEmit`) to verify zero TypeScript errors.
-- Run `compile_applet` to confirm successful Vite production compilation.
-
-### Manual / API Tests via `curl`
-1. **Address Validation Modal Test**:
-   - In Checkout Step 1, click next with empty address -> Confirm modal popup renders with detailed error breakdown and action button.
-2. **Admin MFS Review Tab Test**:
-   - Place a test bKash order with TrxID.
-   - Open Admin Dashboard -> Orders -> 'পেন্ডিং পেমেন্ট রিভিউ' tab.
-   - Confirm the order appears in the review queue with customer phone, TrxID, and quick action buttons.
-   - Click "পেমেন্ট নিশ্চিত করুন" -> Verify paymentStatus transitions to `paid` and statusTimeline records the verification.
-   - Test Admin TrxID correction with 10-char bKash and 8-char Nagad validators.
-3. **Customer Tamper Protection Test**:
-   - Track order via `OrderTrackingModal` -> Verify no edit button or input field is present for customers to change the TrxID.
+### Step 4: Verification & Diagnostic Checks
+- Run typecheck and compilation (`npm run lint` / `tsc --noEmit`, `compile_applet`).
+- Test saving store settings (e.g., custom bKash/Nagad numbers, delivery charge updates) via admin API.
+- Test server restart simulation to verify values are loaded directly from MongoDB `admin_settings` without resetting to defaults.
+- Verify Admin Panel UI and customer CheckoutFlow reflect the updated numbers and rates immediately.

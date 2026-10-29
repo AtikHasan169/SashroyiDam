@@ -21,7 +21,9 @@ import {
   deleteCategoryFromMongo,
   getMongoStatus,
   syncAllToMongo,
-  syncOrderToMongo
+  syncOrderToMongo,
+  syncAdminSettingsToMongo,
+  syncStoreSettingsToMongo
 } from '../mongodb.ts';
 import { generateProductSlug } from '../../utils/slugify.ts';
 
@@ -969,6 +971,9 @@ router.post('/coupons', async (req: AuthenticatedRequest, res) => {
       return c;
     });
 
+    const currentDb = await ensureDatabaseReady();
+    await syncAdminSettingsToMongo({ coupons: currentDb.coupons }, req.user?.email);
+
     res.status(201).json({ coupon: newCoupon, message: 'কুপন তৈরি সম্পন্ন হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -984,6 +989,10 @@ router.put('/coupons/:id/toggle', async (req: AuthenticatedRequest, res) => {
       c.isActive = !c.isActive;
       return c;
     });
+
+    const currentDb = await ensureDatabaseReady();
+    await syncAdminSettingsToMongo({ coupons: currentDb.coupons }, req.user?.email);
+
     res.json({ coupon: updated, message: `কুপন স্ট্যাটাস পরিবর্তিত হয়েছে` });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -1008,6 +1017,10 @@ router.put('/coupons/:id', async (req: AuthenticatedRequest, res) => {
       if (isActive !== undefined) c.isActive = Boolean(isActive);
       return c;
     });
+
+    const currentDb = await ensureDatabaseReady();
+    await syncAdminSettingsToMongo({ coupons: currentDb.coupons }, req.user?.email);
+
     res.json({ coupon: updated, message: 'কুপন সফলভাবে আপডেট করা হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -1023,6 +1036,10 @@ router.delete('/coupons/:id', async (req: AuthenticatedRequest, res) => {
       if (idx === -1) throw new Error('কুপন পাওয়া যায়নি');
       db.coupons.splice(idx, 1);
     });
+
+    const currentDb = await ensureDatabaseReady();
+    await syncAdminSettingsToMongo({ coupons: currentDb.coupons }, req.user?.email);
+
     res.json({ message: 'কুপন সফলভাবে মুছে ফেলা হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -1062,6 +1079,17 @@ router.put('/settings', async (req: AuthenticatedRequest, res) => {
       };
       return db.storeSettings;
     });
+
+    // Real-time synchronization to MongoDB admin_settings and store_settings
+    await syncAdminSettingsToMongo({ storeSettings: updated }, req.user?.email);
+    await syncStoreSettingsToMongo(updated);
+
+    await recordAuditLog(
+      'STORE_SETTINGS_UPDATED',
+      req.user!,
+      `Store settings updated (bKash: ${updated.bkashNumber || 'N/A'}, Nagad: ${updated.nagadNumber || 'N/A'}, Delivery: ৳${updated.defaultDeliveryFeeDhaka}/৳${updated.defaultDeliveryFeeOutside})`
+    );
+
     res.json({ settings: updated, message: 'স্টোর সেটিংস সফলভাবে আপডেট হয়েছে' });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -1081,6 +1109,9 @@ router.put('/shipping/:id', async (req: AuthenticatedRequest, res) => {
       if (isActive !== undefined) s.isActive = Boolean(isActive);
       return s;
     });
+
+    const currentDb = await ensureDatabaseReady();
+    await syncAdminSettingsToMongo({ shippingRates: currentDb.shippingRates }, req.user?.email);
 
     res.json({ shippingRate: updated, message: 'শিপিং রেট আপডেট হয়েছে' });
   } catch (err: any) {

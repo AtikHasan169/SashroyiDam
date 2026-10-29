@@ -2707,12 +2707,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  সেটিংস সংরক্ষণ করুন
-                </button>
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>সেটিংস সংরক্ষণ করুন</span>
+                  </button>
+                  <div className="text-[11px] text-stone-500 flex items-center gap-1.5 bg-stone-50 px-3 py-1.5 rounded-lg border border-stone-200">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>MongoDB <strong>admin_settings</strong> কালেকশনে রিয়েল-টাইম ক্লাউড সিঙ্ক সক্রিয়</span>
+                  </div>
+                </div>
               </form>
             )}
 

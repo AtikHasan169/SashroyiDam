@@ -1,6 +1,6 @@
 import { MongoClient, type Db } from 'mongodb';
 import type { DatabaseSchema } from './db.ts';
-import type { Product, Category, Order, StoreSettings, Coupon, User } from '../types/index.ts';
+import type { Product, Category, Order, StoreSettings, Coupon, User, ShippingRate, Banner } from '../types/index.ts';
 
 let mongoClient: MongoClient | null = null;
 let db: Db | null = null;
@@ -60,7 +60,8 @@ export async function initMongo(): Promise<boolean> {
       db.collection('categories').createIndex({ id: 1 }, { unique: true }),
       db.collection('orders').createIndex({ id: 1 }, { unique: true }),
       db.collection('users').createIndex({ id: 1 }, { unique: true }),
-      db.collection('users').createIndex({ email: 1 }, { unique: true, sparse: true })
+      db.collection('users').createIndex({ email: 1 }, { unique: true, sparse: true }),
+      db.collection('admin_settings').createIndex({ id: 1 }, { unique: true })
     ]).catch((err) => {
       console.warn('MongoDB index creation note:', err.message);
     });
@@ -98,17 +99,18 @@ export async function getMongoStatus() {
       isConfigured: Boolean(mongoUri),
       isConnected: false,
       dbName: dbName || 'sashroyidaam',
-      collections: { products: 0, categories: 0, orders: 0, users: 0, photos: 0 }
+      collections: { products: 0, categories: 0, orders: 0, users: 0, photos: 0, admin_settings: 0 }
     };
   }
 
   try {
-    const [productsCount, categoriesCount, ordersCount, usersCount, photosCount] = await Promise.all([
+    const [productsCount, categoriesCount, ordersCount, usersCount, photosCount, adminSettingsCount] = await Promise.all([
       db.collection('products').countDocuments(),
       db.collection('categories').countDocuments(),
       db.collection('orders').countDocuments(),
       db.collection('users').countDocuments(),
-      db.collection('photos').countDocuments().catch(() => 0)
+      db.collection('photos').countDocuments().catch(() => 0),
+      db.collection('admin_settings').countDocuments().catch(() => 0)
     ]);
 
     return {
@@ -120,7 +122,8 @@ export async function getMongoStatus() {
         categories: categoriesCount,
         orders: ordersCount,
         users: usersCount,
-        photos: photosCount
+        photos: photosCount,
+        admin_settings: adminSettingsCount
       }
     };
   } catch (err) {
@@ -128,7 +131,7 @@ export async function getMongoStatus() {
       isConfigured: true,
       isConnected: false,
       dbName,
-      collections: { products: 0, categories: 0, orders: 0, users: 0, photos: 0 }
+      collections: { products: 0, categories: 0, orders: 0, users: 0, photos: 0, admin_settings: 0 }
     };
   }
 }
@@ -193,6 +196,104 @@ export async function getAllPhotosFromMongo(): Promise<Array<{ name: string; dat
 }
 
 /**
+ * Synchronize administrative settings (storeSettings, shippingRates, coupons, banners)
+ * into the dedicated MongoDB 'admin_settings' collection
+ */
+export async function syncAdminSettingsToMongo(
+  data: {
+    storeSettings?: StoreSettings;
+    shippingRates?: ShippingRate[];
+    coupons?: Coupon[];
+    banners?: Banner[];
+  },
+  updatedBy?: string
+): Promise<boolean> {
+  if (mongoUri && (!isConnected || !db)) {
+    await ensureMongoReady();
+  }
+  if (!isMongoConfigured() || !db) return false;
+
+  try {
+    const updatePayload: Record<string, any> = {
+      id: 'primary_admin_config',
+      updatedAt: new Date().toISOString()
+    };
+    if (updatedBy) updatePayload.updatedBy = updatedBy;
+    if (data.storeSettings) updatePayload.storeSettings = data.storeSettings;
+    if (data.shippingRates) updatePayload.shippingRates = data.shippingRates;
+    if (data.coupons) updatePayload.coupons = data.coupons;
+    if (data.banners) updatePayload.banners = data.banners;
+
+    await db.collection('admin_settings').updateOne(
+      { id: 'primary_admin_config' },
+      { $set: updatePayload },
+      { upsert: true }
+    );
+
+    // Also mirror to legacy store_settings collection if storeSettings is provided
+    if (data.storeSettings) {
+      await db.collection('store_settings').updateOne(
+        { id: 'primary_settings' },
+        { $set: { ...data.storeSettings, id: 'primary_settings', updatedAt: new Date().toISOString() } },
+        { upsert: true }
+      ).catch(() => {});
+    }
+
+    return true;
+  } catch (err: any) {
+    console.warn('Failed to sync admin settings to MongoDB:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Direct fetch of administrative settings from dedicated 'admin_settings' collection
+ */
+export async function fetchAdminSettingsFromMongo(): Promise<{
+  storeSettings?: StoreSettings;
+  shippingRates?: ShippingRate[];
+  coupons?: Coupon[];
+  banners?: Banner[];
+} | null> {
+  if (mongoUri && (!isConnected || !db)) {
+    await ensureMongoReady();
+  }
+  if (!isMongoConfigured() || !db) return null;
+
+  try {
+    const doc = await db.collection('admin_settings').findOne(
+      { id: 'primary_admin_config' },
+      { projection: { _id: 0 } }
+    );
+    if (doc) {
+      return {
+        storeSettings: doc.storeSettings,
+        shippingRates: doc.shippingRates,
+        coupons: doc.coupons,
+        banners: doc.banners
+      };
+    }
+
+    // Fallback: Check store_settings collection if admin_settings was not yet initialized
+    const legacy = (await db.collection('store_settings').findOne(
+      {},
+      { projection: { _id: 0 } }
+    )) as unknown as StoreSettings | null;
+
+    if (legacy) {
+      return {
+        storeSettings: legacy
+      };
+    }
+
+    return null;
+  } catch (err: any) {
+    console.warn('Failed to fetch admin settings from MongoDB:', err.message);
+    return null;
+  }
+}
+
+/**
  * Fetches all persistent data from MongoDB on startup if available
  */
 export async function fetchMongoData(): Promise<Partial<DatabaseSchema> | null> {
@@ -202,24 +303,40 @@ export async function fetchMongoData(): Promise<Partial<DatabaseSchema> | null> 
   if (!isMongoConfigured() || !db) return null;
 
   try {
-    const [products, categories, orders, storeSettingsDoc, coupons, users] = await Promise.all([
+    const [products, categories, orders, adminSettingsDoc, storeSettingsDoc, coupons, users] = await Promise.all([
       db.collection('products').find({}, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray() as unknown as Promise<Product[]>,
       db.collection('categories').find({}, { projection: { _id: 0 } }).toArray() as unknown as Promise<Category[]>,
       db.collection('orders').find({}, { projection: { _id: 0 } }).toArray() as unknown as Promise<Order[]>,
+      db.collection('admin_settings').findOne({ id: 'primary_admin_config' }, { projection: { _id: 0 } }),
       db.collection('store_settings').findOne({}, { projection: { _id: 0 } }) as unknown as Promise<StoreSettings | null>,
       db.collection('coupons').find({}, { projection: { _id: 0 } }).toArray() as unknown as Promise<Coupon[]>,
       db.collection('users').find({}, { projection: { _id: 0 } }).toArray() as unknown as Promise<User[]>
     ]);
 
-    // If MongoDB has existing records, return them
-    if (products.length > 0 || categories.length > 0 || orders.length > 0) {
-      console.log(`📦 Loaded from MongoDB Atlas: ${products.length} products, ${categories.length} categories, ${orders.length} orders`);
+    const effectiveStoreSettings = adminSettingsDoc?.storeSettings || storeSettingsDoc || undefined;
+    const effectiveShippingRates = adminSettingsDoc?.shippingRates || undefined;
+    const effectiveCoupons = (adminSettingsDoc?.coupons && adminSettingsDoc.coupons.length > 0) ? adminSettingsDoc.coupons : coupons;
+    const effectiveBanners = adminSettingsDoc?.banners || undefined;
+
+    const hasData =
+      products.length > 0 ||
+      categories.length > 0 ||
+      orders.length > 0 ||
+      Boolean(effectiveStoreSettings) ||
+      Boolean(effectiveShippingRates) ||
+      (effectiveCoupons && effectiveCoupons.length > 0) ||
+      users.length > 0;
+
+    if (hasData) {
+      console.log(`📦 Loaded from MongoDB Atlas: ${products.length} products, ${categories.length} categories, ${orders.length} orders, admin_settings loaded`);
       return {
         products: products || [],
         categories: categories || [],
         orders: orders || [],
-        storeSettings: storeSettingsDoc || undefined,
-        coupons: coupons || [],
+        storeSettings: effectiveStoreSettings,
+        shippingRates: effectiveShippingRates,
+        coupons: effectiveCoupons || [],
+        banners: effectiveBanners || [],
         users: users || []
       };
     }
@@ -426,6 +543,22 @@ export async function syncAllToMongo(data: DatabaseSchema): Promise<{ success: b
         { upsert: true }
       );
     }
+
+    // Upsert admin_settings dedicated document
+    await db.collection('admin_settings').updateOne(
+      { id: 'primary_admin_config' },
+      {
+        $set: {
+          id: 'primary_admin_config',
+          storeSettings: data.storeSettings,
+          shippingRates: data.shippingRates,
+          coupons: data.coupons,
+          banners: data.banners,
+          updatedAt: new Date().toISOString()
+        }
+      },
+      { upsert: true }
+    );
 
     // Upsert coupons
     for (const coup of data.coupons) {

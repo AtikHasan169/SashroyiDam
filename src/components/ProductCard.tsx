@@ -10,6 +10,7 @@ import { ProductShareButton } from './ProductShareButton.tsx';
 interface ProductCardProps {
   product: Product;
   onOpenDetails: (product: Product) => void;
+  onOpenQuickAction?: (product: Product) => void;
   onDirectBuy?: (product: Product) => void;
   onQuickAddToast?: (product: Product) => void;
   viewMode?: 'grid' | 'list';
@@ -18,6 +19,7 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onOpenDetails,
+  onOpenQuickAction,
   onDirectBuy,
   onQuickAddToast,
   viewMode = 'grid'
@@ -35,6 +37,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!canOrder) return;
+    if (product.variants && product.variants.length > 1 && onOpenQuickAction) {
+      onOpenQuickAction(product);
+      return;
+    }
     const defaultVariant = product.variants && product.variants.length > 0 ? product.variants[0].id : undefined;
     addToCart(product.id, defaultVariant, 1);
     onQuickAddToast?.(product);
@@ -43,6 +49,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const handleDirectBuyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!canOrder) return;
+    if (product.variants && product.variants.length > 1 && onOpenQuickAction) {
+      onOpenQuickAction(product);
+      return;
+    }
     if (onDirectBuy) {
       onDirectBuy(product);
     } else {
@@ -261,9 +271,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         )}
 
         {/* Auto-changing Product Highlight Badge */}
-        <div className="absolute bottom-2 left-2 sm:bottom-2.5 sm:left-2.5 z-10 max-w-[calc(100%-1rem)] pointer-events-none transition-opacity duration-200">
+        <div className="absolute bottom-2 left-2 sm:bottom-2.5 sm:left-2.5 z-10 max-w-[calc(100%-1rem)] pointer-events-none group-hover:opacity-0 transition-opacity duration-200">
           <ProductHighlightBadge product={product} variant="card" />
         </div>
+
+        {/* Quick View Button on Desktop Hover */}
+        {onOpenQuickAction && !isUnavailable && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenQuickAction(product);
+            }}
+            className="hidden sm:flex absolute inset-x-3 bottom-3 z-20 items-center justify-center gap-1.5 py-2 px-3 bg-white/95 hover:bg-white text-stone-900 text-xs font-bold rounded-xl shadow-md border border-stone-200/80 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer transform translate-y-1 group-hover:translate-y-0"
+          >
+            <Eye className="w-3.5 h-3.5 text-[#0F4C3A]" />
+            <span>{language === 'bn' ? 'দ্রুত দেখুন (Quick View)' : 'Quick View'}</span>
+          </button>
+        )}
       </div>
 
       {/* 2. Content & Pricing - flex-1 with uniform spacing */}

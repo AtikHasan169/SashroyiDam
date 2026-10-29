@@ -87,7 +87,7 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
           {/* Thumbnail */}
           <div
             onClick={handleFullPage}
-            className="w-20 h-20 rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shrink-0 cursor-pointer group relative"
+            className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shrink-0 cursor-pointer group relative shadow-2xs"
           >
             <img
               src={product.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg'}
@@ -105,20 +105,27 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
 
           {/* Details */}
           <div className="flex-1 pr-6 min-w-0">
-            <span className="text-[10px] uppercase font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md inline-block">
-              {product.brand}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md inline-block">
+                {language === 'bn' ? 'দ্রুত প্রিভিউ' : 'Quick View'}
+              </span>
+              {product.brand && (
+                <span className="text-[11px] font-semibold text-stone-500">
+                  {product.brand}
+                </span>
+              )}
+            </div>
 
             <h3
               onClick={handleFullPage}
-              className="text-sm font-bold text-stone-900 line-clamp-2 mt-1 hover:text-[#0F4C3A] cursor-pointer transition-colors"
+              className="text-sm sm:text-base font-bold text-stone-900 line-clamp-2 mt-1 hover:text-[#0F4C3A] cursor-pointer transition-colors leading-snug"
             >
               {title}
             </h3>
 
             {/* Price block */}
-            <div className="flex items-baseline gap-2 mt-1.5">
-              <span className="text-lg font-bold text-[#0F4C3A] tabular-nums">
+            <div className="flex items-baseline gap-2 mt-1.5 flex-wrap">
+              <span className="text-lg sm:text-xl font-extrabold text-[#0F4C3A] tabular-nums">
                 {formatPrice(currentPrice)}
               </span>
               {product.originalPrice && product.originalPrice > currentPrice && (
@@ -127,8 +134,24 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
                 </span>
               )}
               {product.originalPrice && product.originalPrice > currentPrice && (
-                <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded">
-                  {t('savings', { amount: formatPrice(product.originalPrice - currentPrice) })}
+                <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">
+                  {Math.round(((product.originalPrice - currentPrice) / product.originalPrice) * 100)}% ছাড়
+                </span>
+              )}
+            </div>
+
+            {/* In stock count indicator */}
+            <div className="text-[11px] font-medium mt-1">
+              {isUnavailable ? (
+                <span className="text-rose-600 font-bold">{language === 'bn' ? 'বিক্রয়ের জন্য অনুপলব্ধ' : 'Currently Unavailable'}</span>
+              ) : isOutOfStock ? (
+                <span className="text-rose-600 font-semibold">{t('outOfStock')}</span>
+              ) : (
+                <span className="text-emerald-700 flex items-center gap-1 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                  <span>
+                    {language === 'bn' ? `${currentStock} টি স্টকে বিদ্যমান` : `${currentStock} available in stock`}
+                  </span>
                 </span>
               )}
             </div>
@@ -137,8 +160,8 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
 
         {/* Variants Selector (if applicable) */}
         {product.variants && product.variants.length > 0 && (
-          <div className="px-5 py-3.5 border-b border-stone-100 space-y-2">
-            <label className="block text-xs font-semibold text-stone-700">
+          <div className="px-4 sm:px-5 py-3 border-b border-stone-100 space-y-2">
+            <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider">
               {language === 'bn' ? 'সাইজ / ভ্যারিয়েন্ট নির্বাচন করুন:' : 'Select Size / Variant:'}
             </label>
             <div className="flex flex-wrap gap-2">
@@ -151,9 +174,9 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
                     type="button"
                     disabled={isOutOf}
                     onClick={() => setSelectedVariantId(v.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-[#0F4C3A] text-white border-[#0F4C3A] shadow-xs'
+                        ? 'bg-[#0F4C3A] text-white border-[#0F4C3A] shadow-xs ring-2 ring-[#0F4C3A]/20'
                         : isOutOf
                         ? 'bg-stone-100 text-stone-400 border-stone-200 line-through cursor-not-allowed'
                         : 'bg-white hover:bg-stone-50 text-stone-800 border-stone-300'
@@ -171,6 +194,36 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
             </div>
           </div>
         )}
+
+        {/* Quantity Stepper Row */}
+        <div className="px-4 sm:px-5 py-3 border-b border-stone-100 flex items-center justify-between">
+          <span className="text-xs font-bold text-stone-800 uppercase tracking-wider">
+            {language === 'bn' ? 'পরিমাণ (Quantity):' : 'Quantity:'}
+          </span>
+          <div className="flex items-center border border-stone-200 rounded-xl bg-stone-50 overflow-hidden shadow-2xs">
+            <button
+              type="button"
+              disabled={quantity <= 1 || !canOrder}
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              className="px-3 py-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-200/70 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-bold text-sm"
+              aria-label="Decrease quantity"
+            >
+              -
+            </button>
+            <span className="px-3 py-1 text-xs font-bold text-stone-900 bg-white min-w-[32px] text-center tabular-nums">
+              {quantity}
+            </span>
+            <button
+              type="button"
+              disabled={quantity >= currentStock || !canOrder}
+              onClick={() => setQuantity((q) => Math.min(currentStock, q + 1))}
+              className="px-3 py-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-200/70 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-bold text-sm"
+              aria-label="Increase quantity"
+            >
+              +
+            </button>
+          </div>
+        </div>
 
         {/* Unavailable notice if marked unavailable */}
         {isUnavailable && (
@@ -194,7 +247,7 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
               className={`py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
                 !canOrder
                   ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed shadow-none'
-                  : 'bg-emerald-50 text-[#0F4C3A] border-emerald-300 hover:bg-emerald-100 shadow-2xs'
+                  : 'bg-emerald-50 text-[#0F4C3A] border-emerald-300 hover:bg-emerald-100 shadow-2xs active:scale-95'
               }`}
             >
               <ShoppingCart className="w-4 h-4" />
@@ -211,7 +264,7 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
             <button
               onClick={handleBuy}
               disabled={!canOrder}
-              className={`py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md ${
+              className={`py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 ${
                 !canOrder
                   ? 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'
                   : 'bg-[#0F4C3A] hover:bg-[#145C47] text-white hover:shadow-lg'
@@ -221,7 +274,7 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
               <span>
                 {isUnavailable
                   ? (language === 'bn' ? 'বিক্রয়ে নেই' : 'Unavailable')
-                  : t('buyNow')}
+                  : (language === 'bn' ? 'অর্ডার করুন' : t('buyNow'))}
               </span>
             </button>
           </div>
@@ -231,13 +284,12 @@ export const ProductQuickActionSheet: React.FC<ProductQuickActionSheetProps> = (
             onClick={handleFullPage}
             className="w-full py-2 text-center text-xs text-stone-600 hover:text-[#0F4C3A] font-semibold transition-colors cursor-pointer flex items-center justify-center gap-1"
           >
-            <span>{t('viewDetails')}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <span>{language === 'bn' ? 'সম্পূর্ণ পণ্যের বিস্তারিত দেখুন >>' : 'View Full Product Details >>'}</span>
           </button>
         </div>
 
         {/* Trust badge footer */}
-        <div className="bg-stone-50 px-4 py-2 border-t border-stone-100 flex items-center justify-center gap-1 text-[11px] text-stone-500">
+        <div className="bg-stone-50 px-4 py-2.5 border-t border-stone-100 flex items-center justify-center gap-1.5 text-[11px] text-stone-600 font-medium">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
           <span>{t('codPromise')}</span>
         </div>

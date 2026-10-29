@@ -287,8 +287,8 @@ router.post('/reviews', authenticateUser, async (req: AuthenticatedRequest, res)
 });
 
 // GET banners and store config
-router.get('/store-info', (req, res) => {
-  const db = getDatabase();
+router.get('/store-info', async (req, res) => {
+  const db = await ensureDatabaseReady();
   const activeBanners = db.banners
     .filter((b) => b.isActive)
     .sort((a, b) => a.displayOrder - b.displayOrder);

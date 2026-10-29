@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Search, User as UserIcon, Heart, Menu, ShieldCheck, MapPin, Globe, Headphones } from 'lucide-react';
+import { ShoppingCart, Search, User as UserIcon, Heart, Menu, ShieldCheck, MapPin, Globe, Headphones, Phone } from 'lucide-react';
 import { useCart } from '../context/CartContext.tsx';
 import { useWishlist } from '../context/WishlistContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -51,6 +51,8 @@ export const Header: React.FC<HeaderProps> = ({
   const setIsDrawerOpen = controlledSetDrawerOpen || setInternalDrawerOpen;
 
   const displayAnnouncement = announcement || t('freeDeliveryNotice');
+  const targetPhone = storeSettings?.phone || '01321949742';
+  const cleanPhone = targetPhone.replace(/[^0-9]/g, '');
 
   return (
     <>
@@ -201,14 +203,14 @@ export const Header: React.FC<HeaderProps> = ({
                 <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 group-hover:text-[#0F4C3A] transition-colors" />
               </div>
 
-              <nav className="flex items-center gap-5 text-sm font-medium text-stone-600 shrink-0">
+              <nav className="flex items-center gap-4 xl:gap-5 text-xs xl:text-sm font-semibold text-stone-700 shrink-0 uppercase tracking-tight">
                 <button
                   onClick={() => onSelectCategory('all')}
                   className="hover:text-[#0F4C3A] transition-colors whitespace-nowrap cursor-pointer"
                 >
                   {t('allProducts')}
                 </button>
-                {categories.slice(0, 4).map((cat) => (
+                {categories.slice(0, 6).map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => onSelectCategory(cat.id)}
@@ -221,7 +223,17 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             {/* Desktop Zone 3: Actions */}
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2.5 xl:gap-3 shrink-0">
+              {/* Direct Hotline Call Link */}
+              <a
+                href={`tel:${cleanPhone}`}
+                className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#0F4C3A] bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition-colors cursor-pointer"
+                title={language === 'bn' ? 'হটলাইনে সরাসরি কল করুন' : 'Direct Call Hotline'}
+              >
+                <Phone className="w-3.5 h-3.5 text-[#0F4C3A]" />
+                <span className="tabular-nums font-mono">{targetPhone}</span>
+              </a>
+
               <button
                 onClick={onOpenSearch}
                 className="p-2 text-stone-700 hover:text-[#0F4C3A] rounded-xl hover:bg-stone-50 transition-colors cursor-pointer border border-transparent hover:border-stone-200"
@@ -263,7 +275,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* MOBILE LAYOUT (lg:hidden): Sleek Single-Row Header (No 2nd line) */}
+          {/* MOBILE LAYOUT (lg:hidden): Sleek Single-Row Header */}
           <div className="lg:hidden flex items-center justify-between gap-1.5 py-0.5">
             {/* Mobile Left: 3-line Hamburger Menu Button */}
             <button
@@ -290,8 +302,17 @@ export const Header: React.FC<HeaderProps> = ({
               <BrandLogo variant="dark" size="sm" showTagline={false} />
             </button>
 
-            {/* Mobile Right: Single Row Actions (Search, Wishlist, Profile) */}
-            <div className="flex items-center gap-1 shrink-0">
+            {/* Mobile Right: Single Row Actions (Hotline, Search, Wishlist, Profile) */}
+            <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+              <a
+                href={`tel:${cleanPhone}`}
+                className="p-1.5 text-stone-700 hover:text-[#0F4C3A] rounded-lg hover:bg-stone-100 transition-colors cursor-pointer flex items-center justify-center"
+                title={language === 'bn' ? 'হটলাইনে কল করুন' : 'Call Hotline'}
+                aria-label="Call Hotline"
+              >
+                <Phone className="w-4 h-4 text-[#0F4C3A]" />
+              </a>
+
               <button
                 onClick={onOpenSearch}
                 className="p-1.5 text-stone-700 hover:text-[#0F4C3A] rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"

@@ -24,9 +24,10 @@ import { CartToast, type CartToastItem } from './components/CartToast.tsx';
 import { SearchOverlay } from './components/SearchOverlay.tsx';
 import { TrustGuaranteeBar } from './components/TrustGuaranteeBar.tsx';
 import { Footer } from './components/Footer.tsx';
+import { SmartBazaarCartPill } from './components/SmartBazaarCartPill.tsx';
 import { api } from './lib/api.ts';
 import type { Product, Category, Order } from './types/index.ts';
-import { Filter, ArrowUpDown, Check, RefreshCw, LayoutGrid, List } from 'lucide-react';
+import { Filter, ArrowUpDown, Check, RefreshCw, LayoutGrid, List, Sparkles, TrendingUp, ChevronRight } from 'lucide-react';
 
 function StorefrontApp() {
   const { language, t, formatNumber } = useLanguage();
@@ -112,6 +113,22 @@ function StorefrontApp() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  // Curated Best Selling Products (top-selling / high-rated / hot deal picks)
+  const bestSellingProducts = React.useMemo(() => {
+    return [...products]
+      .filter((p) => !p.isArchived && p.isPublished !== false)
+      .sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0) || (b.rating || 0) - (a.rating || 0))
+      .slice(0, 8);
+  }, [products]);
+
+  // Curated New Arrival Products (newest inventory additions)
+  const newArrivalProducts = React.useMemo(() => {
+    return [...products]
+      .filter((p) => !p.isArchived && p.isPublished !== false)
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, 8);
+  }, [products]);
 
   // Deep linking: detect ?product=..., ?category=..., or ?view=profile on load
   useEffect(() => {
@@ -400,6 +417,7 @@ function StorefrontApp() {
                 price: p.price
               })
             }
+            onOpenQuickAction={(p) => setQuickActionProduct(p)}
           />
         </div>
       ) : isProfilePageOpen ? (
@@ -431,12 +449,123 @@ function StorefrontApp() {
                 onSelectCategory={handleSelectCategory}
               />
 
+              {/* 4 Value Pillars right below Hero Banner */}
+              <TrustGuaranteeBar />
+
               {/* Category Showcase Grid */}
               <CategoryShowcase
                 categories={categories}
                 selectedCategory={selectedCategory}
                 onSelectCategory={handleSelectCategory}
               />
+
+              {/* Curated Best Selling Products Section */}
+              {selectedCategory === 'all' && bestSellingProducts.length > 0 && (
+                <section className="w-full bg-[#FAF9F6] border-b border-stone-200/80 py-8 sm:py-12">
+                  <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10">
+                    <div className="flex items-end justify-between mb-5 sm:mb-6">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                          <h2 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight uppercase">
+                            {language === 'bn' ? 'জনপ্রিয় ও সেরা বিক্রিত পণ্য' : 'Best Selling Products'}
+                          </h2>
+                        </div>
+                        <p className="text-xs sm:text-sm text-stone-500 mt-0.5">
+                          {language === 'bn' ? 'কাস্টমারদের সর্বাধিক পছন্দের প্রিমিয়াম কালেকশন' : 'Top trending and verified customer favorites'}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSortOption('best_selling');
+                          const el = document.getElementById('products');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-[#0F4C3A] hover:underline cursor-pointer group shrink-0"
+                      >
+                        <span>{language === 'bn' ? 'সব দেখুন' : 'View All'}</span>
+                        <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+                      {bestSellingProducts.slice(0, 4).map((prod) => (
+                        <ProductCard
+                          key={`best-${prod.id}`}
+                          product={prod}
+                          onOpenDetails={(p) => handleOpenProductPage(p)}
+                          onOpenQuickAction={(p) => setQuickActionProduct(p)}
+                          onDirectBuy={(p) => handleDirectBuy(p)}
+                          onQuickAddToast={(p) =>
+                            setCartToastItem({
+                              id: p.id,
+                              title: language === 'en' && p.titleEn ? p.titleEn : p.titleBn,
+                              imageUrl: p.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg',
+                              price: p.price
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Curated New Arrivals Section */}
+              {selectedCategory === 'all' && newArrivalProducts.length > 0 && (
+                <section className="w-full bg-white border-b border-stone-200/80 py-8 sm:py-12">
+                  <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10">
+                    <div className="flex items-end justify-between mb-5 sm:mb-6">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#0F4C3A]" />
+                          <h2 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight uppercase">
+                            {language === 'bn' ? 'নতুন কালেকশন' : 'New Arrivals'}
+                          </h2>
+                        </div>
+                        <p className="text-xs sm:text-sm text-stone-500 mt-0.5">
+                          {language === 'bn' ? 'সদ্য সংযোজিত আকর্ষণীয় নতুন ডিজাইনের সমাহার' : 'Freshly crafted trendy arrivals for this season'}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSortOption('newest');
+                          const el = document.getElementById('products');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-[#0F4C3A] hover:underline cursor-pointer group shrink-0"
+                      >
+                        <span>{language === 'bn' ? 'সব দেখুন' : 'View All'}</span>
+                        <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+                      {newArrivalProducts.slice(0, 4).map((prod) => (
+                        <ProductCard
+                          key={`new-${prod.id}`}
+                          product={prod}
+                          onOpenDetails={(p) => handleOpenProductPage(p)}
+                          onOpenQuickAction={(p) => setQuickActionProduct(p)}
+                          onDirectBuy={(p) => handleDirectBuy(p)}
+                          onQuickAddToast={(p) =>
+                            setCartToastItem({
+                              id: p.id,
+                              title: language === 'en' && p.titleEn ? p.titleEn : p.titleBn,
+                              imageUrl: p.images[0] || '/src/assets/images/category_kitchen_cookware_1792084991823.jpg',
+                              price: p.price
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
             </div>
           )}
 
@@ -590,6 +719,7 @@ function StorefrontApp() {
                       product={prod}
                       viewMode={viewMode}
                       onOpenDetails={(p) => handleOpenProductPage(p)}
+                      onOpenQuickAction={(p) => setQuickActionProduct(p)}
                       onDirectBuy={(p) => handleDirectBuy(p)}
                       onQuickAddToast={(p) =>
                         setCartToastItem({
@@ -608,8 +738,6 @@ function StorefrontApp() {
         </div>
       )}
 
-      {/* 5. Trust & Delivery Guarantee Bar (Relocated to dedicated pre-footer) */}
-      <TrustGuaranteeBar />
 
       {/* 6. Footer */}
       <Footer
@@ -739,13 +867,19 @@ function StorefrontApp() {
         }}
       />
 
-      {/* Shreshtho-Style Floating Rounded Pill Dock (Shown on Storefront Catalog) */}
+      {/* Desktop Right-Edge Vertical Floating Cart Tab (Hidden on mobile) */}
+      <SmartBazaarCartPill />
+
+      {/* Responsive Mobile Bottom Navigation Dock */}
       {!viewingProductPage && (
         <FloatingNavDock
-          onOpenAccount={handleOpenProfilePage}
           onOpenCategories={() => setIsLeftDrawerOpen(true)}
           onOpenSearch={() => setIsSearchOverlayOpen(true)}
           onOpenCart={() => setIsCartDrawerOpen(true)}
+          onOpenWishlist={() => {
+            const el = document.getElementById('products');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }}
           onHomeClick={handleBackToHome}
         />
       )}

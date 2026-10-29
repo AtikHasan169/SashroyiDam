@@ -224,370 +224,6 @@
   ],
   "orders": [
     {
-      "id": "ord-1792699719735",
-      "couponCode": null,
-      "createdAt": "2026-10-22T20:08:39.735Z",
-      "customerEmail": null,
-      "customerId": "user-1792699719735-c6lp",
-      "customerName": "Atik Hasan",
-      "customerPhone": "01747365714",
-      "deliveryFee": 130,
-      "deliveryInstructions": null,
-      "discount": 0,
-      "district": "কুষ্টিয়া",
-      "division": "khulna",
-      "fulfilmentStatus": "returned",
-      "fullAddress": "Kushtia Govt. College",
-      "internalNotes": [],
-      "items": [
-        {
-          "productId": "prod-1792699614849",
-          "variantId": null,
-          "productTitleBn": "চরিত্রহীন",
-          "productTitleEn": "Choritrohin",
-          "variantNameBn": null,
-          "sku": "SKU-BK-02",
-          "unitPrice": 300,
-          "quantity": 1,
-          "itemTotal": 300,
-          "imageUrl": "https://rokbucket.rokomari.io/ProductNew20190903/260X372/rokimg_2111_50640.GIF"
-        }
-      ],
-      "orderNumber": "SD-2026-4873",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "statusTimeline": [
-        {
-          "status": "pending_confirmation",
-          "timestamp": "2026-10-22T20:08:39.735Z",
-          "note": "ক্যাশ অন ডেলিভারি অর্ডার গৃহীত হয়েছে। টিম থেকে যাচাই করা হবে।",
-          "changedBy": "System"
-        },
-        {
-          "status": "cancelled",
-          "timestamp": "2026-10-26T17:14:16.284Z",
-          "note": "স্ট্যাটাস পরিবর্তন: pending_confirmation ➔ cancelled",
-          "changedBy": "Super Admin (super_admin)"
-        },
-        {
-          "status": "returned",
-          "timestamp": "2026-10-26T18:18:34.670Z",
-          "note": "স্ট্যাটাস পরিবর্তন: cancelled ➔ returned",
-          "changedBy": "Super Admin (super_admin)"
-        }
-      ],
-      "subtotal": 300,
-      "total": 430,
-      "upazila": "কুষ্টিয়া সদর",
-      "updatedAt": "2026-10-26T18:18:34.686Z"
-    },
-    {
-      "id": "ord-1793034451294",
-      "couponCode": null,
-      "createdAt": "2026-10-26T17:07:31.294Z",
-      "customerEmail": null,
-      "customerId": "user-1793034451294-wnsb",
-      "customerName": "ashikur rahman",
-      "customerPhone": "01321949742",
-      "deliveryFee": 130,
-      "deliveryInstructions": null,
-      "discount": 0,
-      "district": "কুষ্টিয়া",
-      "division": "khulna",
-      "fulfilmentStatus": "returned",
-      "fullAddress": "paharpur",
-      "internalNotes": [],
-      "items": [
-        {
-          "productId": "prod-1792822075783",
-          "variantId": null,
-          "productTitleBn": "Test",
-          "productTitleEn": "Test",
-          "variantNameBn": null,
-          "sku": "SKU-28922",
-          "unitPrice": 110,
-          "quantity": 1,
-          "itemTotal": 110,
-          "imageUrl": "/uploads/img_1792822071502_jyqyw.jpg"
-        }
-      ],
-      "orderNumber": "SD-2026-4667",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "statusTimeline": [
-        {
-          "status": "pending_confirmation",
-          "timestamp": "2026-10-26T17:07:31.294Z",
-          "note": "ক্যাশ অন ডেলিভারি অর্ডার গৃহীত হয়েছে। টিম থেকে যাচাই করা হবে।",
-          "changedBy": "System"
-        },
-        {
-          "status": "confirmed",
-          "timestamp": "2026-10-26T17:13:57.076Z",
-          "note": "স্ট্যাটাস পরিবর্তন: pending_confirmation ➔ confirmed",
-          "changedBy": "Super Admin (super_admin)"
-        },
-        {
-          "status": "returned",
-          "timestamp": "2026-10-26T18:43:36.717Z",
-          "note": "স্ট্যাটাস পরিবর্তন: confirmed ➔ returned",
-          "changedBy": "Super Admin (super_admin)"
-        }
-      ],
-      "subtotal": 110,
-      "total": 240,
-      "upazila": "কুমারখালী",
-      "updatedAt": "2026-10-26T18:43:36.741Z"
-    },
-    {
-      "id": "ord-1793039673631",
-      "couponCode": null,
-      "createdAt": "2026-10-26T18:34:33.631Z",
-      "customerEmail": "admin@sashroyidaam.com",
-      "customerId": "user-superadmin",
-      "customerName": "Super Admin",
-      "customerPhone": "01747365714",
-      "deliveryFee": 70,
-      "deliveryInstructions": null,
-      "discount": 0,
-      "district": "ঢাকা",
-      "division": "dhaka",
-      "fulfilmentStatus": "returned",
-      "fullAddress": "Dhaka",
-      "internalNotes": [],
-      "items": [
-        {
-          "productId": "prod-1793039628073",
-          "variantId": null,
-          "productTitleBn": "ডিসেম্বরের শহরে — সবুজ আহম্মদ মুরসালিন",
-          "productTitleEn": "ডিসেম্বরের শহরে — সবুজ আহম্মদ মুরসালিন",
-          "variantNameBn": null,
-          "sku": "SKU-BOOK-2929",
-          "unitPrice": 400,
-          "quantity": 1,
-          "itemTotal": 400,
-          "imageUrl": "/uploads/img_1793039542528_9pxqp.jpg"
-        }
-      ],
-      "orderNumber": "SD-2026-1567",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "statusTimeline": [
-        {
-          "status": "pending_confirmation",
-          "timestamp": "2026-10-26T18:34:33.631Z",
-          "note": "ক্যাশ অন ডেলিভারি অর্ডার গৃহীত হয়েছে। টিম থেকে যাচাই করা হবে।",
-          "changedBy": "System"
-        },
-        {
-          "status": "returned",
-          "timestamp": "2026-10-26T18:43:48.456Z",
-          "note": "স্ট্যাটাস পরিবর্তন: pending_confirmation ➔ returned",
-          "changedBy": "Super Admin (super_admin)"
-        }
-      ],
-      "subtotal": 400,
-      "total": 470,
-      "upazila": "ধানমন্ডি",
-      "updatedAt": "2026-10-26T18:43:48.478Z"
-    },
-    {
-      "id": "ord-1793042816244",
-      "couponCode": null,
-      "createdAt": "2026-10-26T19:26:56.244Z",
-      "customerEmail": null,
-      "customerId": "user-1793042816244-ih1u",
-      "customerName": "Atik Hasan",
-      "customerPhone": "01747365714",
-      "deliveryFee": 130,
-      "deliveryInstructions": null,
-      "discount": 0,
-      "district": "কুষ্টিয়া",
-      "division": "khulna",
-      "fulfilmentStatus": "confirmed",
-      "fullAddress": "Kanchanpur",
-      "internalNotes": [],
-      "items": [
-        {
-          "productId": "prod-1793039628073",
-          "variantId": null,
-          "productTitleBn": "ডিসেম্বরের শহরে — সবুজ আহম্মদ মুরসালিন",
-          "productTitleEn": "ডিসেম্বরের শহরে — সবুজ আহম্মদ মুরসালিন",
-          "variantNameBn": null,
-          "sku": "BOK-9571",
-          "unitPrice": 400,
-          "quantity": 1,
-          "itemTotal": 400,
-          "imageUrl": "/uploads/img_1793039542528_9pxqp.jpg"
-        }
-      ],
-      "orderNumber": "SD-2026-7759",
-      "paymentMethod": "cod",
-      "paymentStatus": "unpaid",
-      "statusTimeline": [
-        {
-          "status": "pending_confirmation",
-          "timestamp": "2026-10-26T19:26:56.244Z",
-          "note": "ক্যাশ অন ডেলিভারি অর্ডার গৃহীত হয়েছে। টিম থেকে যাচাই করা হবে।",
-          "changedBy": "System"
-        },
-        {
-          "status": "confirmed",
-          "timestamp": "2026-10-26T19:28:43.721Z",
-          "note": "স্ট্যাটাস পরিবর্তন: pending_confirmation ➔ confirmed",
-          "changedBy": "Super Admin (super_admin)"
-        }
-      ],
-      "subtotal": 400,
-      "total": 530,
-      "upazila": "কুমারখালী",
-      "updatedAt": "2026-10-26T19:28:43.745Z"
-    },
-    {
-      "id": "ord-1793256893263",
-      "couponCode": null,
-      "createdAt": "2026-10-29T06:54:53.263Z",
-      "customerEmail": null,
-      "customerId": "user-1793256893263-soyr",
-      "customerName": "Test Customer",
-      "customerPhone": "01711223344",
-      "deliveryFee": 70,
-      "deliveryInstructions": null,
-      "discount": 0,
-      "district": "ঢাকা",
-      "division": "dhaka",
-      "fulfilmentStatus": "pending_confirmation",
-      "fullAddress": "Road 27, House 12",
-      "internalNotes": [],
-      "items": [
-        {
-          "productId": "prod-1793039628073",
-          "variantId": null,
-          "productTitleBn": "ডিসেম্বরের শহরে — সবুজ আহম্মদ মুরসালিন",
-          "productTitleEn": "ডিসেম্বরের শহরে — সবুজ আহম্মদ মুরসালিন",
-          "variantNameBn": null,
-          "sku": "BOK-9571",
-          "unitPrice": 400,
-          "quantity": 1,
-          "itemTotal": 400,
-          "imageUrl": "/uploads/img_1793039542528_9pxqp.jpg"
-        }
-      ],
-      "orderNumber": "SD-2026-5737",
-      "paymentMethod": "bkash",
-      "paymentStatus": "unpaid",
-      "senderNumber": null,
-      "statusTimeline": [
-        {
-          "status": "pending_confirmation",
-          "timestamp": "2026-10-29T06:54:53.263Z",
-          "note": "বিকাশ পেমেন্ট তথ্য গৃহীত হয়েছে। প্রেরক: দেওয়া হয়নি, TrxID: দেওয়া হয়নি",
-          "changedBy": "System"
-        }
-      ],
-      "subtotal": 400,
-      "total": 470,
-      "transactionId": null,
-      "upazila": "ধানমন্ডি",
-      "updatedAt": "2026-10-29T06:54:53.275Z"
-    },
-    {
-      "id": "ord-1793256934747",
-      "couponCode": null,
-      "createdAt": "2026-10-29T06:55:34.747Z",
-      "customerEmail": null,
-      "customerId": "user-1793256893263-soyr",
-      "customerName": "Test Customer",
-      "customerPhone": "01711223344",
-      "deliveryFee": 70,
-      "deliveryInstructions": null,
-      "discount": 0,
-      "district": "ঢাকা",
-      "division": "dhaka",
-      "fulfilmentStatus": "pending_confirmation",
-      "fullAddress": "Road 27, House 12",
-      "internalNotes": [],
-      "items": [
-        {
-          "productId": "prod-1793039628073",
-          "variantId": null,
-          "productTitleBn": "ডিসেম্বরের শহরে — সবুজ আহম্মদ মুরসালিন",
-          "productTitleEn": "ডিসেম্বরের শহরে — সবুজ আহম্মদ মুরসালিন",
-          "variantNameBn": null,
-          "sku": "BOK-9571",
-          "unitPrice": 400,
-          "quantity": 1,
-          "itemTotal": 400,
-          "imageUrl": "/uploads/img_1793039542528_9pxqp.jpg"
-        }
-      ],
-      "orderNumber": "SD-2026-7423",
-      "paymentMethod": "bkash",
-      "paymentStatus": "unpaid",
-      "senderNumber": null,
-      "statusTimeline": [
-        {
-          "status": "pending_confirmation",
-          "timestamp": "2026-10-29T06:55:34.747Z",
-          "note": "বিকাশ পেমেন্ট তথ্য গৃহীত হয়েছে। প্রেরক: দেওয়া হয়নি, TrxID: দেওয়া হয়নি",
-          "changedBy": "System"
-        }
-      ],
-      "subtotal": 400,
-      "total": 470,
-      "transactionId": null,
-      "upazila": "ধানমন্ডি",
-      "updatedAt": "2026-10-29T06:55:34.758Z"
-    },
-    {
-      "id": "ord-1793256957343",
-      "couponCode": null,
-      "createdAt": "2026-10-29T06:55:57.343Z",
-      "customerEmail": null,
-      "customerId": "user-1793256957343-s5xl",
-      "customerName": "Sadia Islam",
-      "customerPhone": "01712345678",
-      "deliveryFee": 70,
-      "deliveryInstructions": null,
-      "discount": 0,
-      "district": "ঢাকা",
-      "division": "dhaka",
-      "fulfilmentStatus": "pending_confirmation",
-      "fullAddress": "Road 27, House 12, Flat 4B",
-      "internalNotes": [],
-      "items": [
-        {
-          "productId": "prod-1793039628073",
-          "variantId": null,
-          "productTitleBn": "ডিসেম্বরের শহরে — সবুজ আহম্মদ মুরসালিন",
-          "productTitleEn": "ডিসেম্বরের শহরে — সবুজ আহম্মদ মুরসালিন",
-          "variantNameBn": null,
-          "sku": "BOK-9571",
-          "unitPrice": 400,
-          "quantity": 1,
-          "itemTotal": 400,
-          "imageUrl": "/uploads/img_1793039542528_9pxqp.jpg"
-        }
-      ],
-      "orderNumber": "SD-2026-9593",
-      "paymentMethod": "bkash",
-      "paymentStatus": "unpaid",
-      "senderNumber": "01712345678",
-      "statusTimeline": [
-        {
-          "status": "pending_confirmation",
-          "timestamp": "2026-10-29T06:55:57.343Z",
-          "note": "বিকাশ পেমেন্ট তথ্য গৃহীত হয়েছে। প্রেরক: 01712345678, TrxID: 8N7A6D5EE7M",
-          "changedBy": "System"
-        }
-      ],
-      "subtotal": 400,
-      "total": 470,
-      "transactionId": "8N7A6D5EE7M",
-      "upazila": "ধানমন্ডি",
-      "updatedAt": "2026-10-29T06:55:57.353Z"
-    },
-    {
       "id": "ord-1793257922239",
       "couponCode": null,
       "createdAt": "2026-10-29T07:12:02.239Z",
@@ -619,7 +255,7 @@
       ],
       "orderNumber": "SD-2026-2111",
       "paymentMethod": "bkash",
-      "paymentStatus": "unpaid",
+      "paymentStatus": "paid",
       "senderNumber": "01811223344",
       "statusTimeline": [
         {
@@ -633,13 +269,19 @@
           "timestamp": "2026-10-29T07:12:13.378Z",
           "note": "বিকাশ ট্রানজেকশন আইডি (TrxID: 9P0X1Y2Z3A) আপডেট করা হয়েছে।",
           "changedBy": "Customer"
+        },
+        {
+          "status": "pending_confirmation",
+          "timestamp": "2026-10-29T19:28:02.856Z",
+          "note": "অ্যাডমিন কর্তৃক bKash পেমেন্ট যাচাইপূর্বক অনুমোদিত (Paid)",
+          "changedBy": "Super Admin (super_admin)"
         }
       ],
       "subtotal": 400,
       "total": 470,
       "transactionId": "9P0X1Y2Z3A",
       "upazila": "ধানমন্ডি",
-      "updatedAt": "2026-10-29T07:12:13.378Z"
+      "updatedAt": "2026-10-29T19:28:02.871Z"
     }
   ],
   "coupons": [],
@@ -747,6 +389,16 @@
       "createdAt": "2026-10-29T07:12:02.239Z"
     }
   ],
-  "auditLogs": [],
+  "auditLogs": [
+    {
+      "id": "log-1793302374508-4vip8",
+      "action": "STORE_SETTINGS_UPDATED",
+      "userId": "user-superadmin",
+      "userEmail": "admin@sashroyidaam.com",
+      "userRole": "super_admin",
+      "details": "Store settings updated (bKash: 01609450703, Nagad: 01866289100, Delivery: ৳70/৳130)",
+      "createdAt": "2026-10-29T19:32:54.508Z"
+    }
+  ],
   "version": 1
 }
