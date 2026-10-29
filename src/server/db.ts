@@ -117,6 +117,10 @@ function getInitialData(): DatabaseSchema {
     isCodEnabled: true,
     isSslcommerzEnabled: false,
     sslSandboxMode: true,
+    bkashNumber: '01609450703',
+    bkashType: 'personal',
+    nagadNumber: '01866289100',
+    nagadType: 'personal',
     facebookPageName: 'সাশ্রয়ী দাম - Sashroyi Daam',
     facebookUsername: 'sashroyidaam',
     facebookUrl: 'https://facebook.com/sashroyidaam',
@@ -250,6 +254,16 @@ export function getDatabase(): DatabaseSchema {
         }
         if (!memoryDb!.storeSettings.supportHoursBn) {
           memoryDb!.storeSettings.supportHoursBn = 'প্রতিদিন সকাল ৯টা - রাত ১০টা';
+          hasChanges = true;
+        }
+        if (!memoryDb!.storeSettings.bkashNumber) {
+          memoryDb!.storeSettings.bkashNumber = '01609450703';
+          memoryDb!.storeSettings.bkashType = 'personal';
+          hasChanges = true;
+        }
+        if (!memoryDb!.storeSettings.nagadNumber) {
+          memoryDb!.storeSettings.nagadNumber = '01866289100';
+          memoryDb!.storeSettings.nagadType = 'personal';
           hasChanges = true;
         }
       }

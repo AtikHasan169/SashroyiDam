@@ -147,7 +147,7 @@ export type OrderFulfilmentStatus =
   | 'refunded';
 
 export type PaymentStatus = 'unpaid' | 'paid' | 'refunded' | 'failed';
-export type PaymentMethod = 'cod' | 'sslcommerz_sandbox';
+export type PaymentMethod = 'cod' | 'bkash' | 'nagad' | 'sslcommerz_sandbox';
 
 export interface OrderItemSnapshot {
   productId: string;
@@ -194,6 +194,8 @@ export interface Order {
   statusTimeline: OrderTimelineEvent[];
   internalNotes?: string[];
   assignedStaff?: string;
+  senderNumber?: string; // bKash or Nagad sender phone number
+  transactionId?: string; // bKash or Nagad TrxID
   sslTxnId?: string;
   valId?: string;
   createdAt: string;
@@ -263,6 +265,12 @@ export interface StoreSettings {
   isCodEnabled: boolean;
   isSslcommerzEnabled: boolean;
   sslSandboxMode: boolean;
+  bkashNumber?: string;
+  bkashType?: 'personal' | 'merchant';
+  nagadNumber?: string;
+  nagadType?: 'personal' | 'merchant';
+  bkashInstructions?: string;
+  nagadInstructions?: string;
   facebookPageName?: string;
   facebookUsername?: string;
   facebookUrl?: string;

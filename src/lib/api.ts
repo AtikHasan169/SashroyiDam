@@ -417,6 +417,11 @@ export const api = {
     return res;
   },
 
+  getStoreSettings: async (forceRefresh: boolean = false) => {
+    const info = await api.getStoreInfo(forceRefresh);
+    return info.settings;
+  },
+
   // Cart & Coupons
   validateCart: (body: {
     items: CartItem[];
@@ -462,6 +467,12 @@ export const api = {
     const url = phone ? `/api/orders/${id}?phone=${encodeURIComponent(phone)}` : `/api/orders/${id}`;
     return request<{ order: Order }>(url);
   },
+
+  updateOrderPaymentInfo: (orderId: string, body: { senderNumber?: string; transactionId: string }) =>
+    request<{ order: Order; message: string }>(`/api/orders/${orderId}/payment-info`, {
+      method: 'PATCH',
+      body: JSON.stringify(body)
+    }),
 
   // Payment
   initSslPayment: (orderId: string) =>
@@ -517,6 +528,15 @@ export const api = {
 
   updateOrderStatus: (id: string, body: { status: string; note?: string; paymentStatus?: string }) =>
     request<{ order: Order; message: string }>(`/api/admin/orders/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    }),
+
+  updateAdminOrderPayment: (
+    id: string,
+    body: { paymentStatus?: string; transactionId?: string; senderNumber?: string; note?: string }
+  ) =>
+    request<{ order: Order; message: string }>(`/api/admin/orders/${id}/payment`, {
       method: 'PUT',
       body: JSON.stringify(body)
     }),

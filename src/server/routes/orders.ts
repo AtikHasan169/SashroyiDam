@@ -23,7 +23,9 @@ const orderCreateSchema = z.object({
   upazila: z.string().min(1, 'উপজেলা/থানা নির্বাচন করুন'),
   fullAddress: z.string().min(5, 'বিস্তারিত ডেলিভারি ঠিকানা লিখুন'),
   deliveryInstructions: z.string().optional(),
-  paymentMethod: z.enum(['cod', 'sslcommerz_sandbox']),
+  paymentMethod: z.enum(['cod', 'bkash', 'nagad', 'sslcommerz_sandbox']),
+  senderNumber: z.string().optional(),
+  transactionId: z.string().optional(),
   couponCode: z.string().optional(),
   items: z.array(
     z.object({
@@ -43,6 +45,34 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
       return;
     }
 
+    if (parse.data.paymentMethod === 'bkash') {
+      const cleanSender = (parse.data.senderNumber || '').replace(/\D/g, '');
+      if (cleanSender.length < 11) {
+        res.status(400).json({ error: 'দয়া করে সঠিক ১১ ডিজিটের বিকাশ প্রেরক মোবাইল নম্বর দিন (যেমন: 017xxxxxxxx)' });
+        return;
+      }
+      const cleanTrx = (parse.data.transactionId || '').trim();
+      if (!/^[A-Za-z0-9]{10}$/.test(cleanTrx)) {
+        res.status(400).json({
+          error: 'বিকাশ ট্রানজেকশন আইডি (TrxID) অবশ্যই ঠিক ১০ অক্ষরের আলফানিউমেরিক হতে হবে (যেমন: 8N7A6D5EE7M)'
+        });
+        return;
+      }
+    } else if (parse.data.paymentMethod === 'nagad') {
+      const cleanSender = (parse.data.senderNumber || '').replace(/\D/g, '');
+      if (cleanSender.length < 11) {
+        res.status(400).json({ error: 'দয়া করে সঠিক ১১ ডিজিটের নগদ প্রেরক মোবাইল নম্বর দিন (যেমন: 017xxxxxxxx)' });
+        return;
+      }
+      const cleanTrx = (parse.data.transactionId || '').trim();
+      if (!/^[A-Za-z0-9]{8}$/.test(cleanTrx)) {
+        res.status(400).json({
+          error: 'নগদ ট্রানজেকশন আইডি (TrxID) অবশ্যই ঠিক ৮ অক্ষরের আলফানিউমেরিক হতে হবে (যেমন: 9J5A7B3X)'
+        });
+        return;
+      }
+    }
+
     const {
       customerName,
       customerPhone,
@@ -53,6 +83,8 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
       fullAddress,
       deliveryInstructions,
       paymentMethod,
+      senderNumber,
+      transactionId,
       couponCode,
       items
     } = parse.data;
@@ -210,6 +242,10 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
           note:
             paymentMethod === 'cod'
               ? 'ক্যাশ অন ডেলিভারি অর্ডার গৃহীত হয়েছে। টিম থেকে যাচাই করা হবে।'
+              : paymentMethod === 'bkash'
+              ? `বিকাশ পেমেন্ট তথ্য গৃহীত হয়েছে। প্রেরক: ${senderNumber || 'দেওয়া হয়নি'}, TrxID: ${transactionId || 'দেওয়া হয়নি'}`
+              : paymentMethod === 'nagad'
+              ? `নগদ পেমেন্ট তথ্য গৃহীত হয়েছে। প্রেরক: ${senderNumber || 'দেওয়া হয়নি'}, TrxID: ${transactionId || 'দেওয়া হয়নি'}`
               : 'অনলাইন পেমেন্ট গেটওয়েতে নির্দেশিত করা হয়েছে।',
           changedBy: 'System'
         }
@@ -293,6 +329,8 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
         fullAddress: fullAddress.trim(),
         deliveryInstructions: deliveryInstructions?.trim() || undefined,
         paymentMethod,
+        senderNumber: senderNumber?.trim() || undefined,
+        transactionId: transactionId?.trim() || undefined,
         paymentStatus: 'unpaid',
         fulfilmentStatus: 'pending_confirmation',
         items: itemSnapshots,
@@ -413,6 +451,68 @@ router.get('/:id', authenticateUser, (req: AuthenticatedRequest, res) => {
   }
 
   res.json({ order });
+});
+
+// PATCH /api/orders/:id/payment-info - Update bKash/Nagad TrxID post-order
+router.patch('/:id/payment-info', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { senderNumber, transactionId } = req.body;
+
+    if (!transactionId || typeof transactionId !== 'string') {
+      res.status(400).json({ error: 'সঠিক ট্রানজেকশন আইডি (TrxID) লিখুন' });
+      return;
+    }
+
+    const cleanTrx = transactionId.trim().toUpperCase();
+
+    const updated = await withTransaction((db) => {
+      const order = db.orders.find((o) => o.id === id || o.orderNumber === id);
+      if (!order) {
+        throw new Error('অর্ডার পাওয়া যায়নি');
+      }
+
+      if (order.paymentMethod === 'bkash') {
+        if (!/^[A-Za-z0-9]{10}$/.test(cleanTrx)) {
+          throw new Error('বিকাশ ট্রানজেকশন আইডি (TrxID) অবশ্যই ঠিক ১০ অক্ষরের আলফানিউমেরিক হতে হবে (যেমন: 8N7A6D5EE7M)');
+        }
+      } else if (order.paymentMethod === 'nagad') {
+        if (!/^[A-Za-z0-9]{8}$/.test(cleanTrx)) {
+          throw new Error('নগদ ট্রানজেকশন আইডি (TrxID) অবশ্যই ঠিক ৮ অক্ষরের আলফানিউমেরিক হতে হবে (যেমন: 9J5A7B3X)');
+        }
+      } else {
+        if (cleanTrx.length < 6 || cleanTrx.length > 16) {
+          throw new Error('সঠিক ট্রানজেকশন আইডি (TrxID) লিখুন');
+        }
+      }
+
+      order.transactionId = cleanTrx;
+      if (senderNumber && typeof senderNumber === 'string') {
+        const cleanSender = senderNumber.replace(/\D/g, '');
+        if (cleanSender.length >= 11) {
+          order.senderNumber = cleanSender;
+        }
+      }
+
+      order.updatedAt = new Date().toISOString();
+      const pName = order.paymentMethod === 'bkash' ? 'বিকাশ' : order.paymentMethod === 'nagad' ? 'নগদ' : 'মোবাইল ব্যাংকিং';
+      order.statusTimeline.push({
+        status: order.fulfilmentStatus,
+        timestamp: new Date().toISOString(),
+        note: `${pName} ট্রানজেকশন আইডি (TrxID: ${cleanTrx}) আপডেট করা হয়েছে।`,
+        changedBy: 'Customer'
+      });
+
+      return order;
+    });
+
+    res.json({
+      order: updated,
+      message: 'ট্রানজেকশন আইডি সফলভাবে সংরক্ষিত হয়েছে'
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'ট্রানজেকশন আইডি আপডেট করা সম্ভব হয়নি' });
+  }
 });
 
 export default router;

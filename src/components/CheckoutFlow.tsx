@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, CreditCard, Banknote, MapPin, Tag, Truck, RefreshCw } from 'lucide-react';
+import { X, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, CreditCard, Banknote, MapPin, Tag, Truck, RefreshCw, Copy, Check, Smartphone, Clock } from 'lucide-react';
 import { useCart } from '../context/CartContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
@@ -11,7 +11,7 @@ import {
 } from '../data/bangladeshGeo.ts';
 import { BANGLADESH_DISTRICTS, getDistrictById } from '../data/districts.ts';
 import { api } from '../lib/api.ts';
-import type { Order, Product } from '../types/index.ts';
+import type { Order, Product, PaymentMethod, StoreSettings } from '../types/index.ts';
 
 export interface DirectBuyItem {
   product: Product;
@@ -62,13 +62,60 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
   const [fullAddress, setFullAddress] = useState('');
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'sslcommerz_sandbox'>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
+  const [senderNumber, setSenderNumber] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [copiedType, setCopiedType] = useState<string | null>(null);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [couponInput, setCouponInput] = useState(couponCode || '');
   const [couponFeedback, setCouponFeedback] = useState<{ msg: string; isError: boolean } | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderError, setOrderError] = useState('');
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
+
+  // Load store settings for bKash & Nagad numbers and instructions
+  useEffect(() => {
+    api.getStoreInfo()
+      .then((res) => {
+        if (res?.settings) {
+          setStoreSettings(res.settings);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleCopyNumber = (num: string, type: string) => {
+    try {
+      navigator.clipboard.writeText(num);
+      setCopiedType(type);
+      setTimeout(() => setCopiedType(null), 2500);
+    } catch {}
+  };
+
+  // Address validation popup states & field focus refs
+  const [addressValidationErrors, setAddressValidationErrors] = useState<string[]>([]);
+  const [showAddressPopup, setShowAddressPopup] = useState(false);
+  const [targetFocusField, setTargetFocusField] = useState<'name' | 'phone' | 'address' | 'upazila' | null>(null);
+
+  const nameInputRef = React.useRef<HTMLInputElement>(null);
+  const phoneInputRef = React.useRef<HTMLInputElement>(null);
+  const addressInputRef = React.useRef<HTMLTextAreaElement>(null);
+  const upazilaSelectRef = React.useRef<HTMLSelectElement>(null);
+  const customUpazilaRef = React.useRef<HTMLInputElement>(null);
+
+  const handleCloseAddressPopup = () => {
+    setShowAddressPopup(false);
+    setTimeout(() => {
+      if (targetFocusField === 'name') nameInputRef.current?.focus();
+      else if (targetFocusField === 'phone') phoneInputRef.current?.focus();
+      else if (targetFocusField === 'address') addressInputRef.current?.focus();
+      else if (targetFocusField === 'upazila') {
+        if (isCustomUpazila) customUpazilaRef.current?.focus();
+        else upazilaSelectRef.current?.focus();
+      }
+    }, 150);
+  };
 
   // Sync user saved address if available
   useEffect(() => {
@@ -237,6 +284,26 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
         );
       }
 
+      if (paymentMethod === 'bkash') {
+        const cleanSender = senderNumber.replace(/[^0-9]/g, '');
+        if (cleanSender.length < 11) {
+          throw new Error('দয়া করে সঠিক ১১ ডিজিটের বিকাশ প্রেরক মোবাইল নম্বর লিখুন (যেমন: 017xxxxxxxx)');
+        }
+        const cleanTrx = transactionId.replace(/[^A-Za-z0-9]/g, '').trim();
+        if (cleanTrx.length !== 10) {
+          throw new Error('বিকাশ ট্রানজেকশন আইডি (TrxID) অবশ্যই ঠিক ১০ অক্ষরের হতে হবে (যেমন: 8N7A6D5EE7M)');
+        }
+      } else if (paymentMethod === 'nagad') {
+        const cleanSender = senderNumber.replace(/[^0-9]/g, '');
+        if (cleanSender.length < 11) {
+          throw new Error('দয়া করে সঠিক ১১ ডিজিটের নগদ প্রেরক মোবাইল নম্বর লিখুন (যেমন: 017xxxxxxxx)');
+        }
+        const cleanTrx = transactionId.replace(/[^A-Za-z0-9]/g, '').trim();
+        if (cleanTrx.length !== 8) {
+          throw new Error('নগদ ট্রানজেকশন আইডি (TrxID) অবশ্যই ঠিক ৮ অক্ষরের হতে হবে (যেমন: 9J5A7B3X)');
+        }
+      }
+
       // 1. Submit order to server
       const res = await api.createOrder({
         customerName,
@@ -248,6 +315,8 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
         fullAddress,
         deliveryInstructions: deliveryInstructions || undefined,
         paymentMethod,
+        senderNumber: (paymentMethod === 'bkash' || paymentMethod === 'nagad') ? senderNumber.trim() : undefined,
+        transactionId: (paymentMethod === 'bkash' || paymentMethod === 'nagad') ? transactionId.trim().toUpperCase() : undefined,
         couponCode: isDirectBuy ? undefined : (couponCode || undefined),
         items: orderItems
       });
@@ -259,20 +328,8 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
         setSession(res.autoAuthToken, res.autoUser);
       }
 
-      // 2. If SSLCOMMERZ Sandbox is selected, execute payment simulation
-      if (paymentMethod === 'sslcommerz_sandbox') {
-        const initRes = await api.initSslPayment(order.id);
-        const valRes = await api.validateSslPayment({
-          tran_id: initRes.tran_id,
-          val_id: `VAL-${Date.now()}`,
-          status: 'VALID'
-        });
-        setCompletedOrder(valRes.order);
-        onOrderSuccess(valRes.order);
-      } else {
-        setCompletedOrder(order);
-        onOrderSuccess(order);
-      }
+      setCompletedOrder(order);
+      onOrderSuccess(order);
 
       if (!isDirectBuy) {
         clearCart();
@@ -351,12 +408,29 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                   {completedOrder.fullAddress}, {completedOrder.upazila}, {completedOrder.district}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-stone-500">পেমেন্ট পদ্ধতি:</span>
                 <span className="font-semibold text-emerald-800">
-                  {completedOrder.paymentMethod === 'cod' ? 'ক্যাশ অন ডেলিভারি (পণ্য পেয়ে মূল্য পরিশোধ)' : 'SSLCOMMERZ অনলাইন পেমেন্ট (পরিশোধিত)'}
+                  {completedOrder.paymentMethod === 'cod' && 'ক্যাশ অন ডেলিভারি (পণ্য পেয়ে মূল্য পরিশোধ)'}
+                  {completedOrder.paymentMethod === 'bkash' && 'বিকাশ সেন্ড মানি (যাচাইকরণ প্রক্রিয়াধীন)'}
+                  {completedOrder.paymentMethod === 'nagad' && 'নগদ সেন্ড মানি (যাচাইকরণ প্রক্রিয়াধীন)'}
+                  {completedOrder.paymentMethod === 'sslcommerz_sandbox' && 'SSLCOMMERZ অনলাইন পেমেন্ট (পরিশোধিত)'}
                 </span>
               </div>
+              {completedOrder.senderNumber && (
+                <div className="flex justify-between items-center">
+                  <span className="text-stone-500">প্রেরক নম্বর:</span>
+                  <span className="font-mono font-semibold text-stone-800">{completedOrder.senderNumber}</span>
+                </div>
+              )}
+              {completedOrder.transactionId && (
+                <div className="flex justify-between items-center">
+                  <span className="text-stone-500">ট্রানজেকশন আইডি:</span>
+                  <span className="font-mono font-bold text-[#0F4C3A] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    {completedOrder.transactionId}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between pt-2 border-t border-stone-200 text-sm font-bold text-stone-900">
                 <span>সর্বমোট পরিশোধযোগ্য:</span>
                 <span className="text-[#0F4C3A] tabular-nums">
@@ -364,6 +438,118 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* bKash & Nagad Order Confirmation Store Number & Interactive TrxID Card */}
+            {(completedOrder.paymentMethod === 'bkash' || completedOrder.paymentMethod === 'nagad') && (
+              <div className={`p-4 rounded-2xl border text-xs max-w-md mx-auto text-left space-y-3 shadow-xs ${
+                completedOrder.paymentMethod === 'bkash'
+                  ? 'bg-pink-50/90 border-pink-200'
+                  : 'bg-orange-50/90 border-orange-200'
+              }`}>
+                {/* Store Payment Number Box with One-Click Copy */}
+                <div className="bg-white p-3.5 rounded-xl border border-stone-200 flex flex-wrap items-center justify-between gap-2.5 shadow-xs">
+                  <div>
+                    <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
+                      {completedOrder.paymentMethod === 'bkash'
+                        ? `bKash ${storeSettings?.bkashType || 'Personal'} Number:`
+                        : `Nagad ${storeSettings?.nagadType || 'Personal'} Number:`}
+                    </div>
+                    <div className="font-mono text-base font-bold text-stone-900 tracking-wide mt-0.5">
+                      {completedOrder.paymentMethod === 'bkash'
+                        ? (storeSettings?.bkashNumber || '01609450703')
+                        : (storeSettings?.nagadNumber || '01866289100')}
+                    </div>
+                    <div className="text-[11px] text-stone-600 mt-0.5">
+                      পরিশোধযোগ্য বিল: <span className="font-bold text-[#0F4C3A]">৳{completedOrder.total.toLocaleString('bn-BD')}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopyNumber(
+                      completedOrder.paymentMethod === 'bkash'
+                        ? (storeSettings?.bkashNumber || '01609450703')
+                        : (storeSettings?.nagadNumber || '01866289100'),
+                      'confirm_store_num'
+                    )}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                      completedOrder.paymentMethod === 'bkash'
+                        ? 'bg-[#E2136E] hover:bg-[#c4105f]'
+                        : 'bg-[#F7921E] hover:bg-[#e07d0f]'
+                    }`}
+                  >
+                    {copiedType === 'confirm_store_num' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-white" />
+                        <span>কপি হয়েছে!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-white" />
+                        <span>নম্বর কপি করুন</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* TrxID View and Interactive Input with Character Length Validator */}
+                <div className="bg-white p-3.5 rounded-xl border border-stone-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-stone-900 text-xs">
+                      {completedOrder.paymentMethod === 'bkash' ? 'বিকাশ ট্রানজেকশন আইডি (TrxID)' : 'নগদ ট্রানজেকশন আইডি (TrxID)'}
+                    </span>
+                  </div>
+
+                  {completedOrder.transactionId ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-2.5 bg-emerald-50/70 rounded-xl border border-emerald-200">
+                        <div>
+                          <div className="text-[10px] text-stone-500">দাখিলকৃত ট্রানজেকশন আইডি (TrxID):</div>
+                          <div className="font-mono font-bold text-sm text-[#0F4C3A] mt-0.5">
+                            {completedOrder.transactionId}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyNumber(completedOrder.transactionId!, 'confirm_trx_copy')}
+                          className="px-2.5 py-1 text-xs font-semibold text-[#0F4C3A] bg-white hover:bg-emerald-100 rounded-lg border border-emerald-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="TrxID কপি করুন"
+                        >
+                          {copiedType === 'confirm_trx_copy' ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>কপি হয়েছে</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>কপি</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="p-2.5 bg-stone-50 rounded-lg border border-stone-200 text-[11px] text-stone-600 flex items-start gap-2">
+                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>
+                          আপনার TrxID সফলভাবে সিস্টেমে রেকর্ড করা হয়েছে। অ্যাডমিন প্যানেল থেকে পেমেন্ট স্টেটমেন্ট যাচাইপূর্বক অর্ডারটি চূড়ান্তভাবে কনফার্ম করা হবে।
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                      <div className="font-bold flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-amber-700" />
+                        <span>পেমেন্ট তথ্য যাচাই বাকি রয়েছে</span>
+                      </div>
+                      <p className="text-[11px] text-amber-800 leading-relaxed">
+                        আমাদের অ্যাডমিন প্রতিনিধি শীঘ্রই আপনার সাথে ফোনে যোগাযোগ করে পেমেন্ট নিশ্চিত করবেন।
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2.5 text-left max-w-md mx-auto">
               <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
@@ -449,6 +635,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                       {language === 'en' ? 'Full Name' : 'আপনার পূর্ণ নাম'} <span className="text-rose-500">*</span>
                     </label>
                     <input
+                      ref={nameInputRef}
                       type="text"
                       required
                       value={customerName}
@@ -463,6 +650,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                       {language === 'en' ? 'Mobile Number' : 'মোবাইল নম্বর'} <span className="text-rose-500">*</span>
                     </label>
                     <input
+                      ref={phoneInputRef}
                       type="tel"
                       required
                       value={customerPhone}
@@ -527,6 +715,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                       {language === 'en' ? 'Upazila / Thana' : 'উপজেলা / থানা'} <span className="text-rose-500">*</span>
                     </label>
                     <select
+                      ref={upazilaSelectRef}
                       value={selectedUpazila}
                       onChange={(e) => handleUpazilaChange(e.target.value)}
                       className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm bg-white focus:outline-none focus:border-[#0F4C3A]"
@@ -550,6 +739,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                       {language === 'en' ? 'Specify Thana / Upazila Name' : 'আপনার থানা বা উপজেলার নাম লিখুন'} <span className="text-rose-500">*</span>
                     </label>
                     <input
+                      ref={customUpazilaRef}
                       type="text"
                       required
                       value={customUpazilaText}
@@ -570,6 +760,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                     {language === 'en' ? 'Full Delivery Address' : 'পূর্ণ ডেলিভারি ঠিকানা'} <span className="text-rose-500">*</span>
                   </label>
                   <textarea
+                    ref={addressInputRef}
                     required
                     rows={2}
                     value={fullAddress}
@@ -622,15 +813,41 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      if (!customerName.trim() || !customerPhone.trim() || !fullAddress.trim()) {
-                        setOrderError('দয়া করে আপনার নাম, মোবাইল নম্বর এবং ঠিকানা পূরণ করুন');
-                        return;
+                      const errors: string[] = [];
+                      let firstField: 'name' | 'phone' | 'address' | 'upazila' | null = null;
+
+                      if (!customerName.trim()) {
+                        errors.push('আপনার পূর্ণ নাম লিখুন');
+                        if (!firstField) firstField = 'name';
                       }
+
                       const cleanPhone = customerPhone.replace(/[^0-9]/g, '');
-                      if (cleanPhone.length < 11) {
-                        setOrderError('সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 017xxxxxxxx)');
+                      if (!customerPhone.trim() || cleanPhone.length !== 11) {
+                        errors.push('১১ ডিজিটের সঠিক মোবাইল নম্বর দিন (যেমন: 017xxxxxxxx)');
+                        if (!firstField) firstField = 'phone';
+                      }
+
+                      const finalUpazila = (isCustomUpazila || selectedUpazila === CUSTOM_UPAZILA_OPTION_BN)
+                        ? customUpazilaText.trim()
+                        : selectedUpazila.trim();
+
+                      if (!finalUpazila) {
+                        errors.push('উপজেলা বা থানা নির্বাচন অথবা লিখুন');
+                        if (!firstField) firstField = 'upazila';
+                      }
+
+                      if (!fullAddress.trim() || fullAddress.trim().length < 5) {
+                        errors.push('সম্পূর্ণ ঠিকানা লিখুন (যেমন: বাড়ি নং, রোড নং, এলাকা/গ্রাম)');
+                        if (!firstField) firstField = 'address';
+                      }
+
+                      if (errors.length > 0) {
+                        setAddressValidationErrors(errors);
+                        setTargetFocusField(firstField);
+                        setShowAddressPopup(true);
                         return;
                       }
+
                       setOrderError('');
                       setStep(2);
                     }}
@@ -640,6 +857,42 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* Instant Address Validation Modal Popup */}
+                {showAddressPopup && (
+                  <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 text-center shadow-2xl border border-stone-200 relative animate-in zoom-in-95 duration-200">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                        <MapPin className="w-7 h-7 text-amber-600" />
+                      </div>
+
+                      <h3 className="text-lg font-bold text-stone-900 mb-1">
+                        ডেলিভারি ঠিকানা সম্পূর্ণ করুন
+                      </h3>
+                      <p className="text-xs text-stone-600 mb-4 leading-relaxed">
+                        পণ্যটি নিরাপদে আপনার ঠিকানায় পৌঁছে দিতে নিচের তথ্যগুলো পূরণ করা আবশ্যক:
+                      </p>
+
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-5 text-left space-y-2">
+                        {addressValidationErrors.map((err, idx) => (
+                          <div key={idx} className="flex items-start gap-2 text-xs text-amber-950 font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 mt-1.5 shrink-0" />
+                            <span>{err}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleCloseAddressPopup}
+                        className="w-full py-2.5 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-xl text-sm font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <span>ঠিকানা ঠিক করুন</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -651,13 +904,14 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                   <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider mb-2">
                     পেমেন্ট পদ্ধতি নির্বাচন করুন:
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* COD */}
                     <label
                       onClick={() => setPaymentMethod('cod')}
-                      className={`p-3.5 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
                         paymentMethod === 'cod'
-                          ? 'border-[#0F4C3A] bg-emerald-50/40 ring-1 ring-[#0F4C3A]'
-                          : 'border-stone-200 hover:border-stone-300'
+                          ? 'border-[#0F4C3A] bg-emerald-50/50 ring-2 ring-[#0F4C3A]'
+                          : 'border-stone-200 hover:border-stone-300 bg-white'
                       }`}
                     >
                       <input
@@ -667,43 +921,346 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                         onChange={() => setPaymentMethod('cod')}
                         className="mt-1 text-[#0F4C3A]"
                       />
-                      <div>
+                      <div className="flex-1">
                         <div className="flex items-center gap-1.5 font-bold text-sm text-stone-900">
                           <Banknote className="w-4 h-4 text-[#0F4C3A]" />
                           <span>ক্যাশ অন ডেলিভারি (COD)</span>
                         </div>
-                        <p className="text-xs text-stone-500 mt-1">
-                          পণ্য হাতে পেয়ে দেখে ডেলিভারি ম্যানকে মূল্য পরিশোধ করুন।
+                        <p className="text-xs text-stone-500 mt-0.5">
+                          প্রোডাক্ট হাতে পেয়ে দেখে ডেলিভারি ম্যানকে মূল্য পরিশোধ করুন।
                         </p>
                       </div>
                     </label>
 
+                    {/* bKash Send Money */}
                     <label
-                      onClick={() => setPaymentMethod('sslcommerz_sandbox')}
-                      className={`p-3.5 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
-                        paymentMethod === 'sslcommerz_sandbox'
-                          ? 'border-[#0F4C3A] bg-emerald-50/40 ring-1 ring-[#0F4C3A]'
-                          : 'border-stone-200 hover:border-stone-300'
+                      onClick={() => setPaymentMethod('bkash')}
+                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                        paymentMethod === 'bkash'
+                          ? 'border-[#E2136E] bg-pink-50/50 ring-2 ring-[#E2136E]'
+                          : 'border-stone-200 hover:border-stone-300 bg-white'
                       }`}
                     >
                       <input
                         type="radio"
                         name="payMethod"
-                        checked={paymentMethod === 'sslcommerz_sandbox'}
-                        onChange={() => setPaymentMethod('sslcommerz_sandbox')}
-                        className="mt-1 text-[#0F4C3A]"
+                        checked={paymentMethod === 'bkash'}
+                        onChange={() => setPaymentMethod('bkash')}
+                        className="mt-1 text-[#E2136E]"
                       />
-                      <div>
-                        <div className="flex items-center gap-1.5 font-bold text-sm text-stone-900">
-                          <CreditCard className="w-4 h-4 text-[#0F4C3A]" />
-                          <span>SSLCOMMERZ অনলাইন পেমেন্ট</span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 font-bold text-sm text-[#E2136E]">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#E2136E]"></span>
+                            <span>bKash Send Money</span>
+                          </div>
+                          <span className="text-[10px] font-bold bg-[#E2136E] text-white px-2 py-0.5 rounded-full">
+                            বিকাশ
+                          </span>
                         </div>
-                        <p className="text-xs text-stone-500 mt-1">
-                          বিকাশ, নগদ, রকেট ও কার্ড দিয়ে তাৎক্ষণিক পেমেন্ট (স্যান্ডবক্স)।
+                        <p className="text-xs text-stone-500 mt-0.5">
+                          পার্সোনাল বিকাশ নম্বরে সেন্ড মানি করে TrxID দিন।
                         </p>
                       </div>
                     </label>
+
+                    {/* Nagad Send Money */}
+                    <label
+                      onClick={() => setPaymentMethod('nagad')}
+                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                        paymentMethod === 'nagad'
+                          ? 'border-[#F7921E] bg-orange-50/50 ring-2 ring-[#F7921E]'
+                          : 'border-stone-200 hover:border-stone-300 bg-white'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="payMethod"
+                        checked={paymentMethod === 'nagad'}
+                        onChange={() => setPaymentMethod('nagad')}
+                        className="mt-1 text-[#F7921E]"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 font-bold text-sm text-[#D35400]">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#F7921E]"></span>
+                            <span>Nagad Send Money</span>
+                          </div>
+                          <span className="text-[10px] font-bold bg-[#F7921E] text-white px-2 py-0.5 rounded-full">
+                            নগদ
+                          </span>
+                        </div>
+                        <p className="text-xs text-stone-500 mt-0.5">
+                          পার্সোনাল নগদ নম্বরে সেন্ড মানি করে TrxID দিন।
+                        </p>
+                      </div>
+                    </label>
+
                   </div>
+
+                  {/* bKash Payment Details Panel */}
+                  {paymentMethod === 'bkash' && (
+                    <div className="mt-3 p-4 bg-pink-50/70 rounded-2xl border-2 border-pink-200 space-y-3.5 animate-in fade-in duration-200">
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-[#E2136E] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+                          ৳
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-bold text-[#E2136E]">
+                            bKash Send Money নির্দেশিকা
+                          </h4>
+                          <p className="text-xs text-stone-700 mt-0.5 leading-relaxed">
+                            {storeSettings?.bkashInstructions ||
+                              'বিকাশ থেকে সেন্ড মানি করার পর যে নাম্বার থেকে টাকা পাঠিয়েছেন সে নাম্বার এবং ১০ অক্ষরের ট্রানজেকশন আইডি লিখুন।'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Store Number Copy Box */}
+                      <div className="bg-white p-3 rounded-xl border border-pink-200 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                        <div>
+                          <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
+                            bKash {storeSettings?.bkashType || 'Personal'} Number:
+                          </div>
+                          <div className="font-mono text-base font-bold text-stone-900 tracking-wide mt-0.5">
+                            {storeSettings?.bkashNumber || '01609450703'}
+                          </div>
+                          <div className="text-[11px] text-[#E2136E] font-medium mt-0.5">
+                            পরিশোধের পরিমাণ: ৳{activeTotal.toLocaleString('bn-BD')}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleCopyNumber(storeSettings?.bkashNumber || '01609450703', 'bkash')}
+                          className="px-3.5 py-1.5 bg-[#E2136E] hover:bg-[#c4105f] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                        >
+                          {copiedType === 'bkash' ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-white" />
+                              <span>কপি হয়েছে!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5 text-white" />
+                              <span>নম্বর কপি করুন</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Input fields */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-bold text-stone-800">
+                              bKash Number (প্রেরক নম্বর) <span className="text-rose-500">*</span>
+                            </label>
+                            {senderNumber.length > 0 && (
+                              <span className={`text-[10px] font-mono font-bold ${senderNumber.length === 11 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                {senderNumber.length}/১১
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="tel"
+                            required
+                            maxLength={11}
+                            value={senderNumber}
+                            onChange={(e) => setSenderNumber(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                            placeholder="017XXXXXXXX"
+                            className="w-full px-3 py-2 border border-pink-300 rounded-lg text-sm bg-white font-mono focus:outline-none focus:border-[#E2136E] focus:ring-1 focus:ring-[#E2136E]"
+                          />
+                          <p className="text-[10px] text-stone-500 mt-1">
+                            যে বিকাশ নম্বর থেকে টাকা পাঠিয়েছেন (১১ ডিজিট)
+                          </p>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-bold text-stone-800">
+                              bKash Transaction ID (TrxID) <span className="text-rose-500">*</span>
+                            </label>
+                            <span
+                              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                transactionId.length === 10
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : transactionId.length > 0
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'text-stone-400'
+                              }`}
+                            >
+                              {transactionId.length}/১০ অক্ষর
+                            </span>
+                          </div>
+                          <input
+                            type="text"
+                            required
+                            maxLength={10}
+                            value={transactionId}
+                            onChange={(e) =>
+                              setTransactionId(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10))
+                            }
+                            placeholder="8N7A6D5EE7"
+                            className={`w-full px-3 py-2 border rounded-lg text-sm bg-white font-mono uppercase focus:outline-none focus:ring-1 ${
+                              transactionId.length === 10
+                                ? 'border-emerald-500 focus:border-emerald-600 focus:ring-emerald-500'
+                                : transactionId.length > 0
+                                ? 'border-amber-400 focus:border-amber-500 focus:ring-amber-400'
+                                : 'border-pink-300 focus:border-[#E2136E] focus:ring-[#E2136E]'
+                            }`}
+                          />
+                          <div className="mt-1 flex items-center justify-between text-[10px]">
+                            {transactionId.length === 10 ? (
+                              <span className="text-emerald-600 font-medium flex items-center gap-1">
+                                <Check className="w-3 h-3" /> TrxID ১০ অক্ষর সম্পন্ন
+                              </span>
+                            ) : transactionId.length > 0 ? (
+                              <span className="text-amber-600 font-medium">
+                                আরো {10 - transactionId.length}টি অক্ষর প্রয়োজন (ঠিক ১০ অক্ষর)
+                              </span>
+                            ) : (
+                              <span className="text-stone-500">
+                                বিকাশ ফিরতি এসএমএস থেকে ১০ অক্ষরের TrxID লিখুন
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Nagad Payment Details Panel */}
+                  {paymentMethod === 'nagad' && (
+                    <div className="mt-3 p-4 bg-orange-50/70 rounded-2xl border-2 border-orange-200 space-y-3.5 animate-in fade-in duration-200">
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-[#F7921E] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+                          ৳
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-bold text-[#D35400]">
+                            Nagad Send Money নির্দেশিকা
+                          </h4>
+                          <p className="text-xs text-stone-700 mt-0.5 leading-relaxed">
+                            {storeSettings?.nagadInstructions ||
+                              'নগদ থেকে সেন্ড মানি করার পর যে নাম্বার থেকে টাকা পাঠিয়েছেন সে নাম্বার এবং ৮ অক্ষরের ট্রানজেকশন আইডি লিখুন।'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Store Number Copy Box */}
+                      <div className="bg-white p-3 rounded-xl border border-orange-200 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                        <div>
+                          <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
+                            Nagad {storeSettings?.nagadType || 'Personal'} Number:
+                          </div>
+                          <div className="font-mono text-base font-bold text-stone-900 tracking-wide mt-0.5">
+                            {storeSettings?.nagadNumber || '01866289100'}
+                          </div>
+                          <div className="text-[11px] text-[#D35400] font-medium mt-0.5">
+                            পরিশোধের পরিমাণ: ৳{activeTotal.toLocaleString('bn-BD')}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleCopyNumber(storeSettings?.nagadNumber || '01866289100', 'nagad')}
+                          className="px-3.5 py-1.5 bg-[#F7921E] hover:bg-[#e07d0f] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                        >
+                          {copiedType === 'nagad' ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-white" />
+                              <span>কপি হয়েছে!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5 text-white" />
+                              <span>নম্বর কপি করুন</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Input fields */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-bold text-stone-800">
+                              Nagad Number (প্রেরক নম্বর) <span className="text-rose-500">*</span>
+                            </label>
+                            {senderNumber.length > 0 && (
+                              <span className={`text-[10px] font-mono font-bold ${senderNumber.length === 11 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                {senderNumber.length}/১১
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="tel"
+                            required
+                            maxLength={11}
+                            value={senderNumber}
+                            onChange={(e) => setSenderNumber(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                            placeholder="017XXXXXXXX"
+                            className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm bg-white font-mono focus:outline-none focus:border-[#F7921E] focus:ring-1 focus:ring-[#F7921E]"
+                          />
+                          <p className="text-[10px] text-stone-500 mt-1">
+                            যে নগদ নম্বর থেকে টাকা পাঠিয়েছেন (১১ ডিজিট)
+                          </p>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-bold text-stone-800">
+                              Nagad Transaction ID (TrxID) <span className="text-rose-500">*</span>
+                            </label>
+                            <span
+                              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                transactionId.length === 8
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : transactionId.length > 0
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'text-stone-400'
+                              }`}
+                            >
+                              {transactionId.length}/৮ অক্ষর
+                            </span>
+                          </div>
+                          <input
+                            type="text"
+                            required
+                            maxLength={8}
+                            value={transactionId}
+                            onChange={(e) =>
+                              setTransactionId(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8))
+                            }
+                            placeholder="9J5A7B3X"
+                            className={`w-full px-3 py-2 border rounded-lg text-sm bg-white font-mono uppercase focus:outline-none focus:ring-1 ${
+                              transactionId.length === 8
+                                ? 'border-emerald-500 focus:border-emerald-600 focus:ring-emerald-500'
+                                : transactionId.length > 0
+                                ? 'border-amber-400 focus:border-amber-500 focus:ring-amber-400'
+                                : 'border-orange-300 focus:border-[#F7921E] focus:ring-[#F7921E]'
+                            }`}
+                          />
+                          <div className="mt-1 flex items-center justify-between text-[10px]">
+                            {transactionId.length === 8 ? (
+                              <span className="text-emerald-600 font-medium flex items-center gap-1">
+                                <Check className="w-3 h-3" /> TrxID ৮ অক্ষর সম্পন্ন
+                              </span>
+                            ) : transactionId.length > 0 ? (
+                              <span className="text-amber-600 font-medium">
+                                আরো {8 - transactionId.length}টি অক্ষর প্রয়োজন (ঠিক ৮ অক্ষর)
+                              </span>
+                            ) : (
+                              <span className="text-stone-500">
+                                নগদ ফিরতি এসএমএস থেকে ৮ অক্ষরের TrxID লিখুন
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Coupon Code Box (only for cart checkout) */}

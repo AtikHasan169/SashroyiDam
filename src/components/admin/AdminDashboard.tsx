@@ -30,7 +30,10 @@ import {
   MessageCircle,
   Search,
   AlertCircle,
-  Loader2
+  Loader2,
+  Copy,
+  Check,
+  Smartphone
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { api } from '../../lib/api.ts';
@@ -95,6 +98,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [staffNoteInput, setStaffNoteInput] = useState('');
   const [showInvoicePrint, setShowInvoicePrint] = useState(false);
   const [isManualOrderOpen, setIsManualOrderOpen] = useState(false);
+  const [copiedAdminField, setCopiedAdminField] = useState<string | null>(null);
+
+  const handleAdminCopy = (val: string, key: string) => {
+    try {
+      navigator.clipboard.writeText(val);
+      setCopiedAdminField(key);
+      setTimeout(() => setCopiedAdminField(null), 2000);
+    } catch {}
+  };
 
   // Manual Order Form State
   const [manualCustomerName, setManualCustomerName] = useState('');
@@ -144,10 +156,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // Order Filtering States
-  const [orderStatusTab, setOrderStatusTab] = useState<'all' | 'pending' | 'processing' | 'delivered' | 'cancelled'>('all');
+  const [orderStatusTab, setOrderStatusTab] = useState<'all' | 'mfs_review' | 'pending' | 'processing' | 'delivered' | 'cancelled'>('all');
   const [orderDateRange, setOrderDateRange] = useState<'all' | 'today' | 'yesterday' | '7days' | '30days' | 'month' | 'custom'>('all');
   const [orderCustomStartDate, setOrderCustomStartDate] = useState('');
   const [orderCustomEndDate, setOrderCustomEndDate] = useState('');
+
+  // Admin TrxID Edit & Manual Payment Approval State
+  const [editingTrxOrder, setEditingTrxOrder] = useState<Order | null>(null);
+  const [adminTrxInput, setAdminTrxInput] = useState('');
+  const [adminSenderInput, setAdminSenderInput] = useState('');
+  const [adminPaymentStatusInput, setAdminPaymentStatusInput] = useState<'unpaid' | 'paid'>('paid');
+  const [adminTrxError, setAdminTrxError] = useState('');
+  const [isSavingAdminTrx, setIsSavingAdminTrx] = useState(false);
 
   // Date-filtered and status-filtered orders memo
   const filteredOrders = React.useMemo(() => {
@@ -186,6 +206,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     // 2. Status Tab Filter
     if (orderStatusTab !== 'all') {
       result = result.filter((o) => {
+        if (orderStatusTab === 'mfs_review') {
+          if (o.paymentMethod !== 'bkash' && o.paymentMethod !== 'nagad') return false;
+          const isBkash = o.paymentMethod === 'bkash';
+          const isNagad = o.paymentMethod === 'nagad';
+          const trx = (o.transactionId || '').trim();
+          const isInvalid = !trx || (isBkash && trx.length !== 10) || (isNagad && trx.length !== 8);
+          return o.paymentStatus !== 'paid' || isInvalid;
+        }
         if (orderStatusTab === 'pending') {
           return o.fulfilmentStatus === 'pending_confirmation';
         }
@@ -237,6 +265,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
 
     const all = dateFiltered.length;
+    const mfsReview = dateFiltered.filter((o) => {
+      if (o.paymentMethod !== 'bkash' && o.paymentMethod !== 'nagad') return false;
+      const isBkash = o.paymentMethod === 'bkash';
+      const isNagad = o.paymentMethod === 'nagad';
+      const trx = (o.transactionId || '').trim();
+      const isInvalid = !trx || (isBkash && trx.length !== 10) || (isNagad && trx.length !== 8);
+      return o.paymentStatus !== 'paid' || isInvalid;
+    }).length;
     const pending = dateFiltered.filter((o) => o.fulfilmentStatus === 'pending_confirmation').length;
     const processing = dateFiltered.filter((o) => ['confirmed', 'processing', 'packed', 'shipped'].includes(o.fulfilmentStatus)).length;
     const delivered = dateFiltered.filter((o) => o.fulfilmentStatus === 'delivered').length;
@@ -246,7 +282,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       .reduce((acc, o) => acc + (o.total || 0), 0);
     const aov = all > 0 ? Math.round(revenue / (all - cancelled || 1)) : 0;
 
-    return { all, pending, processing, delivered, cancelled, revenue, aov };
+    return { all, mfsReview, pending, processing, delivered, cancelled, revenue, aov };
   }, [orders, orderDateRange, orderCustomStartDate, orderCustomEndDate]);
 
   // Category edit/create modal state
@@ -412,6 +448,84 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setTimeout(() => setFeedbackMsg(''), 3000);
     } catch (err: any) {
       showErrorFeedback(err.message || 'স্ট্যাটাস আপডেট ব্যর্থ হয়েছে');
+    }
+  };
+
+  const handleApprovePayment = async (targetOrder: Order) => {
+    try {
+      const isBkash = targetOrder.paymentMethod === 'bkash';
+      const isNagad = targetOrder.paymentMethod === 'nagad';
+      const methodLabel = isBkash ? 'bKash' : isNagad ? 'Nagad' : 'Online';
+
+      const res = await api.updateAdminOrderPayment(targetOrder.id, {
+        paymentStatus: 'paid',
+        note: `অ্যাডমিন কর্তৃক ${methodLabel} পেমেন্ট যাচাইপূর্বক অনুমোদিত (Paid)`
+      });
+
+      setOrders((prev) => prev.map((o) => (o.id === res.order.id ? res.order : o)));
+      if (selectedOrder?.id === res.order.id) {
+        setSelectedOrder(res.order);
+      }
+      showToast('পেমেন্ট অনুমোদিত', `অর্ডার ${res.order.orderNumber} এর পেমেন্ট সফলভাবে অনুমোদিত হয়েছে`, 'success');
+      onStoreDataChanged();
+    } catch (err: any) {
+      showToast('পেমেন্ট অনুমোদন ব্যর্থ', err.message || 'পেমেন্ট অনুমোদন ব্যর্থ হয়েছে', 'error');
+    }
+  };
+
+  const openAdminTrxModal = (targetOrder: Order) => {
+    setEditingTrxOrder(targetOrder);
+    setAdminTrxInput(targetOrder.transactionId || '');
+    setAdminSenderInput(targetOrder.senderNumber || targetOrder.customerPhone || '');
+    setAdminPaymentStatusInput(targetOrder.paymentStatus === 'paid' ? 'paid' : 'unpaid');
+    setAdminTrxError('');
+  };
+
+  const handleSaveAdminPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTrxOrder) return;
+    setAdminTrxError('');
+
+    const isBkash = editingTrxOrder.paymentMethod === 'bkash';
+    const isNagad = editingTrxOrder.paymentMethod === 'nagad';
+    const cleanTrx = adminTrxInput.replace(/[^A-Za-z0-9]/g, '').toUpperCase().trim();
+
+    if (cleanTrx.length > 0) {
+      if (isBkash && cleanTrx.length !== 10) {
+        setAdminTrxError('বিকাশ TrxID অবশ্যই ঠিক ১০ অক্ষরের হতে হবে');
+        return;
+      }
+      if (isNagad && cleanTrx.length !== 8) {
+        setAdminTrxError('নগদ TrxID অবশ্যই ঠিক ৮ অক্ষরের হতে হবে');
+        return;
+      }
+    }
+
+    const cleanSender = adminSenderInput.replace(/[^0-9]/g, '').slice(0, 11);
+    if (cleanSender && cleanSender.length !== 11) {
+      setAdminTrxError('প্রেরক মোবাইল নম্বর ১১ ডিজিট হতে হবে');
+      return;
+    }
+
+    setIsSavingAdminTrx(true);
+    try {
+      const res = await api.updateAdminOrderPayment(editingTrxOrder.id, {
+        paymentStatus: adminPaymentStatusInput,
+        transactionId: cleanTrx || undefined,
+        senderNumber: cleanSender || undefined
+      });
+
+      setOrders((prev) => prev.map((o) => (o.id === res.order.id ? res.order : o)));
+      if (selectedOrder?.id === res.order.id) {
+        setSelectedOrder(res.order);
+      }
+      showToast('পেমেন্ট তথ্য সংরক্ষিত', `অর্ডার ${res.order.orderNumber} এর পেমেন্ট ও TrxID সফলভাবে সংরক্ষিত হয়েছে`, 'success');
+      setEditingTrxOrder(null);
+      onStoreDataChanged();
+    } catch (err: any) {
+      setAdminTrxError(err.message || 'সংরক্ষণ ব্যর্থ হয়েছে');
+    } finally {
+      setIsSavingAdminTrx(false);
     }
   };
 
@@ -1239,26 +1353,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-stone-200 scrollbar-none">
                   {[
                     { id: 'all', label: 'সকল অর্ডার', count: orderMetrics.all, color: 'text-stone-700' },
+                    {
+                      id: 'mfs_review',
+                      label: 'পেন্ডিং TrxID রিভিউ',
+                      count: orderMetrics.mfsReview,
+                      color: 'text-[#E2136E]',
+                      isMfs: true
+                    },
                     { id: 'pending', label: 'নতুন যাচাই (Pending)', count: orderMetrics.pending, color: 'text-amber-700' },
                     { id: 'processing', label: 'প্রসেসিং ও শিপিং', count: orderMetrics.processing, color: 'text-blue-700' },
                     { id: 'delivered', label: 'ডেলিভারি সম্পন্ন', count: orderMetrics.delivered, color: 'text-emerald-700' },
                     { id: 'cancelled', label: 'বাতিল / রিটার্ন', count: orderMetrics.cancelled, color: 'text-rose-700' }
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setOrderStatusTab(tab.id as any)}
-                      className={`px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap border-b-2 ${
-                        orderStatusTab === tab.id
-                          ? 'border-[#0F4C3A] text-[#0F4C3A] bg-emerald-50/60'
-                          : 'border-transparent text-stone-500 hover:text-stone-800 hover:bg-stone-50'
-                      }`}
-                    >
-                      <span>{tab.label}</span>
-                      <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-stone-200/80 text-stone-800 tabular-nums">
-                        {tab.count}
-                      </span>
-                    </button>
-                  ))}
+                  ].map((tab) => {
+                    const isTabActive = orderStatusTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setOrderStatusTab(tab.id as any)}
+                        className={`px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap border-b-2 ${
+                          isTabActive
+                            ? tab.isMfs
+                              ? 'border-[#E2136E] text-[#E2136E] bg-pink-50/60'
+                              : 'border-[#0F4C3A] text-[#0F4C3A] bg-emerald-50/60'
+                            : 'border-transparent text-stone-500 hover:text-stone-800 hover:bg-stone-50'
+                        }`}
+                      >
+                        <span>{tab.label}</span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold tabular-nums ${
+                            tab.isMfs && tab.count > 0
+                              ? 'bg-[#E2136E] text-white shadow-xs'
+                              : 'bg-stone-200/80 text-stone-800'
+                          }`}
+                        >
+                          {tab.count}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1267,20 +1399,113 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div className="overflow-x-auto max-h-[65vh]">
                       <table className="w-full text-left text-xs">
                         <thead className="sticky top-0 bg-stone-50 text-stone-600 border-b border-stone-200 font-semibold">
-                          <tr>
-                            <th className="py-2.5 px-3">অর্ডার নং</th>
-                            <th className="py-2.5 px-3">গ্রাহক ও জেলা</th>
-                            <th className="py-2.5 px-3">টাকা</th>
-                            <th className="py-2.5 px-3">উৎস</th>
-                            <th className="py-2.5 px-3">স্ট্যাটাস</th>
-                          </tr>
+                          {orderStatusTab === 'mfs_review' ? (
+                            <tr>
+                              <th className="py-2.5 px-3">অর্ডার নং</th>
+                              <th className="py-2.5 px-3">গ্রাহক ও মোবাইল</th>
+                              <th className="py-2.5 px-3">মাধ্যম ও টাকা</th>
+                              <th className="py-2.5 px-3">TrxID স্ট্যাটাস</th>
+                              <th className="py-2.5 px-3 text-right">রিভিউ অ্যাকশন</th>
+                            </tr>
+                          ) : (
+                            <tr>
+                              <th className="py-2.5 px-3">অর্ডার নং</th>
+                              <th className="py-2.5 px-3">গ্রাহক ও জেলা</th>
+                              <th className="py-2.5 px-3">টাকা</th>
+                              <th className="py-2.5 px-3">উৎস</th>
+                              <th className="py-2.5 px-3">স্ট্যাটাস</th>
+                            </tr>
+                          )}
                         </thead>
                         <tbody className="divide-y divide-stone-100">
                           {filteredOrders.length > 0 ? (
                             filteredOrders.map((o) => {
                               const isSelected = selectedOrder?.id === o.id;
 
-                              // Detect Order Source Tag
+                              if (orderStatusTab === 'mfs_review') {
+                                const isBkash = o.paymentMethod === 'bkash';
+                                const isNagad = o.paymentMethod === 'nagad';
+                                const targetLen = isBkash ? 10 : 8;
+                                const trx = (o.transactionId || '').trim();
+                                const isValidTrx = trx.length === targetLen;
+
+                                return (
+                                  <tr
+                                    key={o.id}
+                                    onClick={() => {
+                                      setSelectedOrder(o);
+                                      setNewStatus(o.fulfilmentStatus);
+                                    }}
+                                    className={`cursor-pointer transition-colors ${
+                                      isSelected ? 'bg-pink-50/50' : 'hover:bg-stone-50'
+                                    }`}
+                                  >
+                                    <td className="py-2.5 px-3 font-mono font-bold text-[#0F4C3A]">
+                                      {o.orderNumber}
+                                    </td>
+                                    <td className="py-2.5 px-3">
+                                      <div className="font-semibold text-stone-900 truncate max-w-[130px]">{o.customerName}</div>
+                                      <div className="text-[11px] text-stone-500 font-mono">{o.customerPhone}</div>
+                                    </td>
+                                    <td className="py-2.5 px-3">
+                                      <div className="flex items-center gap-1.5">
+                                        <span
+                                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold text-white ${
+                                            isBkash ? 'bg-[#E2136E]' : 'bg-[#F7921E]'
+                                          }`}
+                                        >
+                                          {isBkash ? 'bKash' : 'Nagad'}
+                                        </span>
+                                        <span className="font-bold tabular-nums text-stone-900">৳{o.total}</span>
+                                      </div>
+                                      {o.senderNumber && (
+                                        <div className="text-[10px] text-stone-500 font-mono mt-0.5">
+                                          প্রেরক: {o.senderNumber}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="py-2.5 px-3">
+                                      {isValidTrx ? (
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                          ✓ {trx}
+                                        </span>
+                                      ) : trx.length > 0 ? (
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                          ⚠ {trx} ({trx.length}/{targetLen})
+                                        </span>
+                                      ) : (
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-700 border border-rose-200">
+                                          ✕ TrxID নেই
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right">
+                                      <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                        {o.paymentStatus !== 'paid' && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleApprovePayment(o)}
+                                            className="px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-[11px] font-bold cursor-pointer transition-colors shadow-xs"
+                                            title="পেমেন্ট অনুমোদন করুন (Mark as Paid)"
+                                          >
+                                            অনুমোদন
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => openAdminTrxModal(o)}
+                                          className="px-2 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded text-[11px] font-semibold cursor-pointer transition-colors border border-stone-200"
+                                          title="TrxID সংশোধন বা যোগ করুন"
+                                        >
+                                          এডিট
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              }
+
+                              // Standard view for other tabs
                               const isFb = o.orderNumber.includes('-FB-') || o.deliveryInstructions?.includes('FACEBOOK');
                               const isPhone = o.orderNumber.includes('-PH-') || o.deliveryInstructions?.includes('PHONE');
                               const isWa = o.orderNumber.includes('-WA-') || o.deliveryInstructions?.includes('WHATSAPP');
@@ -1375,6 +1600,156 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {selectedOrder.deliveryInstructions && (
                             <div className="text-amber-800 font-medium pt-1">
                               নির্দেশনা: {selectedOrder.deliveryInstructions}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Payment Verification Card */}
+                        <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-stone-800">পেমেন্ট মেথড ও তথ্য:</span>
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                                  selectedOrder.paymentMethod === 'bkash'
+                                    ? 'bg-pink-100 text-[#E2136E] border border-pink-200'
+                                    : selectedOrder.paymentMethod === 'nagad'
+                                    ? 'bg-orange-100 text-[#D35400] border border-orange-200'
+                                    : selectedOrder.paymentMethod === 'sslcommerz_sandbox'
+                                    ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                }`}
+                              >
+                                {selectedOrder.paymentMethod === 'bkash' && 'bKash Send Money'}
+                                {selectedOrder.paymentMethod === 'nagad' && 'Nagad Send Money'}
+                                {selectedOrder.paymentMethod === 'sslcommerz_sandbox' && 'SSLCOMMERZ'}
+                                {selectedOrder.paymentMethod === 'cod' && 'Cash on Delivery'}
+                              </span>
+
+                              <span
+                                className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                                  selectedOrder.paymentStatus === 'paid'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-amber-100 text-amber-800'
+                                }`}
+                              >
+                                {selectedOrder.paymentStatus === 'paid' ? 'পরিশোধিত (Paid)' : 'পরিশোধ বাকি (Unpaid)'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* MFS Payment Details Box */}
+                          {(selectedOrder.paymentMethod === 'bkash' || selectedOrder.paymentMethod === 'nagad') && (
+                            <div className="pt-2 border-t border-stone-200 space-y-2.5 bg-white p-3 rounded-lg border border-stone-200 shadow-xs">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-stone-500">পরিশোধের পরিমাণ:</span>
+                                <span className="font-bold text-[#0F4C3A] tabular-nums text-sm">
+                                  ৳{selectedOrder.total}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <span className="text-stone-500">প্রেরক নম্বর:</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-mono font-bold text-stone-900">
+                                    {selectedOrder.senderNumber || 'দেওয়া হয়নি'}
+                                  </span>
+                                  {selectedOrder.senderNumber && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAdminCopy(selectedOrder.senderNumber!, 'sender')}
+                                      className="p-1 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+                                      title="কপি করুন"
+                                    >
+                                      {copiedAdminField === 'sender' ? (
+                                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                      ) : (
+                                        <Copy className="w-3.5 h-3.5" />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <span className="text-stone-500">
+                                  TrxID ({selectedOrder.paymentMethod === 'bkash' ? '১০ অক্ষর' : '৮ অক্ষর'}):
+                                </span>
+                                {selectedOrder.transactionId ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span
+                                      className={`font-mono font-bold px-2 py-0.5 rounded border text-xs ${
+                                        (selectedOrder.paymentMethod === 'bkash' && selectedOrder.transactionId.length === 10) ||
+                                        (selectedOrder.paymentMethod === 'nagad' && selectedOrder.transactionId.length === 8)
+                                          ? 'text-[#0F4C3A] bg-emerald-50 border-emerald-200'
+                                          : 'text-amber-800 bg-amber-50 border-amber-300'
+                                      }`}
+                                    >
+                                      {selectedOrder.transactionId}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAdminCopy(selectedOrder.transactionId!, 'trx')}
+                                      className="p-1 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+                                      title="কপি করুন"
+                                    >
+                                      {copiedAdminField === 'trx' ? (
+                                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                      ) : (
+                                        <Copy className="w-3.5 h-3.5" />
+                                      )}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-rose-600 font-semibold bg-rose-50 px-2 py-0.5 rounded text-[11px] border border-rose-200">
+                                    TrxID পাওয়া যায়নি
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Character Validation Indicator Badge */}
+                              {selectedOrder.transactionId && (
+                                <div className="text-[11px] pt-1">
+                                  {(selectedOrder.paymentMethod === 'bkash' && selectedOrder.transactionId.length === 10) ||
+                                  (selectedOrder.paymentMethod === 'nagad' && selectedOrder.transactionId.length === 8) ? (
+                                    <span className="text-emerald-700 font-medium flex items-center gap-1">
+                                      <Check className="w-3.5 h-3.5" /> সঠিক {selectedOrder.paymentMethod === 'bkash' ? '১০' : '৮'} অক্ষরের ফরম্যাট সম্পন্ন
+                                    </span>
+                                  ) : (
+                                    <span className="text-amber-700 font-medium flex items-center gap-1">
+                                      <AlertCircle className="w-3.5 h-3.5" />
+                                      সতর্কতা: TrxID {selectedOrder.transactionId.length} অক্ষরের (প্রয়োজন {selectedOrder.paymentMethod === 'bkash' ? '১০' : '৮'} অক্ষর)
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Admin Action Bar */}
+                              <div className="pt-2 border-t border-stone-100 flex flex-wrap gap-2">
+                                {selectedOrder.paymentStatus !== 'paid' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApprovePayment(selectedOrder)}
+                                    className="flex-1 py-1.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>পেমেন্ট নিশ্চিত করুন (Paid)</span>
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => openAdminTrxModal(selectedOrder)}
+                                  className="py-1.5 px-3 border border-stone-300 hover:bg-stone-100 rounded-lg text-xs font-semibold text-stone-700 transition-colors cursor-pointer"
+                                >
+                                  ✏️ TrxID এডিট / যুক্ত করুন
+                                </button>
+                                <a
+                                  href={`tel:${selectedOrder.customerPhone}`}
+                                  className="py-1.5 px-3 border border-stone-300 hover:bg-stone-100 rounded-lg text-xs font-semibold text-stone-700 transition-colors flex items-center gap-1"
+                                >
+                                  📞 কল দিন
+                                </a>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -2193,6 +2568,129 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         onChange={(e) => setStoreSettings({ ...storeSettings, addressBn: e.target.value })}
                         className="w-full px-3 py-2 border border-stone-200 rounded-lg text-xs"
                       />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile Banking Payment Gateway Settings (bKash & Nagad) */}
+                <div className="pt-3 border-t border-stone-200 space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                      <Smartphone className="w-4 h-4 text-[#0F4C3A]" />
+                      <span>মোবাইল ব্যাংকিং পেমেন্ট গেটওয়ে (bKash & Nagad Send Money)</span>
+                    </h4>
+                    <p className="text-[11px] text-stone-500 mt-0.5">
+                      চেকআউটে গ্রাহকদের প্রদর্শিত bKash ও Nagad অ্যাকাউন্ট নম্বর, অ্যাকাউন্টের ধরন এবং নির্দেশিকা
+                    </p>
+                  </div>
+
+                  {/* bKash Config Card */}
+                  <div className="p-3.5 bg-pink-50/60 rounded-xl border border-pink-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-[#E2136E]">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#E2136E]"></span>
+                        <span>bKash Send Money কনফিগারেশন</span>
+                      </div>
+                      <span className="text-[10px] font-bold bg-[#E2136E] text-white px-2 py-0.5 rounded-full">
+                        বিকাশ
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block font-semibold text-stone-700 mb-1">
+                          bKash নম্বর <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={storeSettings.bkashNumber || ''}
+                          onChange={(e) => setStoreSettings({ ...storeSettings, bkashNumber: e.target.value })}
+                          placeholder="যেমন: 01609450703"
+                          className="w-full px-3 py-2 border border-pink-300 rounded-lg font-mono text-xs bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-semibold text-stone-700 mb-1">
+                          অ্যাকাউন্টের ধরন (Type)
+                        </label>
+                        <select
+                          value={storeSettings.bkashType || 'personal'}
+                          onChange={(e) => setStoreSettings({ ...storeSettings, bkashType: e.target.value as 'personal' | 'merchant' })}
+                          className="w-full px-3 py-2 border border-pink-300 rounded-lg text-xs bg-white"
+                        >
+                          <option value="personal">Personal (পার্সোনাল)</option>
+                          <option value="merchant">Merchant (মার্চেন্ট)</option>
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block font-semibold text-stone-700 mb-1">
+                          বিকাশ পেমেন্ট নির্দেশিকা (বাংলা)
+                        </label>
+                        <input
+                          type="text"
+                          value={storeSettings.bkashInstructions || ''}
+                          onChange={(e) => setStoreSettings({ ...storeSettings, bkashInstructions: e.target.value })}
+                          placeholder="বিকাশ থেকে সেন্ড মানি করার পর যে নাম্বার থেকে টাকা পাঠিয়েছেন সে নাম্বার এবং ট্রানজেকশন আইডি লিখুন।"
+                          className="w-full px-3 py-2 border border-pink-300 rounded-lg text-xs bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nagad Config Card */}
+                  <div className="p-3.5 bg-orange-50/60 rounded-xl border border-orange-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-[#D35400]">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#F7921E]"></span>
+                        <span>Nagad Send Money কনফিগারেশন</span>
+                      </div>
+                      <span className="text-[10px] font-bold bg-[#F7921E] text-white px-2 py-0.5 rounded-full">
+                        নগদ
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block font-semibold text-stone-700 mb-1">
+                          Nagad নম্বর <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={storeSettings.nagadNumber || ''}
+                          onChange={(e) => setStoreSettings({ ...storeSettings, nagadNumber: e.target.value })}
+                          placeholder="যেমন: 01866289100"
+                          className="w-full px-3 py-2 border border-orange-300 rounded-lg font-mono text-xs bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-semibold text-stone-700 mb-1">
+                          অ্যাকাউন্টের ধরন (Type)
+                        </label>
+                        <select
+                          value={storeSettings.nagadType || 'personal'}
+                          onChange={(e) => setStoreSettings({ ...storeSettings, nagadType: e.target.value as 'personal' | 'merchant' })}
+                          className="w-full px-3 py-2 border border-orange-300 rounded-lg text-xs bg-white"
+                        >
+                          <option value="personal">Personal (পার্সোনাল)</option>
+                          <option value="merchant">Merchant (মার্চেন্ট)</option>
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block font-semibold text-stone-700 mb-1">
+                          নগদ পেমেন্ট নির্দেশিকা (বাংলা)
+                        </label>
+                        <input
+                          type="text"
+                          value={storeSettings.nagadInstructions || ''}
+                          onChange={(e) => setStoreSettings({ ...storeSettings, nagadInstructions: e.target.value })}
+                          placeholder="নগদ থেকে সেন্ড মানি করার পর যে নাম্বার থেকে টাকা পাঠিয়েছেন সে নাম্বার এবং ট্রানজেকশন আইডি লিখুন।"
+                          className="w-full px-3 py-2 border border-orange-300 rounded-lg text-xs bg-white"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3337,6 +3835,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="text-stone-700">{selectedOrder.fullAddress}</div>
                 <div className="text-stone-500">{selectedOrder.upazila}, {selectedOrder.district}</div>
                 <div className="text-stone-700 font-semibold mt-1">ফোন: {selectedOrder.customerPhone}</div>
+                <div className="text-stone-600 mt-1.5 pt-1.5 border-t border-stone-200 text-[11px]">
+                  <span className="font-bold">পেমেন্ট:</span> {
+                    selectedOrder.paymentMethod === 'bkash' ? 'bKash Send Money' :
+                    selectedOrder.paymentMethod === 'nagad' ? 'Nagad Send Money' :
+                    selectedOrder.paymentMethod === 'sslcommerz_sandbox' ? 'SSLCOMMERZ Online' : 'Cash on Delivery (ক্যাশ অন ডেলিভারি)'
+                  }
+                  {selectedOrder.transactionId && ` | TrxID: ${selectedOrder.transactionId}`}
+                  {selectedOrder.senderNumber && ` | প্রেরক: ${selectedOrder.senderNumber}`}
+                </div>
               </div>
             </div>
 
@@ -3418,6 +3925,137 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           onStoreDataChanged();
         }}
       />
+
+      {/* ADMIN MFS TrxID EDIT & PAYMENT APPROVAL MODAL */}
+      {editingTrxOrder && (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200 mb-4">
+              <div>
+                <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs font-bold text-white ${
+                      editingTrxOrder.paymentMethod === 'bkash' ? 'bg-[#E2136E]' : 'bg-[#F7921E]'
+                    }`}
+                  >
+                    {editingTrxOrder.paymentMethod === 'bkash' ? 'bKash' : 'Nagad'}
+                  </span>
+                  <span>পেমেন্ট ও TrxID পর্যালোচনা</span>
+                </h3>
+                <p className="text-xs text-stone-500 font-mono mt-0.5">
+                  অর্ডার: {editingTrxOrder.orderNumber} ({editingTrxOrder.customerName})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingTrxOrder(null)}
+                className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAdminPayment} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">
+                  পেমেন্ট স্ট্যাটাস:
+                </label>
+                <select
+                  value={adminPaymentStatusInput}
+                  onChange={(e) => setAdminPaymentStatusInput(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg bg-white focus:outline-none focus:border-[#0F4C3A]"
+                >
+                  <option value="paid">পরিশোধিত (Paid) - পেমেন্ট অনুমোদন করুন</option>
+                  <option value="unpaid">পরিশোধ বাকি (Unpaid) - যাচাই প্রক্রিয়াধীন</option>
+                </select>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-stone-700">
+                    গ্রাহকের প্রেরক মোবাইল নম্বর (Sender Phone):
+                  </label>
+                  {adminSenderInput.length > 0 && (
+                    <span className={`font-mono font-bold text-[10px] ${adminSenderInput.length === 11 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {adminSenderInput.length}/১১ ডিজিট
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="tel"
+                  maxLength={11}
+                  placeholder="017XXXXXXXX"
+                  value={adminSenderInput}
+                  onChange={(e) => setAdminSenderInput(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg font-mono bg-white focus:outline-none focus:border-[#0F4C3A]"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-stone-700">
+                    ট্রানজেকশন আইডি (TrxID) ({editingTrxOrder.paymentMethod === 'bkash' ? '১০ অক্ষর' : '৮ অক্ষর'}):
+                  </label>
+                  <span
+                    className={`font-mono px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                      adminTrxInput.length === (editingTrxOrder.paymentMethod === 'bkash' ? 10 : 8)
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : adminTrxInput.length > 0
+                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                        : 'bg-stone-100 text-stone-600'
+                    }`}
+                  >
+                    {adminTrxInput.length}/{editingTrxOrder.paymentMethod === 'bkash' ? 10 : 8} অক্ষর
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  maxLength={editingTrxOrder.paymentMethod === 'bkash' ? 10 : 8}
+                  placeholder={editingTrxOrder.paymentMethod === 'bkash' ? '8N7A6D5EE7' : '9J5A7B3X'}
+                  value={adminTrxInput}
+                  onChange={(e) => {
+                    const max = editingTrxOrder.paymentMethod === 'bkash' ? 10 : 8;
+                    setAdminTrxInput(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, max));
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg font-mono uppercase bg-white focus:outline-none ${
+                    adminTrxInput.length === (editingTrxOrder.paymentMethod === 'bkash' ? 10 : 8)
+                      ? 'border-emerald-500 ring-1 ring-emerald-500'
+                      : 'border-stone-200 focus:border-[#0F4C3A]'
+                  }`}
+                />
+                <p className="text-[10px] text-stone-500 mt-1">
+                  {editingTrxOrder.paymentMethod === 'bkash'
+                    ? 'বিকাশ স্টেটমেন্ট বা মেসেজ থেকে প্রাপ্ত ঠিক ১০ অক্ষরের কোড'
+                    : 'নগদ স্টেটমেন্ট বা মেসেজ থেকে প্রাপ্ত ঠিক ৮ অক্ষরের কোড'}
+                </p>
+              </div>
+
+              {adminTrxError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 font-medium">
+                  {adminTrxError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setEditingTrxOrder(null)}
+                  className="px-4 py-2 border border-stone-200 rounded-lg font-semibold hover:bg-stone-50 cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingAdminTrx}
+                  className="px-5 py-2 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-lg font-bold transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+                >
+                  {isSavingAdminTrx ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Floating High-Visibility Confirmation Toast (Top-Right, Above all modals) */}
       {toast && (

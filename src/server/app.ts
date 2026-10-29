@@ -7,6 +7,7 @@ import cartRouter from './routes/cart.ts';
 import ordersRouter from './routes/orders.ts';
 import paymentRouter from './routes/payment.ts';
 import adminRouter from './routes/admin.ts';
+import ogRouter from './routes/og.ts';
 import { getDatabase, migrateBase64Images } from './db.ts';
 import { getMongoDatabase, savePhotoToMongo, getPhotoFromMongo, getAllPhotosFromMongo, ensureMongoReady } from './mongodb.ts';
 
@@ -208,6 +209,7 @@ export function createExpressApp() {
   app.use('/api/orders', ordersRouter);
   app.use('/api/payment', paymentRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/og', ogRouter);
 
   // Health check & status
   app.get('/api/health', (req, res) => {

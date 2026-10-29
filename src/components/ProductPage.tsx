@@ -31,6 +31,7 @@ import { useLanguage } from '../context/LanguageContext.tsx';
 import { api } from '../lib/api.ts';
 import { ProductHighlightBadge } from './ProductHighlightBadge.tsx';
 import { ProductShareButton } from './ProductShareButton.tsx';
+import { useProductSeo } from '../hooks/useProductSeo.ts';
 
 interface ProductPageProps {
   product: Product;
@@ -63,6 +64,9 @@ export const ProductPage: React.FC<ProductPageProps> = ({
   const { language, t, formatPrice, formatNumber } = useLanguage();
   const isAdmin = user?.role === 'admin';
   const title = language === 'en' && product.titleEn ? product.titleEn : product.titleBn;
+
+  // Sync client-side SEO, OG image, and title
+  useProductSeo(product);
 
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
     product.variants && product.variants.length > 0 ? product.variants[0].id : undefined

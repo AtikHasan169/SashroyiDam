@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { X, Search, CheckCircle, Clock, Truck, Package, AlertCircle, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Search, CheckCircle, Clock, Truck, Package, AlertCircle, MapPin, Copy, Check } from 'lucide-react';
 import { api } from '../lib/api.ts';
-import type { Order } from '../types/index.ts';
+import type { Order, StoreSettings } from '../types/index.ts';
 
 interface OrderTrackingModalProps {
   isOpen: boolean;
@@ -19,8 +19,26 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      api.getStoreSettings().then(setStoreSettings).catch(() => {});
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleCopy = (text: string, key: string) => {
+    try {
+      navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setTimeout(() => {
+        setCopiedKey(null);
+      }, 2000);
+    } catch {}
+  };
 
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +85,19 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
     }
   };
 
+  const isBkashOrder = order?.paymentMethod === 'bkash';
+  const isNagadOrder = order?.paymentMethod === 'nagad';
+  const storePaymentNumber = isBkashOrder
+    ? storeSettings?.bkashNumber || '01609450703'
+    : isNagadOrder
+    ? storeSettings?.nagadNumber || '01866289100'
+    : '';
+  const storePaymentType = isBkashOrder
+    ? storeSettings?.bkashType || 'Personal'
+    : isNagadOrder
+    ? storeSettings?.nagadType || 'Personal'
+    : '';
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 md:p-6 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl border border-stone-200 relative my-8 text-left">
@@ -74,7 +105,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
         <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
           <div>
             <h2 className="text-lg font-bold text-stone-900">অর্ডার ট্র্যাকিং</h2>
-            <p className="text-xs text-stone-500 mt-0.5">আপনার অর্ডারের বর্তমান অবস্থা জানুন</p>
+            <p className="text-xs text-stone-500 mt-0.5">আপনার অর্ডারের বর্তমান অবস্থা ও পেমেন্ট বিবরণী</p>
           </div>
           <button
             onClick={onClose}
@@ -99,7 +130,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                   placeholder="যেমন: OSH-2026-701"
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm uppercase focus:outline-none focus:border-[#0F4C3A]"
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm uppercase font-mono focus:outline-none focus:border-[#0F4C3A]"
                 />
               </div>
 
@@ -110,10 +141,10 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                 <input
                   type="tel"
                   required
-                  placeholder="017xxxxxxxx"
+                  placeholder="017XXXXXXXX"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-[#0F4C3A]"
+                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm font-mono focus:outline-none focus:border-[#0F4C3A]"
                 />
               </div>
             </div>
@@ -161,9 +192,19 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between">
+                  <span>পেমেন্ট মাধ্যম:</span>
+                  <span className="font-semibold text-stone-900">
+                    {order.paymentMethod === 'bkash'
+                      ? 'bKash Send Money'
+                      : order.paymentMethod === 'nagad'
+                      ? 'Nagad Send Money'
+                      : 'ক্যাশ অন ডেলিভারি (COD)'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
                   <span>পেমেন্ট স্ট্যাটাস:</span>
                   <span className="font-semibold text-stone-900">
-                    {order.paymentStatus === 'paid' ? 'পরিশোধিত (Paid)' : 'পরিশোধ বকেয়া (COD)'}
+                    {order.paymentStatus === 'paid' ? 'পরিশোধিত (Paid)' : 'পরিশোধ বকেয়া'}
                   </span>
                 </div>
                 <div className="flex justify-between pt-1 border-t border-stone-200 font-bold text-stone-900">
@@ -173,6 +214,121 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                   </span>
                 </div>
               </div>
+
+              {/* bKash / Nagad Payment Information Card */}
+              {(isBkashOrder || isNagadOrder) && (
+                <div
+                  className={`p-4 rounded-xl border-2 space-y-3 ${
+                    isBkashOrder
+                      ? 'bg-pink-50/60 border-pink-200'
+                      : 'bg-orange-50/60 border-orange-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-xs font-bold px-2 py-0.5 rounded text-white ${
+                          isBkashOrder ? 'bg-[#E2136E]' : 'bg-[#F7921E]'
+                        }`}
+                      >
+                        {isBkashOrder ? 'bKash পেমেন্ট' : 'Nagad পেমেন্ট'}
+                      </span>
+                      <span className="text-xs font-medium text-stone-700">
+                        {storePaymentType} নম্বর:
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(storePaymentNumber, 'storeNum')}
+                      className={`px-2.5 py-1 text-xs font-bold rounded-lg text-white flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs ${
+                        isBkashOrder ? 'bg-[#E2136E] hover:bg-[#c4105f]' : 'bg-[#F7921E] hover:bg-[#d67b14]'
+                      }`}
+                    >
+                      {copiedKey === 'storeNum' ? (
+                        <>
+                          <Check className="w-3 h-3 text-white" />
+                          <span>কপি হয়েছে!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3 text-white" />
+                          <span>নম্বর কপি করুন</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="p-2.5 bg-white rounded-lg border border-stone-200 flex items-center justify-between text-xs">
+                    <span className="text-stone-500">স্টোর নম্বর:</span>
+                    <span className="font-mono font-bold text-stone-900 text-sm">
+                      {storePaymentNumber}
+                    </span>
+                  </div>
+
+                  {/* Customer TrxID display (Tamper-proof, read-only with copy) */}
+                  <div className="p-2.5 bg-white rounded-lg border border-stone-200 space-y-1.5">
+                    {order.senderNumber && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-stone-500">প্রেরক নম্বর:</span>
+                        <span className="font-mono font-bold text-stone-800">
+                          {order.senderNumber}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-stone-500">Transaction ID (TrxID):</span>
+                      {order.transactionId ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            {order.transactionId}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(order.transactionId || '', 'trxId')}
+                            className="p-1 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded transition-colors"
+                            title="TrxID কপি করুন"
+                          >
+                            {copiedKey === 'trxId' ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded text-[11px]">
+                          প্রদান করা হয়নি
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Payment Verification Status Notice */}
+                  <div className="p-2.5 rounded-lg text-xs leading-relaxed border bg-white/80 border-stone-200">
+                    {order.paymentStatus === 'paid' ? (
+                      <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>পেমেন্ট সফলভাবে অনুমোদিত ও সম্পন্ন হয়েছে (Paid)</span>
+                      </div>
+                    ) : order.transactionId ? (
+                      <div className="flex items-start gap-1.5 text-stone-700">
+                        <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <span>
+                          আপনার TrxID অ্যাডমিন প্যানেলে যাচাই করা হচ্ছে। কোনো সহায়তার প্রয়োজন হলে আমাদের কাস্টমার সার্ভিসে যোগাযোগ করুন।
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-1.5 text-amber-800">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <span>
+                          পেমেন্ট এখনও সম্পন্ন হয়নি। অনুগ্রহ করে স্টোর নম্বরে সেন্ড মানি করুন অথবা আমাদের হটলাইনে জানান।
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Status Timeline */}
               <div>

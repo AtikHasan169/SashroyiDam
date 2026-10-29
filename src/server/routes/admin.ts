@@ -231,6 +231,84 @@ router.put('/orders/:id/status', async (req: AuthenticatedRequest, res) => {
   }
 });
 
+// Admin review, edit TrxID, and manual payment approval
+router.put('/orders/:id/payment', async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentStatus, transactionId, senderNumber, note } = req.body as {
+      paymentStatus?: 'unpaid' | 'paid' | 'refunded' | 'failed';
+      transactionId?: string;
+      senderNumber?: string;
+      note?: string;
+    };
+
+    const updated = await withTransaction(async (db) => {
+      const order = db.orders.find((o) => o.id === id);
+      if (!order) throw new Error('অর্ডার পাওয়া যায়নি');
+
+      const isBkash = order.paymentMethod === 'bkash';
+      const isNagad = order.paymentMethod === 'nagad';
+
+      if (transactionId !== undefined) {
+        const cleanTrx = transactionId.replace(/[^A-Za-z0-9]/g, '').toUpperCase().trim();
+        if (cleanTrx.length > 0) {
+          if (isBkash && cleanTrx.length !== 10) {
+            throw new Error('বিকাশ ট্রানজেকশন আইডি (TrxID) অবশ্যই ঠিক ১০ অক্ষরের হতে হবে');
+          }
+          if (isNagad && cleanTrx.length !== 8) {
+            throw new Error('নগদ ট্রানজেকশন আইডি (TrxID) অবশ্যই ঠিক ৮ অক্ষরের হতে হবে');
+          }
+        }
+        order.transactionId = cleanTrx || undefined;
+      }
+
+      if (senderNumber !== undefined) {
+        const cleanSender = senderNumber.replace(/[^0-9]/g, '').slice(0, 11);
+        order.senderNumber = cleanSender || undefined;
+      }
+
+      const prevPaymentStatus = order.paymentStatus;
+      if (paymentStatus) {
+        order.paymentStatus = paymentStatus;
+      }
+
+      order.updatedAt = new Date().toISOString();
+
+      let timelineNote = note;
+      if (!timelineNote) {
+        if (paymentStatus === 'paid' && prevPaymentStatus !== 'paid') {
+          timelineNote = `অ্যাডমিন কর্তৃক পেমেন্ট অনুমোদিত (Paid)। TrxID: ${order.transactionId || 'N/A'}`;
+        } else if (transactionId) {
+          timelineNote = `অ্যাডমিন কর্তৃক TrxID আপডেট করা হয়েছে: ${order.transactionId}`;
+        } else {
+          timelineNote = `পেমেন্ট বিবরণী আপডেট করা হয়েছে (${order.paymentStatus})`;
+        }
+      }
+
+      order.statusTimeline.push({
+        status: order.fulfilmentStatus,
+        timestamp: new Date().toISOString(),
+        note: timelineNote,
+        changedBy: `${req.user!.name} (${req.user!.role})`
+      });
+
+      return order;
+    });
+
+    await recordAuditLog(
+      'ORDER_PAYMENT_UPDATE',
+      req.user!,
+      `Order ${updated.orderNumber} payment updated: status=${updated.paymentStatus}, TrxID=${updated.transactionId || 'none'}`
+    );
+
+    await syncOrderToMongo(updated);
+
+    res.json({ order: updated, message: 'পেমেন্ট ও TrxID সফলভাবে আপডেট করা হয়েছে' });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'পেমেন্ট আপডেট ব্যর্থ হয়েছে' });
+  }
+});
+
 // Add internal staff note to order
 router.post('/orders/:id/notes', async (req: AuthenticatedRequest, res) => {
   try {

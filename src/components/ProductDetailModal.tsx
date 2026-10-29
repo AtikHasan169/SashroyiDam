@@ -28,6 +28,7 @@ import { useLanguage } from '../context/LanguageContext.tsx';
 import { api } from '../lib/api.ts';
 import { ProductHighlightBadge } from './ProductHighlightBadge.tsx';
 import { ProductShareButton } from './ProductShareButton.tsx';
+import { useProductSeo } from '../hooks/useProductSeo.ts';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -55,6 +56,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onDeleteProduct
 }) => {
   if (!product) return null;
+
+  useProductSeo(product);
 
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
