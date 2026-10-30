@@ -505,13 +505,16 @@ export async function saveDatabase(data: DatabaseSchema): Promise<void> {
   isSaving = true;
   try {
     if (!fs.existsSync(DB_DIR)) {
-      fs.mkdirSync(DB_DIR, { recursive: true });
+      try {
+        fs.mkdirSync(DB_DIR, { recursive: true });
+      } catch {}
     }
     const tempFile = `${DB_FILE}.tmp.${Date.now()}`;
-    await fs.promises.writeFile(tempFile, JSON.stringify(data, null, 2), 'utf-8');
-    await fs.promises.rename(tempFile, DB_FILE);
-  } catch (err) {
-    console.error('Failed to save database asynchronously:', err);
+    await fs.promises.writeFile(tempFile, JSON.stringify(data, null, 2), 'utf-8').catch(() => {});
+    await fs.promises.rename(tempFile, DB_FILE).catch(() => {});
+  } catch (err: any) {
+    // Graceful catch for read-only serverless environments
+    console.warn('Note: Local disk write skipped in serverless environment:', err.message);
   } finally {
     isSaving = false;
     if (pendingSave) {

@@ -34,7 +34,7 @@ import type { Order, Address } from '../types/index.ts';
 
 interface ProfilePageProps {
   onBackToShopping: () => void;
-  onTrackOrder?: (orderNumber: string, phone: string) => void;
+  onTrackOrder?: (orderNumber: string, orderData?: Order, phone?: string) => void;
   onOpenAdmin?: () => void;
 }
 
@@ -884,7 +884,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
                             {onTrackOrder && (
                               <button
-                                onClick={() => onTrackOrder(ord.orderNumber, ord.customerPhone)}
+                                onClick={() => onTrackOrder(ord.orderNumber, ord, ord.customerPhone)}
                                 className="text-xs font-bold text-[#0F4C3A] hover:underline cursor-pointer"
                               >
                                 {language === 'en' ? 'Track' : 'ট্র্যাক'}

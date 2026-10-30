@@ -16,7 +16,7 @@ import { BrandLogo } from './BrandLogo.tsx';
 interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTrackOrder: (orderNumber: string) => void;
+  onTrackOrder: (orderNumber: string, orderData?: Order) => void;
   onOpenAdmin?: () => void;
 }
 
@@ -509,7 +509,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                           <button
                             onClick={() => {
                               onClose();
-                              onTrackOrder(ord.orderNumber);
+                              onTrackOrder(ord.orderNumber, ord);
                             }}
                             className="text-[#0F4C3A] hover:underline font-semibold text-xs cursor-pointer"
                           >

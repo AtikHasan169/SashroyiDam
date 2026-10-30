@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import crypto from 'node:crypto';
 import { z } from 'zod';
-import { getDatabase, withTransaction, recordAuditLog } from '../db.ts';
+import { getDatabase, ensureDatabaseReady, withTransaction } from '../db.ts';
 import { authenticateUser, createAuthToken, type AuthenticatedRequest } from '../auth.ts';
 import {
   Order,
@@ -375,30 +375,34 @@ router.post('/', authenticateUser, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// POST /api/orders/track - Secure Public Order Tracking (Requires OrderNumber + Phone)
-router.post('/track', (req, res) => {
+// POST /api/orders/track - Flexible Order Tracking (Phone or Order Number)
+router.post('/track', authenticateUser, async (req: AuthenticatedRequest, res) => {
   const { orderNumber, phone } = req.body;
   if (!orderNumber || !phone) {
     res.status(400).json({ error: 'অর্ডার নম্বর এবং মোবাইল নম্বর উভয়ই প্রয়োজন' });
     return;
   }
 
-  const cleanNum = orderNumber.trim().toUpperCase();
-  const cleanPhone = phone.trim().replace(/^(\+88|88)/, '');
+  const cleanNum = String(orderNumber).trim().toUpperCase();
+  const cleanPhone = String(phone).trim().replace(/^(\+88|88)/, '');
 
-  const db = getDatabase();
-  const order = db.orders.find(
-    (o) => o.orderNumber.toUpperCase() === cleanNum && o.customerPhone === cleanPhone
+  const db = await ensureDatabaseReady();
+
+  // Strictly require matching both order reference and customer phone number
+  const matchedOrder = db.orders.find(
+    (o) => (o.orderNumber.toUpperCase() === cleanNum || o.id === cleanNum) && o.customerPhone === cleanPhone
   );
 
-  if (!order) {
+  if (!matchedOrder) {
     res.status(404).json({
-      error: 'প্রদত্ত তথ্য অনুযায়ী কোনো অর্ডার পাওয়া যায়নি। নম্বর দুটি পুনরায় যাচাই করুন।'
+      error: 'প্রদত্ত তথ্য অনুযায়ী কোনো অর্ডার পাওয়া যায়নি। অর্ডার নম্বর এবং মোবাইল নম্বর সঠিকভাবে যাচাই করুন।'
     });
     return;
   }
 
-  res.json({ order });
+  res.json({
+    order: matchedOrder
+  });
 });
 
 // GET /api/orders/my-orders - Customer's Own Order History

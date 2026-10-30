@@ -24,7 +24,7 @@ interface CheckoutFlowProps {
   onClose: () => void;
   onOrderSuccess: (order: Order) => void;
   directBuyItem?: DirectBuyItem | null;
-  onOpenTrackingWithNumber?: (orderNumber: string) => void;
+  onOpenTrackingWithNumber?: (orderNumber: string, orderData?: Order) => void;
 }
 
 export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
@@ -73,6 +73,26 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderError, setOrderError] = useState('');
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
+
+  // Automatically reset previous completed order state when checkout is closed or reopened
+  useEffect(() => {
+    if (!isOpen) {
+      setCompletedOrder(null);
+      setStep(1);
+      setOrderError('');
+      setTransactionId('');
+      setSenderNumber('');
+    }
+  }, [isOpen]);
+
+  const handleCloseAndReset = () => {
+    setCompletedOrder(null);
+    setStep(1);
+    setOrderError('');
+    setTransactionId('');
+    setSenderNumber('');
+    onClose();
+  };
 
   // Load store settings for bKash & Nagad numbers and instructions
   useEffect(() => {
@@ -366,7 +386,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
             )}
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCloseAndReset}
             className="p-1.5 rounded-lg text-stone-500 hover:bg-stone-200 transition-colors cursor-pointer"
             aria-label="বন্ধ করুন"
           >
@@ -569,8 +589,10 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
               {onOpenTrackingWithNumber && (
                 <button
                   onClick={() => {
-                    onClose();
-                    onOpenTrackingWithNumber(completedOrder.orderNumber);
+                    const num = completedOrder.orderNumber;
+                    const ord = completedOrder;
+                    handleCloseAndReset();
+                    onOpenTrackingWithNumber(num, ord);
                   }}
                   className="px-5 py-2.5 bg-emerald-50 text-[#0F4C3A] border border-emerald-300 rounded-xl text-xs sm:text-sm font-semibold hover:bg-emerald-100 transition-colors cursor-pointer"
                 >
@@ -578,7 +600,7 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                 </button>
               )}
               <button
-                onClick={onClose}
+                onClick={handleCloseAndReset}
                 className="px-6 py-2.5 bg-[#0F4C3A] text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-[#135D48] transition-colors cursor-pointer"
               >
                 আরো কেনাকাটা করুন

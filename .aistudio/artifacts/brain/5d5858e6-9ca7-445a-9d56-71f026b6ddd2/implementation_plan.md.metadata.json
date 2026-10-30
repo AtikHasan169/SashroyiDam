@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan for implementing a dedicated admin_settings collection in MongoDB with automatic real-time bi-directional synchronization, ensuring all Admin Panel settings (bKash/Nagad payment numbers, delivery charges, shipping rates, coupons, banners, and store configurations) are persistently saved to and retrieved from MongoDB without reverting to defaults.",
-  "updatedAt":  "2026-10-29T19:22:27.486922266Z",
+  "summary":  "Strict Privacy Implementation Plan: restore two-factor verification (order number + phone) for all public guest tracking, enable 1-click zero-input tracking exclusively for logged-in profile orders, ensure clean checkout modal reset for subsequent purchases, and maintain MongoDB as primary database.",
+  "updatedAt":  "2026-10-29T19:57:47.118834428Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

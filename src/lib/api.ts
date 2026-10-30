@@ -455,7 +455,7 @@ export const api = {
       body: JSON.stringify(body)
     }),
 
-  trackOrder: (body: { orderNumber: string; phone: string }) =>
+  trackOrder: (body: { orderNumber?: string; phone?: string }) =>
     request<{ order: Order }>('/api/orders/track', {
       method: 'POST',
       body: JSON.stringify(body)

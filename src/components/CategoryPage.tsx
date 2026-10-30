@@ -13,7 +13,6 @@ interface CategoryPageProps {
   onOpenProduct: (product: Product) => void;
   onDirectBuy: (product: Product) => void;
   onQuickAddToast: (product: Product) => void;
-  onOpenQuickAction?: (product: Product) => void;
 }
 
 export const CategoryPage: React.FC<CategoryPageProps> = ({
@@ -24,8 +23,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   onSelectCategory,
   onOpenProduct,
   onDirectBuy,
-  onQuickAddToast,
-  onOpenQuickAction
+  onQuickAddToast
 }) => {
   const { language, t, formatNumber, formatPrice } = useLanguage();
 
@@ -219,7 +217,6 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
                 onOpenDetails={onOpenProduct}
                 onDirectBuy={onDirectBuy}
                 onQuickAddToast={onQuickAddToast}
-                onOpenQuickAction={onOpenQuickAction}
                 viewMode={viewMode}
               />
             ))}

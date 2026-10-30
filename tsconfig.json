@@ -23,6 +23,5 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  },
-  "exclude": ["node_modules", "dist", "audit-temp"]
+  }
 }

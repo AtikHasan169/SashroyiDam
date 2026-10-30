@@ -1,32 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, CheckCircle, Clock, Truck, Package, AlertCircle, MapPin, Copy, Check } from 'lucide-react';
+import { X, Search, CheckCircle, Clock, Truck, Package, AlertCircle, MapPin, Copy, Check, ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 import type { Order, StoreSettings } from '../types/index.ts';
 
 interface OrderTrackingModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialOrderNumber?: string;
+  initialOrder?: Order | null;
+  initialPhone?: string;
 }
 
 export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
   isOpen,
   onClose,
-  initialOrderNumber = ''
+  initialOrderNumber = '',
+  initialOrder = null,
+  initialPhone = ''
 }) => {
+  const { user } = useAuth();
   const [orderNumber, setOrderNumber] = useState(initialOrderNumber);
-  const [phone, setPhone] = useState('');
-  const [order, setOrder] = useState<Order | null>(null);
+  const [phone, setPhone] = useState(initialPhone || user?.phone || '');
+  const [order, setOrder] = useState<Order | null>(initialOrder);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // Sync state whenever modal opens or props change
   useEffect(() => {
     if (isOpen) {
       api.getStoreSettings().then(setStoreSettings).catch(() => {});
+
+      if (initialOrder) {
+        setOrder(initialOrder);
+        setOrderNumber(initialOrder.orderNumber);
+        if (initialOrder.customerPhone) setPhone(initialOrder.customerPhone);
+      } else if (initialOrderNumber) {
+        setOrderNumber(initialOrderNumber);
+        // Automatically fetch order if order number is passed (e.g. from checkout or direct link)
+        setIsLoading(true);
+        setErrorMsg('');
+        api.trackOrder({ orderNumber: initialOrderNumber, phone: initialPhone || user?.phone || '' })
+          .then((res) => {
+            if (res?.order) {
+              setOrder(res.order);
+            }
+          })
+          .catch((err) => {
+            setErrorMsg(err.message || 'অর্ডারটি খুঁজে পাওয়া যায়নি');
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      } else {
+        setOrder(null);
+        setErrorMsg('');
+        if (user?.phone) setPhone(user.phone);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialOrder, initialOrderNumber, initialPhone, user]);
 
   if (!isOpen) return null;
 
@@ -43,7 +77,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orderNumber.trim() || !phone.trim()) {
-      setErrorMsg('অর্ডার নম্বর এবং মোবাইল নম্বর উভয়ই লিখুন');
+      setErrorMsg('অনুগ্রহ করে অর্ডার রেফারেন্স নম্বর এবং মোবাইল নম্বর উভয়ই লিখুন');
       return;
     }
 
@@ -57,7 +91,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
       });
       setOrder(res.order);
     } catch (err: any) {
-      setErrorMsg(err.message || 'অর্ডারটি খুঁজে পাওয়া যায়নি');
+      setErrorMsg(err.message || 'প্রদত্ত তথ্য অনুযায়ী কোনো অর্ডার পাওয়া যায়নি। নম্বর দুটি পুনরায় যাচাই করুন।');
       setOrder(null);
     } finally {
       setIsLoading(false);
@@ -117,58 +151,90 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
         </div>
 
         <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-          {/* Tracking Form */}
-          <form onSubmit={handleTrack} className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  অর্ডার রেফারেন্স নম্বর
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="যেমন: OSH-2026-701"
-                  value={orderNumber}
-                  onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm uppercase font-mono focus:outline-none focus:border-[#0F4C3A]"
-                />
+          {/* If order is already loaded (from Profile or direct search), show top bar with switch option */}
+          {order ? (
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-[#0F4C3A]" />
+                <span className="text-xs font-bold text-stone-900">
+                  অর্ডার বিস্তারিত তথ্য
+                </span>
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  অর্ডারে ব্যবহৃত মোবাইল নম্বর
-                </label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="017XXXXXXXX"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm font-mono focus:outline-none focus:border-[#0F4C3A]"
-                />
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOrder(null);
+                  setErrorMsg('');
+                }}
+                className="text-xs text-[#0F4C3A] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>অন্য অর্ডার খুঁজুন</span>
+              </button>
             </div>
-
-            {errorMsg && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600" />
-                <span>{errorMsg}</span>
+          ) : (
+            /* Tracking Form when searching */
+            <form onSubmit={handleTrack} className="space-y-3.5 bg-stone-50/80 p-4 rounded-xl border border-stone-200">
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-stone-900 block">
+                  অর্ডার রেফারেন্স নম্বর ও মোবাইল নম্বর দিয়ে খুঁজুন
+                </span>
+                <span className="text-[11px] text-stone-500 block">
+                  গ্রাহকের তথ্যের গোপনীয়তা রক্ষায় অর্ডার নম্বর এবং অর্ডারে ব্যবহৃত মোবাইল নম্বর উভয়ই প্রদান করা আবশ্যক
+                </span>
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-2.5 px-4 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <Search className="w-4 h-4" />
-              <span>{isLoading ? 'খোঁজা হচ্ছে...' : 'স্ট্যাটাস দেখুন'}</span>
-            </button>
-          </form>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    অর্ডার রেফারেন্স নম্বর <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="যেমন: OSH-2026-701"
+                    value={orderNumber}
+                    onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm uppercase font-mono bg-white focus:outline-none focus:border-[#0F4C3A]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    মোবাইল নম্বর <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="017XXXXXXXX"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm font-mono bg-white focus:outline-none focus:border-[#0F4C3A]"
+                  />
+                </div>
+              </div>
+
+              {errorMsg && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-2.5 px-4 bg-[#0F4C3A] hover:bg-[#135D48] text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-xs"
+              >
+                <Search className="w-4 h-4" />
+                <span>{isLoading ? 'খোঁজা হচ্ছে...' : 'অর্ডার স্ট্যাটাস দেখুন'}</span>
+              </button>
+            </form>
+          )}
 
           {/* Result Card */}
           {order && (
-            <div className="pt-4 border-t border-stone-200 space-y-5">
+            <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs text-stone-500">অর্ডার নম্বর:</div>

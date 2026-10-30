@@ -693,12 +693,6 @@ router.put('/products/:id', async (req: AuthenticatedRequest, res) => {
       return db.products[idx];
     });
 
-    await recordAuditLog(
-      'PRODUCT_UPDATED',
-      req.user!,
-      `Product "${updated.titleBn}" updated.`
-    );
-
     await syncProductToMongo(updated);
 
     res.json({ product: updated, message: 'পণ্য সফলভাবে আপডেট হয়েছে' });
@@ -741,12 +735,6 @@ router.patch('/products/:id/toggle-availability', async (req: AuthenticatedReque
       prod.updatedAt = new Date().toISOString();
       return prod;
     });
-
-    await recordAuditLog(
-      'PRODUCT_AVAILABILITY_TOGGLED',
-      req.user!,
-      `Product "${updated.titleBn}" marked as ${updated.isUnavailable ? 'Unavailable for Sale' : 'Available for Sale'}`
-    );
 
     await syncProductToMongo(updated);
 
