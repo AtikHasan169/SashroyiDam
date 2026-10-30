@@ -1,6 +1,6 @@
 {
-  "summary":  "Strict Privacy Implementation Plan: restore two-factor verification (order number + phone) for all public guest tracking, enable 1-click zero-input tracking exclusively for logged-in profile orders, ensure clean checkout modal reset for subsequent purchases, and maintain MongoDB as primary database.",
-  "updatedAt":  "2026-10-29T19:57:47.118834428Z",
+  "summary":  "Plan to convert all footer lines that currently contain parentheses () into clean, full English lines without parentheses (e.g. 'Track Order', 'Delivery Policy', 'Return & Replacement', 'About Us', 'Privacy Policy'), while keeping the surrounding brand bio and section headers in their authentic Bangla.",
+  "updatedAt":  "2026-10-30T18:06:32.787146089Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

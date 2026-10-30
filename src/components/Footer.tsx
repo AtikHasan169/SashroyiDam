@@ -18,7 +18,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
     switch (activePolicy) {
       case 'about':
         return {
-          title: 'আমাদের সম্পর্কে (About Us)',
+          title: 'About Us',
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <p>
@@ -32,7 +32,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
         };
       case 'contact':
         return {
-          title: 'যোগাযোগ ও সাপোর্ট (Contact & Support)',
+          title: 'Contact & Support',
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <p>যেকোনো জিজ্ঞাসা, অর্ডার অনুসন্ধান কিংবা পরামর্শের জন্য আমাদের কাস্টমার কেয়ার টিমের সাথে যোগাযোগ করুন:</p>
@@ -66,7 +66,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
         };
       case 'faq':
         return {
-          title: 'সাধারণ জিজ্ঞাসা (FAQ)',
+          title: 'FAQ',
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <div>
@@ -86,7 +86,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
         };
       case 'shipping':
         return {
-          title: 'ডেলিভারি নীতিমালা (Delivery Policy)',
+          title: 'Delivery Policy',
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <p>১. ঢাকা মেট্রোর ভেতরে ডেলিভারি চার্জ ৳৬০ এবং ঢাকার বাইরে সারাদেশে ৳১২০।</p>
@@ -97,7 +97,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
         };
       case 'return':
         return {
-          title: 'রিটার্ন ও রিপ্লেসমেন্ট (Return & Replacement Policy)',
+          title: 'Return & Replacement',
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <p>১. পণ্যে কোনো উৎপাদন ত্রুটি থাকলে ৭ কার্যদিবসের মধ্যে ১০০% ঝামেলাহীন রিপ্লেসমেন্ট প্রদান করা হয়।</p>
@@ -107,7 +107,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
         };
       case 'privacy':
         return {
-          title: 'গোপনীয়তা নীতিমালা (Privacy Policy)',
+          title: 'Privacy Policy',
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <p>গ্রাহকের তথ্যের সর্বোচ্চ গোপনীয়তা আমাদের অঙ্গীকার। নাম, মোবাইল নম্বর এবং ঠিকানা কেবল অর্ডার ডেলিভারি ও যাচাইকরণের জন্য ব্যবহৃত হয়। কোনো তৃতীয় পক্ষের কাছে তথ্য হস্তান্তর করা হয় না।</p>
@@ -116,7 +116,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
         };
       case 'terms':
         return {
-          title: 'ব্যবহারের শর্তাবলী (Terms & Conditions)',
+          title: 'Terms & Conditions',
           content: (
             <div className="space-y-3 text-xs text-stone-600 leading-relaxed font-sans">
               <p>সাশ্রয়ী দাম প্ল্যাটফর্মে অর্ডার প্রদান করার মাধ্যমে আপনি আমাদের বিক্রয় নীতিমালার সাথে একমত পোষণ করছেন। সমস্ত মূল্য বাংলাদেশি টাকা (BDT) হিসেবে নির্ধারিত এবং স্টক সাপেক্ষ।</p>
@@ -144,7 +144,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
             {/* Social Links: Facebook, WhatsApp, Instagram */}
             <div className="pt-1">
               <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider block mb-2">
-                কানেক্টেড থাকুন (Social Links)
+                Social Links
               </span>
               <div className="flex items-center gap-2.5">
                 {/* WhatsApp */}
@@ -228,7 +228,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
                   onClick={onOpenTracking}
                   className="hover:text-white transition-colors cursor-pointer text-left flex items-center gap-1.5"
                 >
-                  <span>অর্ডার ট্র্যাক করুন (Track Order)</span>
+                  <span>Track Order</span>
                 </button>
               </li>
               <li>
@@ -236,7 +236,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
                   onClick={() => setActivePolicy('shipping')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  ডেলিভারি নীতিমালা (Delivery Policy)
+                  Delivery Policy
                 </button>
               </li>
               <li>
@@ -244,7 +244,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
                   onClick={() => setActivePolicy('return')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  রিটার্ন ও রিপ্লেসমেন্ট (Replacement)
+                  Return & Replacement
                 </button>
               </li>
               <li>
@@ -252,7 +252,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
                   onClick={() => setActivePolicy('faq')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  সাধারণ জিজ্ঞাসা (FAQ)
+                  FAQ
                 </button>
               </li>
               <li>
@@ -260,7 +260,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
                   onClick={() => setActivePolicy('contact')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  যোগাযোগ ও সাপোর্ট (Support)
+                  Contact & Support
                 </button>
               </li>
             </ul>
@@ -275,7 +275,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
                   onClick={() => setActivePolicy('about')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  আমাদের সম্পর্কে (About Us)
+                  About Us
                 </button>
               </li>
               <li>
@@ -283,7 +283,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
                   onClick={() => setActivePolicy('privacy')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  গোপনীয়তা নীতিমালা (Privacy)
+                  Privacy Policy
                 </button>
               </li>
               <li>
@@ -291,7 +291,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
                   onClick={() => setActivePolicy('terms')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  ব্যবহারের শর্তাবলী (Terms)
+                  Terms & Conditions
                 </button>
               </li>
             </ul>
@@ -301,7 +301,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracking, settings }) => {
                 পেমেন্ট মাধ্যম:
               </span>
               <div className="text-[11px] text-stone-300 font-medium leading-relaxed">
-                ক্যাশ অন ডেলিভারি · বিকাশ · নগদ · রকেট · কার্ড
+                ক্যাশ অন ডেলিভারি · বিকাশ · নগদ
               </div>
             </div>
           </div>

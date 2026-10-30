@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Search, CheckCircle, Clock, Truck, Package, AlertCircle, MapPin, Copy, Check, ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
+import { BKashLogo, NagadLogo } from './PaymentLogos.tsx';
 import type { Order, StoreSettings } from '../types/index.ts';
 
 interface OrderTrackingModalProps {
@@ -292,14 +293,16 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs font-bold px-2 py-0.5 rounded text-white ${
-                          isBkashOrder ? 'bg-[#E2136E]' : 'bg-[#F7921E]'
-                        }`}
-                      >
-                        {isBkashOrder ? 'bKash পেমেন্ট' : 'Nagad পেমেন্ট'}
-                      </span>
-                      <span className="text-xs font-medium text-stone-700">
+                      {isBkashOrder ? (
+                        <div className="bg-white px-2 py-0.5 rounded-lg border border-pink-200 shadow-2xs">
+                          <BKashLogo className="h-4.5 w-auto" />
+                        </div>
+                      ) : (
+                        <div className="bg-white px-2 py-0.5 rounded-lg border border-orange-200 shadow-2xs">
+                          <NagadLogo className="h-4.5 w-auto" />
+                        </div>
+                      )}
+                      <span className="text-xs font-semibold text-stone-700">
                         {storePaymentType} নম্বর:
                       </span>
                     </div>

@@ -3,6 +3,7 @@ import { X, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, CreditCard, Bank
 import { useCart } from '../context/CartContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useLanguage } from '../context/LanguageContext.tsx';
+import { BKashLogo, NagadLogo } from './PaymentLogos.tsx';
 import {
   BANGLADESH_DIVISIONS,
   getUpazilasForDistrict,
@@ -469,10 +470,17 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                 {/* Store Payment Number Box with One-Click Copy */}
                 <div className="bg-white p-3.5 rounded-xl border border-stone-200 flex flex-wrap items-center justify-between gap-2.5 shadow-xs">
                   <div>
-                    <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
-                      {completedOrder.paymentMethod === 'bkash'
-                        ? `bKash ${storeSettings?.bkashType || 'Personal'} Number:`
-                        : `Nagad ${storeSettings?.nagadType || 'Personal'} Number:`}
+                    <div className="flex items-center gap-2 mb-1">
+                      {completedOrder.paymentMethod === 'bkash' ? (
+                        <BKashLogo className="h-5 w-auto" />
+                      ) : (
+                        <NagadLogo className="h-5 w-auto" />
+                      )}
+                      <span className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
+                        {completedOrder.paymentMethod === 'bkash'
+                          ? `${storeSettings?.bkashType || 'Personal'} Number`
+                          : `${storeSettings?.nagadType || 'Personal'} Number`}
+                      </span>
                     </div>
                     <div className="font-mono text-base font-bold text-stone-900 tracking-wide mt-0.5">
                       {completedOrder.paymentMethod === 'bkash'
@@ -957,9 +965,9 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                     {/* bKash Send Money */}
                     <label
                       onClick={() => setPaymentMethod('bkash')}
-                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                      className={`p-3.5 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
                         paymentMethod === 'bkash'
-                          ? 'border-[#E2136E] bg-pink-50/50 ring-2 ring-[#E2136E]'
+                          ? 'border-[#E2136E] bg-pink-50/50 ring-2 ring-[#E2136E]/80 shadow-xs'
                           : 'border-stone-200 hover:border-stone-300 bg-white'
                       }`}
                     >
@@ -971,16 +979,16 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                         className="mt-1 text-[#E2136E]"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <div className="flex items-center gap-1.5 font-bold text-sm text-[#E2136E]">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#E2136E]"></span>
-                            <span>bKash Send Money</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <BKashLogo className="h-6 w-auto" />
+                            <span className="font-bold text-xs text-[#E2136E] hidden sm:inline">Send Money</span>
                           </div>
-                          <span className="text-[10px] font-bold bg-[#E2136E] text-white px-2 py-0.5 rounded-full">
+                          <span className="text-[11px] font-bold bg-[#E2136E] text-white px-2.5 py-0.5 rounded-full shadow-2xs">
                             বিকাশ
                           </span>
                         </div>
-                        <p className="text-xs text-stone-500 mt-0.5">
+                        <p className="text-xs text-stone-500 mt-1">
                           পার্সোনাল বিকাশ নম্বরে সেন্ড মানি করে TrxID দিন।
                         </p>
                       </div>
@@ -989,9 +997,9 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                     {/* Nagad Send Money */}
                     <label
                       onClick={() => setPaymentMethod('nagad')}
-                      className={`p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
+                      className={`p-3.5 rounded-xl border flex items-start gap-3 cursor-pointer transition-all ${
                         paymentMethod === 'nagad'
-                          ? 'border-[#F7921E] bg-orange-50/50 ring-2 ring-[#F7921E]'
+                          ? 'border-[#F7921E] bg-orange-50/50 ring-2 ring-[#F7921E]/80 shadow-xs'
                           : 'border-stone-200 hover:border-stone-300 bg-white'
                       }`}
                     >
@@ -1003,16 +1011,16 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                         className="mt-1 text-[#F7921E]"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <div className="flex items-center gap-1.5 font-bold text-sm text-[#D35400]">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#F7921E]"></span>
-                            <span>Nagad Send Money</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <NagadLogo className="h-6 w-auto" />
+                            <span className="font-bold text-xs text-[#D35400] hidden sm:inline">Send Money</span>
                           </div>
-                          <span className="text-[10px] font-bold bg-[#F7921E] text-white px-2 py-0.5 rounded-full">
+                          <span className="text-[11px] font-bold bg-[#F7921E] text-white px-2.5 py-0.5 rounded-full shadow-2xs">
                             নগদ
                           </span>
                         </div>
-                        <p className="text-xs text-stone-500 mt-0.5">
+                        <p className="text-xs text-stone-500 mt-1">
                           পার্সোনাল নগদ নম্বরে সেন্ড মানি করে TrxID দিন।
                         </p>
                       </div>
@@ -1023,15 +1031,18 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                   {/* bKash Payment Details Panel */}
                   {paymentMethod === 'bkash' && (
                     <div className="mt-3 p-4 bg-pink-50/70 rounded-2xl border-2 border-pink-200 space-y-3.5 animate-in fade-in duration-200">
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-[#E2136E] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
-                          ৳
+                      <div className="flex items-start gap-3">
+                        <div className="bg-white p-1.5 rounded-xl border border-pink-200 shrink-0 shadow-2xs">
+                          <BKashLogo variant="symbol" className="w-8 h-8" />
                         </div>
                         <div className="flex-1">
-                          <h4 className="text-sm font-bold text-[#E2136E]">
-                            bKash Send Money নির্দেশিকা
-                          </h4>
-                          <p className="text-xs text-stone-700 mt-0.5 leading-relaxed">
+                          <div className="flex items-center gap-2">
+                            <BKashLogo className="h-5 w-auto" />
+                            <h4 className="text-sm font-bold text-[#E2136E]">
+                              Send Money নির্দেশিকা
+                            </h4>
+                          </div>
+                          <p className="text-xs text-stone-700 mt-1 leading-relaxed">
                             {storeSettings?.bkashInstructions ||
                               'বিকাশ থেকে সেন্ড মানি করার পর যে নাম্বার থেকে টাকা পাঠিয়েছেন সে নাম্বার এবং ১০ অক্ষরের ট্রানজেকশন আইডি লিখুন।'}
                           </p>
@@ -1155,15 +1166,18 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                   {/* Nagad Payment Details Panel */}
                   {paymentMethod === 'nagad' && (
                     <div className="mt-3 p-4 bg-orange-50/70 rounded-2xl border-2 border-orange-200 space-y-3.5 animate-in fade-in duration-200">
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-[#F7921E] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
-                          ৳
+                      <div className="flex items-start gap-3">
+                        <div className="bg-white p-1.5 rounded-xl border border-orange-200 shrink-0 shadow-2xs">
+                          <NagadLogo variant="symbol" className="w-8 h-8" />
                         </div>
                         <div className="flex-1">
-                          <h4 className="text-sm font-bold text-[#D35400]">
-                            Nagad Send Money নির্দেশিকা
-                          </h4>
-                          <p className="text-xs text-stone-700 mt-0.5 leading-relaxed">
+                          <div className="flex items-center gap-2">
+                            <NagadLogo className="h-5 w-auto" />
+                            <h4 className="text-sm font-bold text-[#D35400]">
+                              Send Money নির্দেশিকা
+                            </h4>
+                          </div>
+                          <p className="text-xs text-stone-700 mt-1 leading-relaxed">
                             {storeSettings?.nagadInstructions ||
                               'নগদ থেকে সেন্ড মানি করার পর যে নাম্বার থেকে টাকা পাঠিয়েছেন সে নাম্বার এবং ৮ অক্ষরের ট্রানজেকশন আইডি লিখুন।'}
                           </p>
