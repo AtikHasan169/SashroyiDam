@@ -17,6 +17,7 @@ import { ProfilePage } from './components/ProfilePage.tsx';
 import { AdminDashboard } from './components/admin/AdminDashboard.tsx';
 import { FloatingNavDock } from './components/FloatingNavDock.tsx';
 import { ClassyFloatingBar } from './components/ClassyFloatingBar.tsx';
+import { DesktopFloatingCartTab } from './components/DesktopFloatingCartTab.tsx';
 import { LanguageProvider, useLanguage } from './context/LanguageContext.tsx';
 import { useCart } from './context/CartContext.tsx';
 import { CartToast, type CartToastItem } from './components/CartToast.tsx';
@@ -632,6 +633,9 @@ function StorefrontApp() {
         instagramUrl={storeInfo?.settings?.instagramUrl || ''}
       />
 
+
+      {/* Desktop Right-Edge Sticky Vertical Cart Tab */}
+      <DesktopFloatingCartTab />
 
       {/* User-Friendly Floating Cart Toast Feedback */}
       <CartToast

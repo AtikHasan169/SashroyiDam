@@ -1,58 +1,37 @@
-# Implementation Plan: Convert Parenthetical Lines to Clean Full English
+# Implementation Plan: Right-Edge Vertical Sticky Cart Tab for Desktop
 
-## 1. User Requirement
-"I said () full line will be in English"
-Convert every line that currently has parenthetical text `()` into a clean, standalone full line in English, without parentheses or mixed language.
-
----
-
-## 2. Changes in `src/components/Footer.tsx`
-
-### A. Customer Service Links (`গ্রাহক সেবা` column)
-- **Current:**
-  - `অর্ডার ট্র্যাক করুন (Track Order)`
-  - `ডেলিভারি নীতিমালা (Delivery Policy)`
-  - `রিটার্ন ও রিপ্লেসমেন্ট (Replacement)`
-  - `সাধারণ জিজ্ঞাসা (FAQ)`
-  - `যোগাযোগ ও সাপোর্ট (Support)`
-- **Change to Full English:**
-  - `Track Order`
-  - `Delivery Policy`
-  - `Return & Replacement`
-  - `FAQ`
-  - `Contact & Support`
-
-### B. Company & Policy Links (`ব্র্যান্ড ও শর্তাবলী` column)
-- **Current:**
-  - `আমাদের সম্পর্কে (About Us)`
-  - `গোপনীয়তা নীতিমালা (Privacy)`
-  - `ব্যবহারের শর্তাবলী (Terms)`
-- **Change to Full English:**
-  - `About Us`
-  - `Privacy Policy`
-  - `Terms & Conditions`
-
-### C. Policy Modal Titles
-- Update popup modal header titles from `Title (English)` to clean English:
-  - `About Us`
-  - `Contact & Support`
-  - `Delivery Policy`
-  - `Return & Replacement`
-  - `FAQ`
-  - `Privacy Policy`
-  - `Terms & Conditions`
-
-### D. Elements Remaining in Authentic Bangla
-- Brand description and tagline in the first column.
-- Helpline, hours, and contact details.
-- Column headers (`গ্রাহক সেবা`, `ব্র্যান্ড ও শর্তাবলী`).
-- Payment method line: `পেমেন্ট মাধ্যম: ক্যাশ অন ডেলিভারি · বিকাশ · নগদ`.
-- Bottom strip location and copyright.
+## 1. User Choice & Objective
+- **User Selection:** `Right edge vertical sticky cart tab with item count`
+- **Objective:** Add a responsive, polished desktop vertical floating cart tab pinned to the right edge of the browser viewport. When clicked, it smoothly opens the Cart Drawer.
 
 ---
 
-## 3. Verification Plan
-- Verify no parentheses `()` remain in the footer links.
-- Verify each link clearly displays in full English.
-- Verify policy modals open properly with English titles.
+## 2. Component Design (`src/components/DesktopFloatingCartTab.tsx`)
+- **Positioning:**
+  - `fixed right-0 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col items-center`
+  - Rounded left corners (`rounded-l-2xl`), premium forest green background (`#0F4C3A`), border highlight (`border-l border-t border-b border-emerald-500/50`), and deep elevation shadow (`shadow-[-4px_0_25px_rgba(15,76,58,0.3)]`).
+- **Interactive States & Motion:**
+  - Subtle slide-out on hover (`hover:-translate-x-1 transition-all duration-200 cursor-pointer`).
+  - Gentle pulse highlight when items are newly added to the cart.
+- **Content Layout (Vertical Stack):**
+  1. **Cart Icon:** Shopping bag with live count bubble.
+  2. **Item Count Label:** e.g., `২ টি পণ্য` / `2 Items`.
+  3. **Live Price Pill:** e.g., `৳ ১,২৫০` with high-contrast amber/white typography.
+- **Visibility:**
+  - Visible on tablet/desktop viewports (`md:flex`).
+  - Temporarily hidden when `isCartDrawerOpen` is true to prevent visual overlap.
+  - Displays when items are present (or with a minimal idle badge).
+
+---
+
+## 3. Integration in `src/App.tsx`
+- Import and render `<DesktopFloatingCartTab />` in the root storefront tree alongside existing overlays.
+- Seamlessly trigger `setIsCartDrawerOpen(true)` upon click.
+
+---
+
+## 4. Verification Plan
+- Verify sticky position on desktop screens while scrolling catalog and product pages.
+- Verify real-time count and price updates when adding/removing cart items.
+- Ensure proper responsiveness (hidden on mobile, where bottom dock handles cart navigation).
 - Run `lint_applet` and `compile_applet`.
